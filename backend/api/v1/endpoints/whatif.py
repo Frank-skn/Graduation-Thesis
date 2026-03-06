@@ -10,9 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db_nds, get_db_dds
+from backend.core.database import get_db_nds, get_csv_data
+from backend.data_access.csv_repository import CsvOptimizationDataRepository
 from backend.data_access.repositories import (
-    OptimizationDataRepository,
     ResultRepository,
     ScenarioRepository,
 )
@@ -153,7 +153,7 @@ def get_whatif_templates():
 def create_whatif(
     request: WhatIfCreate,
     db_nds: Session = Depends(get_db_nds),
-    db_dds: Session = Depends(get_db_dds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
     """
     Create and execute a what-if scenario.
@@ -173,10 +173,14 @@ def create_whatif(
         raise HTTPException(status_code=404, detail="Scenario not found")
 
     # Persist what-if record (status=running)
+    # Store label inside overrides JSON for retrieval in history
+    overrides_with_label = dict(request.overrides)
+    if request.label:
+        overrides_with_label["label"] = request.label
     whatif = WhatIfScenario(
         scenario_id=request.base_scenario_id,
         whatif_type=request.scenario_type.value,
-        parameter_overrides=json.dumps(request.overrides),
+        parameter_overrides=json.dumps(overrides_with_label),
         status="running",
     )
     db_nds.add(whatif)
@@ -184,9 +188,8 @@ def create_whatif(
     db_nds.refresh(whatif)
 
     try:
-        # Get base optimisation input
-        data_repo = OptimizationDataRepository(db_dds)
-        base_input = data_repo.get_optimization_input()
+        # Get base optimisation input from CSV
+        base_input = csv_repo.get_optimization_input()
 
         # Also try to fetch base KPIs from the latest run
         latest_run = (
@@ -226,10 +229,26 @@ def create_whatif(
             "total_overstock": whatif_response.kpis.total_overstock,
             "total_shortage": whatif_response.kpis.total_shortage,
             "total_penalty": whatif_response.kpis.total_penalty,
+            "cost_backorder": whatif_response.kpis.cost_backorder,
+            "cost_overstock": whatif_response.kpis.cost_overstock,
+            "cost_shortage":  whatif_response.kpis.cost_shortage,
+            "cost_penalty":   whatif_response.kpis.cost_penalty,
             "service_level": whatif_response.kpis.service_level,
             "capacity_utilization": whatif_response.kpis.capacity_utilization,
         }
         result_repo.save_kpis(run_id, kpi_dict)
+
+        # Save extended run summary (baseline cost, savings, SI/SS)
+        result_repo.save_run_summary(
+            run_id=run_id,
+            baseline_cost=whatif_response.baseline_cost,
+            opt_cost=whatif_response.objective_value,
+            savings=whatif_response.savings,
+            savings_pct=whatif_response.savings_pct,
+            n_changes=whatif_response.n_changes,
+            si_mean=whatif_response.si_mean,
+            ss_below_count=whatif_response.ss_below_count,
+        )
 
         # Update what-if record
         whatif.run_id = run_id
@@ -373,3 +392,69 @@ def compare_runs(
         deltas=deltas,
         summary=summary,
     )
+
+
+# ================================================================== #
+#  4. GET /history -- List all what-if scenario runs                   #
+# ================================================================== #
+
+class WhatIfHistoryItem(BaseModel):
+    whatif_id: int
+    scenario_id: int
+    whatif_type: str
+    label: str = ""
+    status: str
+    run_id: Optional[int] = None
+    objective_value: Optional[float] = None
+    solver_status: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class WhatIfHistoryResponse(BaseModel):
+    scenarios: List[WhatIfHistoryItem]
+    total: int
+
+
+@router.get("/history", response_model=WhatIfHistoryResponse)
+def get_whatif_history(
+    limit: int = 50,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    List all what-if scenario runs with their status and results.
+    """
+    records = (
+        db.query(WhatIfScenario)
+        .order_by(WhatIfScenario.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    items = []
+    for w in records:
+        run = None
+        if w.run_id:
+            run = db.query(OptimizationRun).filter(OptimizationRun.run_id == w.run_id).first()
+
+        # Try to extract label from parameter_overrides JSON
+        label = ""
+        if w.parameter_overrides:
+            try:
+                overrides = json.loads(w.parameter_overrides)
+                label = overrides.get("label", "")
+            except Exception:
+                pass
+
+        items.append(WhatIfHistoryItem(
+            whatif_id=w.whatif_id,
+            scenario_id=w.scenario_id,
+            whatif_type=w.whatif_type,
+            label=label,
+            status=w.status or "unknown",
+            run_id=w.run_id,
+            objective_value=float(run.objective_value) if run and run.objective_value else None,
+            solver_status=run.solver_status if run else None,
+            created_at=w.created_at.isoformat() if w.created_at else None,
+        ))
+
+    return WhatIfHistoryResponse(scenarios=items, total=len(items))

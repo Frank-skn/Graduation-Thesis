@@ -15,6 +15,7 @@ from backend.data_access.models_nds import (
     OptimizationRun,
     OptimizationResult,
     DssKPI,
+    DssRunSummary,
 )
 
 router = APIRouter()
@@ -42,6 +43,10 @@ class KPIDetail(BaseModel):
     total_overstock: float = 0
     total_shortage: float = 0
     total_penalty: float = 0
+    cost_backorder: float = 0
+    cost_overstock: float = 0
+    cost_shortage:  float = 0
+    cost_penalty:   float = 0
     service_level: float = 0
     capacity_utilization: float = 0
 
@@ -170,6 +175,10 @@ def get_executive_summary(
             total_overstock=float(kpi.total_overstock or 0),
             total_shortage=float(kpi.total_shortage or 0),
             total_penalty=float(kpi.total_penalty or 0),
+            cost_backorder=float(kpi.cost_backorder or 0),
+            cost_overstock=float(kpi.cost_overstock or 0),
+            cost_shortage= float(kpi.cost_shortage  or 0),
+            cost_penalty=  float(kpi.cost_penalty   or 0),
             service_level=float(kpi.service_level or 0),
             capacity_utilization=float(kpi.capacity_utilization or 0),
         )
@@ -317,3 +326,247 @@ def get_inventory_dynamics(
         )
 
     return InventoryDynamicsResponse(run_id=run_id, dynamics=dynamics)
+
+
+# ================================================================== #
+#  4. GET /{run_id}/summary-extended                                   #
+# ================================================================== #
+
+class RunSummaryExtended(BaseModel):
+    """Baseline vs optimal cost, savings and SI/SS metrics."""
+    run_id: int
+    baseline_cost: float = 0
+    opt_cost: float = 0
+    savings: float = 0
+    savings_pct: float = 0
+    n_changes: int = 0
+    si_mean: float = 0
+    ss_below_count: int = 0
+
+
+@router.get("/{run_id}/summary-extended", response_model=RunSummaryExtended)
+def get_summary_extended(run_id: int, db: Session = Depends(get_db_nds)):
+    """
+    Mở rộng tóm tắt: chi phí cơ sở, tiết kiệm, chỉ số SI/SS.
+    Returns baseline vs optimised cost and safety-index metrics.
+    """
+    _load_run(run_id, db)
+    s = db.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Run summary not found. Run optimisation first.")
+    return RunSummaryExtended(
+        run_id=run_id,
+        baseline_cost=float(s.baseline_cost or 0),
+        opt_cost=float(s.opt_cost or 0),
+        savings=float(s.savings or 0),
+        savings_pct=float(s.savings_pct or 0),
+        n_changes=int(s.n_changes or 0),
+        si_mean=float(s.si_mean or 0),
+        ss_below_count=int(s.ss_below_count or 0),
+    )
+
+
+# ================================================================== #
+#  5. GET /{run_id}/variables                                          #
+# ================================================================== #
+
+class VariableRecord(BaseModel):
+    """All 7 model variables for a single (i, j, t) cell."""
+    product_id: str
+    warehouse_id: str
+    time_period: int
+    q: int = 0
+    r: int = 0
+    inv: float = 0
+    bo: float = 0
+    o: float = 0
+    s: float = 0
+    p: int = 0
+
+
+class VariablesResponse(BaseModel):
+    run_id: int
+    variables: List[VariableRecord]
+    total: int
+
+
+@router.get("/{run_id}/variables", response_model=VariablesResponse)
+def get_variables(
+    run_id: int,
+    product_id: Optional[str] = None,
+    warehouse_id: Optional[str] = None,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Biến quyết định chi tiết (q, r, I, bo, o, s, p) cho mỗi ô (sản phẩm × kho × kỳ).
+    """
+    _load_run(run_id, db)
+    query = db.query(OptimizationResult).filter(OptimizationResult.run_id == run_id)
+    if product_id:
+        query = query.filter(OptimizationResult.product_id == product_id)
+    if warehouse_id:
+        query = query.filter(OptimizationResult.warehouse_id == warehouse_id)
+    rows = query.order_by(
+        OptimizationResult.product_id,
+        OptimizationResult.warehouse_id,
+        OptimizationResult.time_period,
+    ).all()
+    records = [
+        VariableRecord(
+            product_id=r.product_id,
+            warehouse_id=r.warehouse_id,
+            time_period=r.time_period,
+            q=r.q_case_pack or 0,
+            r=r.r_residual_units or 0,
+            inv=float(r.net_inventory or 0),
+            bo=float(r.backorder_qty or 0),
+            o=float(r.overstock_qty or 0),
+            s=float(r.shortage_qty or 0),
+            p=1 if r.penalty_flag else 0,
+        )
+        for r in rows
+    ]
+    return VariablesResponse(run_id=run_id, variables=records, total=len(records))
+
+
+# ================================================================== #
+#  6. GET /{run_id}/si-ss                                             #
+# ================================================================== #
+
+class SiSsRecord(BaseModel):
+    product_id: str
+    warehouse_id: str
+    time_period: int
+    inv: float = 0
+    si: float = 0          # Safety Index = inv / max(L, 1)
+    ss_level: float = 0    # Safety Stock threshold = L value (stored as net_inventory floor)
+    below_ss: bool = False  # inv < ss_level
+
+
+class SiSsResponse(BaseModel):
+    run_id: int
+    records: List[SiSsRecord]
+    si_mean: float
+    ss_below_count: int
+    total: int
+
+
+@router.get("/{run_id}/si-ss", response_model=SiSsResponse)
+def get_si_ss(
+    run_id: int,
+    product_id: Optional[str] = None,
+    warehouse_id: Optional[str] = None,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Chỉ số an toàn (SI) và tồn kho an toàn (SS) cho từng ô (i, j, t).
+    SI = tồn kho / max(ngưỡng dưới, 1).  SI < 1 → dưới ngưỡng an toàn.
+    """
+    _load_run(run_id, db)
+    query = db.query(OptimizationResult).filter(OptimizationResult.run_id == run_id)
+    if product_id:
+        query = query.filter(OptimizationResult.product_id == product_id)
+    if warehouse_id:
+        query = query.filter(OptimizationResult.warehouse_id == warehouse_id)
+    rows = query.order_by(
+        OptimizationResult.product_id,
+        OptimizationResult.warehouse_id,
+        OptimizationResult.time_period,
+    ).all()
+
+    # shortage_qty > 0  ↔  inv < L  (the model constraint: s >= L - I)
+    records = []
+    si_sum = 0.0
+    ss_below = 0
+    for r in rows:
+        inv = float(r.net_inventory or 0)
+        s_qty = float(r.shortage_qty or 0)
+        # Reconstruct L from shortage: s = max(0, L - inv) → L ≈ inv + s
+        l_approx = inv + s_qty if s_qty > 0 else max(inv, 0)
+        si = inv / max(l_approx, 1.0)
+        below = s_qty > 0
+        si_sum += si
+        if below:
+            ss_below += 1
+        records.append(SiSsRecord(
+            product_id=r.product_id,
+            warehouse_id=r.warehouse_id,
+            time_period=r.time_period,
+            inv=inv,
+            si=round(si, 4),
+            ss_level=round(l_approx, 2),
+            below_ss=below,
+        ))
+
+    si_mean = si_sum / len(records) if records else 0.0
+    return SiSsResponse(
+        run_id=run_id,
+        records=records,
+        si_mean=round(si_mean, 4),
+        ss_below_count=ss_below,
+        total=len(records),
+    )
+
+
+# ================================================================== #
+#  7. GET /{run_id}/changes-detail                                     #
+# ================================================================== #
+
+class ChangeRecord(BaseModel):
+    product_id: str
+    warehouse_id: str
+    time_period: int
+    q: int = 0
+    r: int = 0
+    inv: float = 0
+    shortage_qty: float = 0
+
+
+class ChangesDetailResponse(BaseModel):
+    run_id: int
+    changes: List[ChangeRecord]
+    total: int
+
+
+@router.get("/{run_id}/changes-detail", response_model=ChangesDetailResponse)
+def get_changes_detail(
+    run_id: int,
+    product_id: Optional[str] = None,
+    warehouse_id: Optional[str] = None,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Danh sách các ô có hành động thay đổi (p=1 hoặc r>0),
+    dùng để theo dõi quyết định phân bổ lẻ.
+    """
+    _load_run(run_id, db)
+    query = (
+        db.query(OptimizationResult)
+        .filter(OptimizationResult.run_id == run_id)
+        .filter(
+            (OptimizationResult.penalty_flag == True)
+            | (OptimizationResult.r_residual_units > 0)
+        )
+    )
+    if product_id:
+        query = query.filter(OptimizationResult.product_id == product_id)
+    if warehouse_id:
+        query = query.filter(OptimizationResult.warehouse_id == warehouse_id)
+    rows = query.order_by(
+        OptimizationResult.product_id,
+        OptimizationResult.warehouse_id,
+        OptimizationResult.time_period,
+    ).all()
+    changes = [
+        ChangeRecord(
+            product_id=r.product_id,
+            warehouse_id=r.warehouse_id,
+            time_period=r.time_period,
+            q=r.q_case_pack or 0,
+            r=r.r_residual_units or 0,
+            inv=float(r.net_inventory or 0),
+            shortage_qty=float(r.shortage_qty or 0),
+        )
+        for r in rows
+    ]
+    return ChangesDetailResponse(run_id=run_id, changes=changes, total=len(changes))

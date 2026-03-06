@@ -12,7 +12,8 @@ SET search_path TO nds, public;
 -- Product Master
 CREATE TABLE IF NOT EXISTS nds.product (
     product_id VARCHAR(50) PRIMARY KEY,
-    item_class VARCHAR(50),
+    product_name VARCHAR(255),
+    product_class VARCHAR(50),
     product_series VARCHAR(50),
     product_style VARCHAR(50),
     product_size VARCHAR(50),
@@ -20,13 +21,15 @@ CREATE TABLE IF NOT EXISTS nds.product (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_class ON nds.product(item_class);
+CREATE INDEX IF NOT EXISTS idx_product_class ON nds.product(product_class);
 CREATE INDEX IF NOT EXISTS idx_product_series ON nds.product(product_series);
 
 -- Warehouse Master
 CREATE TABLE IF NOT EXISTS nds.warehouse (
     warehouse_id VARCHAR(50) PRIMARY KEY,
     market_code VARCHAR(50),
+    warehouse_name VARCHAR(255),
+    country_code VARCHAR(10),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -49,11 +52,13 @@ CREATE INDEX IF NOT EXISTS idx_time_period_date ON nds.time_period(start_date, e
 -- Box Master (for packaging)
 CREATE TABLE IF NOT EXISTS nds.box (
     box_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    box_name VARCHAR(255),
     length DECIMAL(10,2),
     width DECIMAL(10,2),
     height DECIMAL(10,2),
     weight DECIMAL(10,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =============================================
@@ -67,6 +72,7 @@ CREATE TABLE IF NOT EXISTS nds.packing_details (
     box_id INT NOT NULL,
     pack_multiple INT NOT NULL, -- CP in the model
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_packing_product FOREIGN KEY (product_id) REFERENCES nds.product(product_id),
     CONSTRAINT fk_packing_box FOREIGN KEY (box_id) REFERENCES nds.box(box_id),
     CONSTRAINT uq_product_box UNIQUE (product_id, box_id)
@@ -81,6 +87,7 @@ CREATE TABLE IF NOT EXISTS nds.box_shipment (
     warehouse_id VARCHAR(50) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_shipment_packing FOREIGN KEY (packing_details_id) REFERENCES nds.packing_details(packing_details_id),
     CONSTRAINT fk_shipment_warehouse FOREIGN KEY (warehouse_id) REFERENCES nds.warehouse(warehouse_id)
 );

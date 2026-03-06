@@ -14,7 +14,7 @@ from backend.data_access.interfaces import (
 from backend.data_access.models_dds import (
     DimProduct, DimWarehouse, DimTime, FactInventorySMI, DDSPackingConfig, DDSModelParameters
 )
-from backend.data_access.models_nds import Scenario, OptimizationRun, OptimizationResult, DssKPI
+from backend.data_access.models_nds import Scenario, OptimizationRun, OptimizationResult, DssKPI, DssRunSummary
 from backend.schemas.optimization import OptimizationInput, OptimizationOutput
 
 
@@ -257,6 +257,61 @@ class ResultRepository(IResultRepository):
             "total_overstock": float(kpi.total_overstock or 0),
             "total_shortage": float(kpi.total_shortage or 0),
             "total_penalty": float(kpi.total_penalty or 0),
+            "cost_backorder": float(kpi.cost_backorder or 0),
+            "cost_overstock": float(kpi.cost_overstock or 0),
+            "cost_shortage":  float(kpi.cost_shortage  or 0),
+            "cost_penalty":   float(kpi.cost_penalty   or 0),
             "service_level": float(kpi.service_level or 0),
             "capacity_utilization": float(kpi.capacity_utilization or 0)
+        }
+
+    def save_run_summary(
+        self,
+        run_id: int,
+        baseline_cost: float,
+        opt_cost: float,
+        savings: float,
+        savings_pct: float,
+        n_changes: int,
+        si_mean: float,
+        ss_below_count: int,
+    ) -> None:
+        """Persist the extended run summary (baseline cost, savings, SI/SS)."""
+        existing = self.db.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).first()
+        if existing:
+            existing.baseline_cost = baseline_cost
+            existing.opt_cost = opt_cost
+            existing.savings = savings
+            existing.savings_pct = savings_pct
+            existing.n_changes = n_changes
+            existing.si_mean = si_mean
+            existing.ss_below_count = ss_below_count
+        else:
+            summary = DssRunSummary(
+                run_id=run_id,
+                baseline_cost=baseline_cost,
+                opt_cost=opt_cost,
+                savings=savings,
+                savings_pct=savings_pct,
+                n_changes=n_changes,
+                si_mean=si_mean,
+                ss_below_count=ss_below_count,
+            )
+            self.db.add(summary)
+        self.db.commit()
+
+    def get_run_summary(self, run_id: int) -> Optional[Dict[str, Any]]:
+        """Get the extended run summary."""
+        s = self.db.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).first()
+        if not s:
+            return None
+        return {
+            "run_id": run_id,
+            "baseline_cost": float(s.baseline_cost or 0),
+            "opt_cost": float(s.opt_cost or 0),
+            "savings": float(s.savings or 0),
+            "savings_pct": float(s.savings_pct or 0),
+            "n_changes": int(s.n_changes or 0),
+            "si_mean": float(s.si_mean or 0),
+            "ss_below_count": int(s.ss_below_count or 0),
         }

@@ -72,15 +72,15 @@ const SensitivityAnalysis = () => {
     <Spin spinning={loading}>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><LineChartOutlined className="mr-3" />D2. Sensitivity Analysis</h1>
-        <p className="text-gray-600">Analyze parameter sensitivity and tornado charts</p>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><LineChartOutlined className="mr-3" />D2. Phân tích độ nhạy</h1>
+        <p className="text-gray-600">Phân tích độ nhạy của tham số và biểu đồ tornado</p>
       </div>
 
       <Card>
         <div className="flex items-center gap-4 flex-wrap">
-          <div><span className="mr-2">Scenario ID:</span><InputNumber min={1} value={scenarioId} onChange={setScenarioId} /></div>
+          <div><span className="mr-2">ID kịch bản:</span><InputNumber min={1} value={scenarioId} onChange={setScenarioId} /></div>
           <Radio.Group value={analysisType} onChange={(e) => setAnalysisType(e.target.value)} buttonStyle="solid">
-            <Radio.Button value="oat">One-at-a-Time</Radio.Button>
+            <Radio.Button value="oat">Từng tham số</Radio.Button>
             <Radio.Button value="tornado">Tornado</Radio.Button>
           </Radio.Group>
           {analysisType === 'oat' && (
@@ -88,13 +88,13 @@ const SensitivityAnalysis = () => {
               <Select value={selectedParam} onChange={setSelectedParam} style={{ width: 120 }}>
                 {PARAMETERS.map(p => <Option key={p} value={p}>{p}</Option>)}
               </Select>
-              <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleRunOAT} loading={runningOAT}>Run OAT</Button>
+              <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleRunOAT} loading={runningOAT}>Chạy OAT</Button>
             </>
           )}
           {analysisType === 'tornado' && (
             <>
-              <div><span className="mr-2">Variation %:</span><InputNumber min={1} max={50} value={variationPct} onChange={setVariationPct} /></div>
-              <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={runningTornado}>Run Tornado</Button>
+              <div><span className="mr-2">Biến thiên %:</span><InputNumber min={1} max={50} value={variationPct} onChange={setVariationPct} /></div>
+              <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={runningTornado}>Chạy Tornado</Button>
             </>
           )}
         </div>
@@ -103,19 +103,19 @@ const SensitivityAnalysis = () => {
       {analysisType === 'oat' && oatResult && (
         <>
           <Row gutter={16}>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Parameter</p><Tag color="blue">{oatResult.parameter_name}</Tag></div></Card></Col>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Baseline Objective</p><p className="text-xl font-bold">${Number(oatResult.baseline_objective || 0).toLocaleString()}</p></div></Card></Col>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Elasticity</p><p className="text-xl font-bold">{Number(oatResult.elasticity || 0).toFixed(3)}</p></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Tham số</p><Tag color="blue">{oatResult.parameter_name}</Tag></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Mục tiêu cơ sở</p><p className="text-xl font-bold">{Number(oatResult.baseline_objective || 0).toLocaleString('vi-VN')}</p></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Độ co giãn</p><p className="text-xl font-bold">{Number(oatResult.elasticity || 0).toFixed(3)}</p></div></Card></Col>
           </Row>
-          <Card title={`Sensitivity: ${oatResult.parameter_name}`}>
+          <Card title={`Độ nhạy: ${oatResult.parameter_name}`}>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={oatChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="variation" />
                 <YAxis />
-                <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-                <ReferenceLine y={Number(oatResult.baseline_objective)} stroke="#f5222d" strokeDasharray="3 3" label="Baseline" />
-                <Line type="monotone" dataKey="objective" stroke="#1890ff" strokeWidth={2} name="Objective Value" />
+                <Tooltip formatter={(v) => [`${Number(v).toLocaleString('vi-VN')}`]} />
+                <ReferenceLine y={Number(oatResult.baseline_objective)} stroke="#f5222d" strokeDasharray="3 3" label="Cơ sở" />
+                <Line type="monotone" dataKey="objective" stroke="#1890ff" strokeWidth={2} name="Giá trị mục tiêu" />
               </LineChart>
             </ResponsiveContainer>
           </Card>
@@ -125,10 +125,10 @@ const SensitivityAnalysis = () => {
       {analysisType === 'tornado' && tornadoResult && (
         <>
           <Row gutter={16}>
-            <Col span={12}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Baseline</p><p className="text-xl font-bold">${Number(tornadoResult.baseline_objective || 0).toLocaleString()}</p></div></Card></Col>
-            <Col span={12}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Variation</p><p className="text-xl font-bold">+/- {tornadoResult.variation_pct}%</p></div></Card></Col>
+            <Col span={12}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Cơ sở</p><p className="text-xl font-bold">{Number(tornadoResult.baseline_objective || 0).toLocaleString('vi-VN')}</p></div></Card></Col>
+            <Col span={12}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Biến thiên</p><p className="text-xl font-bold">+/- {tornadoResult.variation_pct}%</p></div></Card></Col>
           </Row>
-          <Card title="Tornado Chart">
+          <Card title="Biểu đồ Tornado">
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={tornadoChartData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -137,18 +137,18 @@ const SensitivityAnalysis = () => {
                 <Tooltip />
                 <Legend />
                 <ReferenceLine x={0} stroke="#000" />
-                <Bar dataKey="low" fill="#52c41a" name="Low (-)" />
-                <Bar dataKey="high" fill="#f5222d" name="High (+)" />
+                <Bar dataKey="low" fill="#52c41a" name="Thấp (-)" />
+                <Bar dataKey="high" fill="#f5222d" name="Cao (+)" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
-          <Card title="Parameter Sensitivity Ranking">
+          <Card title="Xếp hạng độ nhạy tham số">
             <Table
               columns={[
-                { title: 'Parameter', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{t}</Tag> },
-                { title: 'Low Value', dataIndex: 'low_value', key: 'low_value', render: (v) => `$${Number(v).toLocaleString()}` },
-                { title: 'High Value', dataIndex: 'high_value', key: 'high_value', render: (v) => `$${Number(v).toLocaleString()}` },
-                { title: 'Spread', dataIndex: 'spread', key: 'spread', render: (v) => <span className="font-bold">${Number(v).toLocaleString()}</span> },
+                { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{t}</Tag> },
+                { title: 'Giá trị thấp', dataIndex: 'low_value', key: 'low_value', render: (v) => Number(v).toLocaleString('vi-VN') },
+                { title: 'Giá trị cao', dataIndex: 'high_value', key: 'high_value', render: (v) => Number(v).toLocaleString('vi-VN') },
+                { title: 'Khoảng biến thiên', dataIndex: 'spread', key: 'spread', render: (v) => <span className="font-bold">{Number(v).toLocaleString('vi-VN')}</span> },
               ]}
               dataSource={tornadoBars}
               pagination={false}
@@ -160,7 +160,7 @@ const SensitivityAnalysis = () => {
       )}
 
       {!oatResult && !tornadoResult && !loading && (
-        <Alert message="Select parameters and run analysis to see results" type="info" showIcon />
+        <Alert message="Chọn tham số và chạy phân tích để xem kết quả" type="info" showIcon />
       )}
     </div>
     </Spin>

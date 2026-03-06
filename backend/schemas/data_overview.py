@@ -10,6 +10,14 @@ from datetime import datetime
 class ParameterSummary(BaseModel):
     """Statistical summary of a single optimization parameter."""
     name: str = Field(..., description="Parameter name (e.g. DI, CAP, U, L)")
+    index_type: str = Field(
+        "ijt",
+        description="Index set of the parameter: 'ij' (i×j), 'ijt' (i×j×t), 'it' (i×t)"
+    )
+    max_entries: int = Field(
+        0,
+        description="Theoretical maximum entries based on the parameter's index set"
+    )
     num_entries: int = Field(..., description="Number of entries in the parameter dict")
     min_value: float = Field(..., description="Minimum value across all entries")
     max_value: float = Field(..., description="Maximum value across all entries")

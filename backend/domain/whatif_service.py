@@ -81,6 +81,10 @@ class WhatIfService:
             total_overstock=result.kpis.get("total_overstock", 0.0),
             total_shortage=result.kpis.get("total_shortage", 0.0),
             total_penalty=result.kpis.get("total_penalty", 0.0),
+            cost_backorder=result.kpis.get("cost_backorder", 0.0),
+            cost_overstock=result.kpis.get("cost_overstock", 0.0),
+            cost_shortage=result.kpis.get("cost_shortage",  0.0),
+            cost_penalty=result.kpis.get("cost_penalty",   0.0),
             service_level=result.kpis.get("service_level", 0.0),
             capacity_utilization=result.kpis.get("capacity_utilization", 0.0),
         )
@@ -97,6 +101,12 @@ class WhatIfService:
             objective_value=result.objective_value,
             kpis=kpis,
             parameters_modified=params_modified,
+            baseline_cost=result.baseline_cost,
+            savings=result.savings,
+            savings_pct=result.savings_pct,
+            n_changes=result.n_changes,
+            si_mean=result.si_mean,
+            ss_below_count=result.ss_below_count,
         )
 
     def compare(

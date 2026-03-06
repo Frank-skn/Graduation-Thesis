@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Progress, Button, Radio, Select, Tooltip, Spin, Alert } from 'antd'
+import React from 'react'
+import { Card, Row, Col, Table, Tag, Progress, Button, Tooltip, Spin, Alert } from 'antd'
 import {
   DatabaseOutlined,
   CheckCircleOutlined,
@@ -7,18 +7,13 @@ import {
   ExclamationCircleOutlined,
   CalendarOutlined,
   BarChartOutlined,
-  HeatMapOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import { useApi } from '../hooks/useApi'
 import dataService from '../services/dataService'
 
-const { Option } = Select
-
 const DataOverview = () => {
-  const [timeView, setTimeView] = useState('daily')
-  const [selectedRegion, setSelectedRegion] = useState('all')
   const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview())
 
   // Derive display data from API response
@@ -31,9 +26,15 @@ const DataOverview = () => {
   const products = overview.products || []
   const warehouses = overview.warehouses || []
 
-  // Map parameters to Data Freshness format
+  // Map parameters to Data Freshness format.
+  // Each parameter has its own index set per the mathematical model:
+  //   BI, CP  → (i,j)   → denominator = |I|×|J|
+  //   U,L,DI,Cb,Co,Cs,Cp → (i,j,t) → denominator = |I|×|J|×|T|
+  //   CAP     → (i,t)   → denominator = |I|×|T|
+  // The backend now provides max_entries (correct denominator) per parameter.
   const dataFreshness = parameters.map((p) => {
-    const completeness = totalCombinations > 0 ? Math.round((p.num_entries / totalCombinations) * 100) : 0
+    const denom = p.max_entries > 0 ? p.max_entries : 1
+    const completeness = Math.round((p.num_entries / denom) * 100)
     let status = 'Critical'
     if (completeness >= 95) status = 'Fresh'
     else if (completeness >= 85) status = 'Good'
@@ -47,36 +48,33 @@ const DataOverview = () => {
     }
   })
 
-  // Quality metrics derived from parameters
+  // Quality metrics — derived from real parameter data
+  //   Completeness : avg(num_entries / max_entries) per param
+  //   Zero-free    : avg(1 - zero_count / num_entries) per param
+  //   Parameters   : 100% if all 10 params present
+  const avgCompleteness = parameters.length > 0
+    ? Math.round(parameters.reduce((s, p) => s + (p.max_entries > 0 ? p.num_entries / p.max_entries : 0), 0) / parameters.length * 100)
+    : 0
+  const avgZeroFree = parameters.length > 0
+    ? Math.round(parameters.reduce((s, p) => s + (p.num_entries > 0 ? (1 - p.zero_count / p.num_entries) : 0), 0) / parameters.length * 100)
+    : 0
+
   const qualityMetrics = [
-    { metric: 'Completeness', value: parameters.length > 0 ? Math.round(parameters.reduce((s, p) => s + (totalCombinations > 0 ? p.num_entries / totalCombinations : 0), 0) / parameters.length * 100) : 0, target: 95 },
-    { metric: 'Zero-free Rate', value: parameters.length > 0 ? Math.round(parameters.reduce((s, p) => s + (p.num_entries > 0 ? (1 - p.zero_count / p.num_entries) : 0), 0) / parameters.length * 100) : 0, target: 90 },
-    { metric: 'Coverage', value: totalCombinations > 0 ? Math.round((numProducts * numWarehouses * numPeriods) / totalCombinations * 100) : 0, target: 90 },
-    { metric: 'Parameters', value: parameters.length > 0 ? 100 : 0, target: 85 },
+    { metric: 'Completeness', value: avgCompleteness, target: 95 },
+    { metric: 'Zero-free Rate', value: avgZeroFree, target: 90 },
+    { metric: 'Parameters', value: parameters.length >= 10 ? 100 : Math.round(parameters.length / 10 * 100), target: 85 },
   ]
 
-  // Coverage heatmap from products x warehouses
-  const coverageData = products.flatMap(prod =>
-    warehouses.map(wh => ({
-      region: wh,
-      product: prod,
-      coverage: totalCombinations > 0 ? Math.round((parameters.filter(p => p.num_entries > 0).length / parameters.length) * 100) : 0,
-      demand: totalCombinations,
-    }))
-  )
-
-  // Static trend data (no historical endpoint)
-  const trendData = [
-    { period: 'T1', freshness: 95, quality: 92, coverage: 88 },
-    { period: 'T2', freshness: 92, quality: 94, coverage: 90 },
-    { period: 'T3', freshness: 89, quality: 96, coverage: 92 },
-    { period: 'T4', freshness: 87, quality: 95, coverage: 89 },
-    { period: 'T5', freshness: 85, quality: 93, coverage: 91 },
-    { period: 'T6', freshness: 88, quality: 94, coverage: 93 },
-  ]
+  // Per-parameter bar chart data (replaces static trendData)
+  const paramBarData = parameters.map(p => ({
+    name: p.name,
+    completeness: p.max_entries > 0 ? Math.round(p.num_entries / p.max_entries * 100) : 0,
+    zeroFree: p.num_entries > 0 ? Math.round((1 - p.zero_count / p.num_entries) * 100) : 0,
+    entries: p.num_entries,
+  }))
+  const PARAM_COLORS = ['#1890ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#a0d911','#faad14','#2f54eb']
 
   const freshSources = dataFreshness.filter(d => d.status === 'Fresh' || d.status === 'Good').length
-  const avgQuality = qualityMetrics.length > 0 ? Math.round(qualityMetrics.reduce((s, m) => s + m.value, 0) / qualityMetrics.length) : 0
 
   const freshnessColumns = [
     {
@@ -92,18 +90,23 @@ const DataOverview = () => {
     },
     { title: 'Entries', dataIndex: 'lastUpdated', key: 'lastUpdated' },
     {
-      title: 'Staleness',
+      title: 'Completeness',
       dataIndex: 'staleness',
       key: 'staleness',
       render: (value) => {
         let color = 'red'
-        if (value >= 85) color = 'green'
+        if (value >= 95) color = 'green'
         else if (value >= 70) color = 'orange'
 
         return (
-          <div className="flex items-center space-x-2 w-32">
-            <Progress percent={value} size="small" status={color === 'red' ? 'exception' : 'normal'} strokeColor={color} />
-            <span className="text-xs">{value}%</span>
+          <div style={{ minWidth: 160 }}>
+            <Progress
+              percent={value}
+              size="small"
+              status={color === 'red' ? 'exception' : 'normal'}
+              strokeColor={color}
+              format={(pct) => `${pct}%`}
+            />
           </div>
         )
       },
@@ -130,13 +133,6 @@ const DataOverview = () => {
       },
     },
   ]
-
-  const getCoverageColor = (coverage) => {
-    if (coverage >= 95) return '#52c41a'
-    if (coverage >= 90) return '#1890ff'
-    if (coverage >= 85) return '#fa8c16'
-    return '#f5222d'
-  }
 
   return (
     <Spin spinning={loading}>
@@ -184,7 +180,7 @@ const DataOverview = () => {
                 <p className="text-sm text-gray-500 mb-1">Time Periods</p>
                 <p className="text-2xl font-bold text-purple-600">{numPeriods}</p>
               </div>
-              <HeatMapOutlined className="text-3xl text-purple-500" />
+              <CalendarOutlined className="text-3xl text-purple-500" />
             </div>
           </Card>
         </Col>
@@ -224,106 +220,48 @@ const DataOverview = () => {
         />
       </Card>
 
-      {/* Quality Metrics & Trends */}
+      {/* Quality Metrics & Parameter Coverage */}
       <Row gutter={16}>
-        <Col span={12}>
-          <Card
-            title={
-              <span className="text-lg font-semibold">
-                Quality Metrics vs Targets
-              </span>
-            }
-          >
+        <Col span={10}>
+          <Card title={<span className="text-lg font-semibold">Quality Metrics vs Targets</span>}>
             <div className="space-y-4">
               {qualityMetrics.map((metric) => (
                 <div key={metric.metric}>
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">{metric.metric}</span>
-                    <span className="text-sm">{metric.value}% / {metric.target}%</span>
+                    <span className="text-sm text-gray-500">{metric.value}% / {metric.target}%</span>
                   </div>
                   <Progress
                     percent={metric.value}
-                    strokeColor={metric.value >= metric.target ? '#52c41a' : '#fa8c16'}
+                    strokeColor={metric.value >= metric.target ? '#52c41a' : metric.value >= 70 ? '#fa8c16' : '#f5222d'}
                     size="small"
+                    format={(pct) => `${pct}%`}
                   />
                 </div>
               ))}
             </div>
           </Card>
         </Col>
-        <Col span={12}>
-          <Card
-            title={<span className="text-lg font-semibold">Data Trends</span>}
-            extra={
-              <Radio.Group
-                value={timeView}
-                onChange={(e) => setTimeView(e.target.value)}
-                size="small"
-                buttonStyle="solid"
-              >
-                <Radio.Button value="hourly">Hourly</Radio.Button>
-                <Radio.Button value="daily">Daily</Radio.Button>
-              </Radio.Group>
-            }
-          >
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={trendData}>
+        <Col span={14}>
+          <Card title={<span className="text-lg font-semibold">Parameter Completeness</span>}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={paramBarData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis domain={[75, 100]} />
-                <RechartsTooltip />
-                <Line type="monotone" dataKey="freshness" stroke="#f5222d" name="Freshness" />
-                <Line type="monotone" dataKey="quality" stroke="#1890ff" name="Quality" />
-                <Line type="monotone" dataKey="coverage" stroke="#52c41a" name="Coverage" />
-              </LineChart>
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                <RechartsTooltip formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Completeness' : 'Zero-free']} />
+                <Bar dataKey="completeness" name="Completeness" radius={[4,4,0,0]}>
+                  {paramBarData.map((entry, idx) => (
+                    <Cell key={entry.name} fill={entry.completeness >= 95 ? '#52c41a' : entry.completeness >= 70 ? '#fa8c16' : '#f5222d'} />
+                  ))}
+                  <LabelList dataKey="completeness" position="top" formatter={v => `${v}%`} style={{ fontSize: 11 }} />
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
 
-      {/* Coverage Heatmap */}
-      <Card
-        title={
-          <span className="text-lg font-semibold flex items-center">
-            <HeatMapOutlined className="mr-2" />
-            Product-Warehouse Coverage
-          </span>
-        }
-        extra={
-          <Select
-            value={selectedRegion}
-            onChange={setSelectedRegion}
-            style={{ width: 120 }}
-          >
-            <Option value="all">All</Option>
-            {warehouses.map(w => <Option key={w} value={w}>{w}</Option>)}
-          </Select>
-        }
-      >
-        <div className="grid grid-cols-3 gap-4">
-          {warehouses.map(wh => (
-            <div key={wh} className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-center mb-3">{wh}</h4>
-              <div className="space-y-2">
-                {coverageData
-                  .filter(d => d.region === wh)
-                  .map(item => (
-                    <Tooltip
-                      key={`${item.region}-${item.product}`}
-                      title={`${item.product}: ${item.coverage}% coverage`}
-                    >
-                      <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: getCoverageColor(item.coverage), opacity: 0.8 }}>
-                        <span className="text-white font-medium text-sm">{item.product}</span>
-                        <span className="text-white font-bold text-sm">{item.coverage}%</span>
-                      </div>
-                    </Tooltip>
-                  ))
-                }
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
     </Spin>
   )

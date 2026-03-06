@@ -1,0 +1,35 @@
+MÔ TẢ 8 TEST CASE – SS-MB-SMI MODEL
+(Mỗi case: 1 item, T = [1,2,3,4], kho WH "1" và/hoặc "12")
+================================================================================
+
+CASE01 – Cân bằng hoàn hảo, zero cost
+  BI=10 mỗi kho, DI=-4 (nhu cầu vừa khít 1 pack mỗi kỳ), CP=4, CAP=8.
+  Kỳ vọng: q=1/kho, r=0, p=0, inventory ổn định tại 10, tổng cost = 0.
+
+CASE02 – Overstock chi phối (Co = 10, cao)
+  WH1: BI=18 > U=15 (đã vượt trần ngay từ đầu), DI=+2; WH2: BI=2, DI=-1.
+  Kỳ vọng: tối ưu dồn toàn bộ CAP=8 sang WH2 (q=2), WH1 nhận q=0 để giảm Co.
+
+CASE03 – Shortage chi phối (Cs = 10, cao)
+  BI=5 < L=8 ở cả 2 kho, DI=-1 mỗi kỳ; CP=4, CAP=8.
+  Kỳ vọng: q=1/kho đưa inventory lên đúng sàn=8, loại bỏ shortage cost.
+
+CASE04 – Backorder tích lũy (Cb = 10, CAP = 0)
+  Không có nguồn cấp (CAP=0), DI=-8/kỳ → inventory xuống âm từ T=1.
+  Kỳ vọng: q=r=0 bắt buộc, bo tăng dần, I[1]=-3, I[2]=-11, I[3]=-19, I[4]=-27.
+
+CASE05 – Penalty bắt buộc (CP=6, CAP=7, 1 kho)
+  CAP=7 không chia hết cho CP=6 → r=1 tất yếu, p=1 cho mỗi kỳ.
+  Kỳ vọng: q=1, r=1, p=1 mọi kỳ; penalty_cost = 100×4 = 400.
+
+CASE06 – Không có penalty (CP=4, CAP=8 = 2×CP)
+  CAP chia hết hoàn hảo cho CP×số kho → không ai cần r > 0.
+  Kỳ vọng: r=0, p=0 hoàn toàn; penalty cost = 0.
+
+CASE07 – Kiểm tra rolling inventory balance (DI xen kẽ +5/-8)
+  1 kho, DI=[+5,-8,+5,-8], CP=4, CAP=4 (q=1 bắt buộc mỗi kỳ).
+  Kỳ vọng inventory tính tay: I[1]=19, I[2]=15, I[3]=24, I[4]=20.
+
+CASE08 – Phân phối lại giữa kho thừa và kho thiếu
+  WH1: BI=20 > U=12 (overstock nặng, Co=10); WH2: BI=2 < L=10 (shortage, Cs=10).
+  Kỳ vọng: toàn bộ CAP=8 chuyển sang WH2 (q=2), WH1 nhận q=0.

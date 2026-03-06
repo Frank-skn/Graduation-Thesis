@@ -86,33 +86,33 @@ const AllocationInventoryDashboard = () => {
 
   const allocationColumns = [
     {
-      title: 'Product',
+      title: 'Sản phẩm',
       dataIndex: 'product_id',
       key: 'product_id',
       render: (t) => <Tag color="blue">{t}</Tag>,
     },
     {
-      title: 'Warehouse',
+      title: 'Kho',
       dataIndex: 'warehouse_id',
       key: 'warehouse_id',
       render: (t) => <Tag color="green">{t}</Tag>,
     },
     {
-      title: 'Case Packs',
+      title: 'Kiện hàng',
       dataIndex: 'q_case_pack',
       key: 'q_case_pack',
       sorter: true,
       render: (val) => val?.toLocaleString() || 0,
     },
     {
-      title: 'Residual',
+      title: 'Đơn vị lẻ',
       dataIndex: 'r_residual_units',
       key: 'r_residual_units',
       sorter: true,
       render: (val) => val?.toLocaleString() || 0,
     },
     {
-      title: 'Net Inventory',
+      title: 'Tồn kho',
       dataIndex: 'net_inventory',
       key: 'net_inventory',
       sorter: true,
@@ -123,7 +123,7 @@ const AllocationInventoryDashboard = () => {
       ),
     },
     {
-      title: 'Backorder',
+      title: 'Tồn thiếu',
       dataIndex: 'backorder_qty',
       key: 'backorder_qty',
       render: (val) => (
@@ -133,34 +133,34 @@ const AllocationInventoryDashboard = () => {
       ),
     },
     {
-      title: 'Penalty',
+      title: 'Vi phạm',
       dataIndex: 'penalty_flag',
       key: 'penalty_flag',
-      render: (flag) => flag ? <Tag color="orange">Yes</Tag> : <Tag color="default">No</Tag>,
+      render: (flag) => flag ? <Tag color="orange">Có</Tag> : <Tag color="default">Không</Tag>,
     },
   ]
 
   const inventoryColumns = [
     {
-      title: 'Product',
+      title: 'Sản phẩm',
       dataIndex: 'product_id',
       key: 'product_id',
       render: (t) => <Tag color="blue">{t}</Tag>,
     },
     {
-      title: 'Warehouse',
+      title: 'Kho',
       dataIndex: 'warehouse_id',
       key: 'warehouse_id',
       render: (t) => <Tag color="green">{t}</Tag>,
     },
     {
-      title: 'Period',
+      title: 'Kỳ',
       dataIndex: 'time_period',
       key: 'time_period',
       sorter: true,
     },
     {
-      title: 'Net Inventory',
+      title: 'Tồn kho',
       dataIndex: 'net_inventory',
       key: 'net_inventory',
       sorter: true,
@@ -171,7 +171,7 @@ const AllocationInventoryDashboard = () => {
       ),
     },
     {
-      title: 'Backorder',
+      title: 'Tồn thiếu',
       dataIndex: 'backorder_qty',
       key: 'backorder_qty',
       render: (val) => (
@@ -181,7 +181,7 @@ const AllocationInventoryDashboard = () => {
       ),
     },
     {
-      title: 'Overstock',
+      title: 'Tồn thừa',
       dataIndex: 'overstock_qty',
       key: 'overstock_qty',
       render: (val) => (
@@ -191,7 +191,7 @@ const AllocationInventoryDashboard = () => {
       ),
     },
     {
-      title: 'Shortage',
+      title: 'Thiếu hụt',
       dataIndex: 'shortage_qty',
       key: 'shortage_qty',
       render: (val) => (
@@ -212,7 +212,7 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-blue-600">
                 {allocations.length}
               </div>
-              <div className="text-gray-500">Total Allocations</div>
+              <div className="text-gray-500">Tổng phân bổ</div>
             </div>
           </Card>
         </Col>
@@ -222,7 +222,7 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-green-600">
                 {allocations.reduce((s, a) => s + (a.q_case_pack || 0), 0).toLocaleString()}
               </div>
-              <div className="text-gray-500">Total Case Packs</div>
+              <div className="text-gray-500">Tổng kiện hàng</div>
             </div>
           </Card>
         </Col>
@@ -232,7 +232,7 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-orange-600">
                 {allocations.reduce((s, a) => s + Number(a.backorder_qty || 0), 0).toLocaleString()}
               </div>
-              <div className="text-gray-500">Total Backorders</div>
+              <div className="text-gray-500">Tổng tồn thiếu</div>
             </div>
           </Card>
         </Col>
@@ -242,14 +242,14 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-red-600">
                 {allocations.filter(a => a.penalty_flag).length}
               </div>
-              <div className="text-gray-500">Penalty Cases</div>
+              <div className="text-gray-500">Trường hợp vi phạm</div>
             </div>
           </Card>
         </Col>
       </Row>
 
       {/* Allocation Chart */}
-      <Card title={<><AppstoreOutlined /> Allocation by Warehouse</>} className="mb-6">
+      <Card title={<><AppstoreOutlined /> Phân bổ theo kho</>} className="mb-6">
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={warehouseStats}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -258,15 +258,15 @@ const AllocationInventoryDashboard = () => {
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
-            <Bar yAxisId="left" dataKey="totalCasePack" fill="#1890ff" name="Case Packs" />
-            <Bar yAxisId="left" dataKey="totalResidual" fill="#52c41a" name="Residual Units" />
-            <Line yAxisId="right" type="monotone" dataKey="avgInventory" stroke="#ff7300" name="Avg Inventory" />
+            <Bar yAxisId="left" dataKey="totalCasePack" fill="#1890ff" name="Kiện hàng" />
+            <Bar yAxisId="left" dataKey="totalResidual" fill="#52c41a" name="Đơn vị lẻ" />
+            <Line yAxisId="right" type="monotone" dataKey="avgInventory" stroke="#ff7300" name="Tồn kho TB" />
           </ComposedChart>
         </ResponsiveContainer>
       </Card>
 
       {/* Allocation Table */}
-      <Card title={<><AppstoreOutlined /> Allocation Details</>}>
+      <Card title={<><AppstoreOutlined /> Chi tiết phân bổ</>}>
         <Table
           columns={allocationColumns}
           dataSource={allocations}
@@ -288,7 +288,7 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-blue-600">
                 {chartData.reduce((s, d) => s + d.net_inventory, 0).toLocaleString()}
               </div>
-              <div className="text-gray-500">Total Net Inventory</div>
+              <div className="text-gray-500">Tổng tồn kho</div>
             </div>
           </Card>
         </Col>
@@ -298,7 +298,7 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-red-600">
                 {chartData.reduce((s, d) => s + d.backorder_qty, 0).toLocaleString()}
               </div>
-              <div className="text-gray-500">Total Backorders</div>
+              <div className="text-gray-500">Tổng tồn thiếu</div>
             </div>
           </Card>
         </Col>
@@ -308,21 +308,21 @@ const AllocationInventoryDashboard = () => {
               <div className="text-2xl font-bold text-orange-600">
                 {chartData.reduce((s, d) => s + d.overstock_qty, 0).toLocaleString()}
               </div>
-              <div className="text-gray-500">Total Overstock</div>
+              <div className="text-gray-500">Tổng tồn thừa</div>
             </div>
           </Card>
         </Col>
       </Row>
 
       {/* Inventory Chart */}
-      <Card title={<><LineChartOutlined /> Inventory Dynamics Over Time</>} className="mb-6">
+      <Card title={<><LineChartOutlined /> Động thái tồn kho theo thời gian</>} className="mb-6">
         <Radio.Group
           value={viewMode}
           onChange={(e) => setViewMode(e.target.value)}
           className="mb-4"
         >
-          <Radio.Button value="chart">Chart View</Radio.Button>
-          <Radio.Button value="table">Table View</Radio.Button>
+          <Radio.Button value="chart">Biểu đồ</Radio.Button>
+          <Radio.Button value="table">Bảng</Radio.Button>
         </Radio.Group>
 
         {viewMode === 'chart' ? (
@@ -333,9 +333,9 @@ const AllocationInventoryDashboard = () => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="net_inventory" fill="#1890ff" name="Net Inventory" />
-              <Line type="monotone" dataKey="backorder_qty" stroke="#ff4d4f" name="Backorders" />
-              <Line type="monotone" dataKey="overstock_qty" stroke="#faad14" name="Overstock" />
+              <Bar dataKey="net_inventory" fill="#1890ff" name="Tồn kho" />
+              <Line type="monotone" dataKey="backorder_qty" stroke="#ff4d4f" name="Tồn thiếu" />
+              <Line type="monotone" dataKey="overstock_qty" stroke="#faad14" name="Tồn thừa" />
               <ReferenceLine y={0} stroke="#000" strokeDasharray="2 2" />
             </ComposedChart>
           </ResponsiveContainer>
@@ -355,15 +355,15 @@ const AllocationInventoryDashboard = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Allocation & Inventory Dashboard</h1>
-        <p className="text-gray-600">Comprehensive view of optimization results and inventory dynamics</p>
+        <h1 className="text-3xl font-bold mb-2">B2. Phân Bổ &amp; Tồn Kho</h1>
+        <p className="text-gray-600">Kết quả phân bổ và động thái tồn kho theo lần tối ưu</p>
       </div>
 
       {/* Run Selection */}
       <Card size="small" className="mb-6">
         <Row gutter={16} align="middle">
           <Col>
-            <span className="font-medium">Run ID:</span>
+            <span className="font-medium">Mã lần chạy:</span>
           </Col>
           <Col>
             <InputNumber
@@ -374,7 +374,7 @@ const AllocationInventoryDashboard = () => {
             />
           </Col>
           <Col>
-            <Button type="primary" onClick={handleRunLoad}>Load Run</Button>
+            <Button type="primary" onClick={handleRunLoad}>Tải</Button>
           </Col>
         </Row>
       </Card>
@@ -383,11 +383,11 @@ const AllocationInventoryDashboard = () => {
       <Card size="small" className="mb-6">
         <Row gutter={16} align="middle">
           <Col>
-            <FilterOutlined /> <strong>Filters:</strong>
+            <FilterOutlined /> <strong>Bộ lọc:</strong>
           </Col>
           <Col>
             <Select
-              placeholder="Product"
+              placeholder="Sản phẩm"
               value={filterProduct}
               onChange={setFilterProduct}
               allowClear
@@ -400,7 +400,7 @@ const AllocationInventoryDashboard = () => {
           </Col>
           <Col>
             <Select
-              placeholder="Warehouse"
+              placeholder="Kho hàng"
               value={filterWarehouse}
               onChange={setFilterWarehouse}
               allowClear
@@ -419,14 +419,14 @@ const AllocationInventoryDashboard = () => {
         <Card>
           <div className="text-center py-20">
             <Spin size="large" />
-            <div className="mt-4">Loading optimization results...</div>
+            <div className="mt-4">Đang tải kết quả tối ưu...</div>
           </div>
         </Card>
       )}
 
       {error && (
         <Alert
-          message="Error Loading Data"
+          message="Lỗi tải dữ liệu"
           description={error.message}
           type="error"
           showIcon
@@ -437,13 +437,13 @@ const AllocationInventoryDashboard = () => {
       {!loading && !error && activeRunId && (
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane 
-            tab={<><AppstoreOutlined />Allocation Results</>} 
+            tab={<><AppstoreOutlined />Kết Quả Phân Bổ</>} 
             key="allocation"
           >
             {renderAllocationView()}
           </TabPane>
           <TabPane 
-            tab={<><LineChartOutlined />Inventory Dynamics</>} 
+            tab={<><LineChartOutlined />Động Thái Tồn Kho</>} 
             key="inventory"
           >
             {renderInventoryView()}
@@ -455,7 +455,7 @@ const AllocationInventoryDashboard = () => {
         <Card>
           <div className="text-center py-20">
             <WarningOutlined className="text-4xl text-gray-400 mb-4" />
-            <div className="text-gray-500">Please select a run ID to view results</div>
+            <div className="text-gray-500">Vui lòng chọn lần chạy để xem kết quả</div>
           </div>
         </Card>
       )}

@@ -9,6 +9,7 @@ import A1_DataOverview from './pages/A1_DataOverview'
 import A2_ParameterManagement from './pages/A2_ParameterManagement'
 
 // Group B: Results & Performance
+import B0_RunOptimization from './pages/B0_RunOptimization'
 import B1_ExecutiveSummary from './pages/B1_ExecutiveSummary'
 import B2_AllocationInventoryDashboard from './pages/B2_AllocationInventoryDashboard'
 
@@ -21,8 +22,8 @@ import D1_DecisionImpactScenarios from './pages/D1_DecisionImpactScenarios'
 import D2_SensitivityAnalysis from './pages/D2_SensitivityAnalysis'
 import D3_ParameterStability from './pages/D3_ParameterStability'
 
-// Group E: Insights
-import E1_DecisionInsights from './pages/E1_DecisionInsights'
+// Guard component
+import RequireRun from './components/RequireRun'
 
 const { Content } = Layout
 
@@ -39,8 +40,11 @@ function App() {
           <Route path="/a2-parameter-management" element={<A2_ParameterManagement />} />
           
           {/* Group B: Results & Performance */}
-          <Route path="/b1-executive-summary" element={<B1_ExecutiveSummary />} />
-          <Route path="/b2-allocation-inventory-dashboard" element={<B2_AllocationInventoryDashboard />} />
+          <Route path="/b0-run-optimization" element={<B0_RunOptimization />} />
+          <Route path="/b1-executive-summary" element={<RequireRun><B1_ExecutiveSummary /></RequireRun>} />
+          <Route path="/b2-allocation-inventory-dashboard" element={<RequireRun><B2_AllocationInventoryDashboard /></RequireRun>} />
+          {/* B3 đã được gộp vào B1 (B2) — redirect để hỗ trợ liên kết cũ */}
+          <Route path="/b3-variable-details" element={<Navigate to="/b1-executive-summary" replace />} />
           
           {/* Group C: Scenario Analysis */}
           <Route path="/c1-scenario-management" element={<C1_ScenarioManagement />} />
@@ -51,8 +55,7 @@ function App() {
           <Route path="/d2-sensitivity-analysis" element={<D2_SensitivityAnalysis />} />
           <Route path="/d3-parameter-stability" element={<D3_ParameterStability />} />
           
-          {/* Group E: Insights */}
-          <Route path="/e1-decision-insights" element={<E1_DecisionInsights />} />
+
         </Routes>
       </DashboardLayout>
     </Router>

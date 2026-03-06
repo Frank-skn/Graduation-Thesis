@@ -2,7 +2,7 @@
 Application configuration using Pydantic Settings
 Implements Dependency Inversion Principle - configurations are injected
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import Optional
 from urllib.parse import quote_plus
@@ -11,7 +11,13 @@ from urllib.parse import quote_plus
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
 
-    # Database Configuration (single DB with schemas)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",  # Ignore unknown env vars (e.g. VITE_* frontend vars)
+    )
+
+    # Database Configuration (kept for backwards compat; not used for PostgreSQL)
     db_host: str = "localhost"
     db_port: int = 5432
     db_user: str = "postgres"
@@ -33,6 +39,12 @@ class Settings(BaseSettings):
     solver_time_limit: int = 300
     mip_gap: float = 0.01
 
+    # Data source configuration
+    # Path to CSV data directory (relative to project root or absolute)
+    data_dir: str = "data"
+    # Path to SQLite database file for NDS (scenarios, results)
+    sqlite_db_path: str = "data/nds.db"
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"
@@ -40,13 +52,9 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-
     @property
     def database_url(self) -> str:
-        """Construct database connection string"""
+        """Construct PostgreSQL connection string (kept for reference)."""
         encoded_password = quote_plus(self.db_password)
         return (
             f"postgresql+psycopg2://{self.db_user}:{encoded_password}"

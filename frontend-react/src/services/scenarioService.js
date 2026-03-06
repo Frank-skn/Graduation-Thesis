@@ -7,6 +7,7 @@ const scenarioService = {
   deleteScenario: (scenarioId) => api.delete(`/scenarios/${scenarioId}`),
   getWhatIfTemplates: () => api.get('/whatif/templates'),
   createWhatIf: (data) => api.post('/whatif/', data),
+  getWhatIfHistory: (limit = 50) => api.get('/whatif/history', { params: { limit } }),
   compareWhatIf: (baseRunId, compareRunId) =>
     api.get('/whatif/compare', { params: { base_run_id: baseRunId, compare_run_id: compareRunId } }),
 };

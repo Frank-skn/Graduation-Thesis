@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
-import { Layout, Menu } from 'antd'
+import { Layout, Menu, Tooltip } from 'antd'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAppContext } from '../../context/AppContext'
 import {
   DatabaseOutlined,
   BarChartOutlined,
   ExperimentOutlined,
   SwapOutlined,
   LineChartOutlined,
-  BulbOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
@@ -23,7 +23,6 @@ import {
   AimOutlined,
   WarningOutlined,
   SafetyOutlined,
-  TrophyOutlined,
 } from '@ant-design/icons'
 
 const { Header, Sider, Content } = Layout
@@ -32,90 +31,89 @@ const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { activeRunId } = useAppContext()
+
+  const noRun = !activeRunId
+  const noRunTitle = 'Chạy B1 trước để mở khoá trang này'
 
   const menuItems = [
     {
       key: 'group-a',
       icon: <DatabaseOutlined />,
-      label: 'A. Data Foundation',
+      label: 'A. Dữ liệu nền',
       children: [
         {
           key: '/a1-data-overview',
           icon: <TableOutlined />,
-          label: 'A1. Data Overview',
+          label: 'A1. Tổng quan dữ liệu',
         },
         {
           key: '/a2-parameter-management',
           icon: <SettingOutlined />,
-          label: 'A2. Parameter Management',
+          label: 'A2. Quản lý tham số',
         },
       ],
     },
     {
       key: 'group-b',
       icon: <BarChartOutlined />,
-      label: 'B. Results & Performance',
+      label: 'B. Tối ưu & Kết quả',
       children: [
+        {
+          key: '/b0-run-optimization',
+          icon: <ThunderboltOutlined />,
+          label: 'B1. Chạy tối ưu hoá',
+        },
         {
           key: '/b1-executive-summary',
           icon: <DashboardOutlined />,
-          label: 'B1. Executive Summary',
+          label: noRun ? <Tooltip title={noRunTitle}>B2. Tóm tắt &amp; Chi tiết</Tooltip> : 'B2. Tóm tắt & Chi tiết',
+          disabled: noRun,
         },
         {
           key: '/b2-allocation-inventory-dashboard',
           icon: <FunnelPlotOutlined />,
-          label: 'B2. Allocation & Inventory Dashboard',
+          label: noRun ? <Tooltip title={noRunTitle}>B3. Phân bổ &amp; Tồn kho</Tooltip> : 'B3. Phân bổ & Tồn kho',
+          disabled: noRun,
         },
       ],
     },
     {
       key: 'group-c',
       icon: <ExperimentOutlined />,
-      label: 'C. Scenario Analysis',
+      label: 'C. Phân tích kịch bản',
       children: [
         {
           key: '/c1-scenario-management',
           icon: <ToolOutlined />,
-          label: 'C1. Scenario Management',
+          label: 'C1. Phân tích What-If',
         },
         {
           key: '/c3-scenario-comparison',
           icon: <SlidersOutlined />,
-          label: 'C3. Scenario Comparison',
+          label: 'C2. So sánh kịch bản',
         },
       ],
     },
     {
       key: 'group-d',
       icon: <SwapOutlined />,
-      label: 'D. Advanced Analysis',
+      label: 'D. Phân tích nâng cao',
       children: [
         {
           key: '/d1-decision-impact-scenarios',
           icon: <AimOutlined />,
-          label: 'D1. Decision Impact Analysis',
+          label: 'D1. Tác động quyết định',
         },
         {
           key: '/d2-sensitivity-analysis',
           icon: <RadarChartOutlined />,
-          label: 'D2. Sensitivity Analysis',
+          label: 'D2. Phân tích độ nhạy',
         },
         {
           key: '/d3-parameter-stability',
           icon: <BarChartOutlined />,
-          label: 'D3. Parameter Stability',
-        },
-      ],
-    },
-    {
-      key: 'group-e',
-      icon: <BulbOutlined />,
-      label: 'E. Insights',
-      children: [
-        {
-          key: '/e1-decision-insights',
-          icon: <TrophyOutlined />,
-          label: 'E1. Decision Insights',
+          label: 'D3. Ổn định tham số',
         },
       ],
     },

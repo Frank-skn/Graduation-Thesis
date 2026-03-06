@@ -46,6 +46,7 @@ services:
       - ./backend:/app/backend
       - ./optimization:/app/optimization
       - ./shared:/app/shared
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,7 +72,7 @@ services:
     networks:
       - smi_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3

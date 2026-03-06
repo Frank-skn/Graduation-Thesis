@@ -1,0 +1,4 @@
+box_shipment_id,product_id,warehouse_id,packing_details_id,is_active,created_at
+1,ITEM003,WH01,1,True,2024-01-01 00:00:00
+2,ITEM003,WH02,1,True,2024-01-01 00:00:00
+3,ITEM003,WH03,1,True,2024-01-01 00:00:00

@@ -28,18 +28,18 @@ const DecisionImpactScenarios = () => {
   }))
 
   const scenarioColumns = [
-    { title: 'ID', dataIndex: 'scenario_id', key: 'scenario_id', width: 60 },
-    { title: 'Name', dataIndex: 'scenario_name', key: 'scenario_name', render: (t) => <span className="font-semibold">{t}</span> },
-    { title: 'Baseline', dataIndex: 'is_baseline', key: 'is_baseline', render: (v) => v ? <Tag color="green">Yes</Tag> : <Tag>No</Tag> },
-    { title: 'Created', dataIndex: 'created_at', key: 'created_at', render: (t) => t ? new Date(t).toLocaleDateString() : 'N/A' },
+    { title: 'ID',    dataIndex: 'scenario_id',   key: 'scenario_id',   width: 60 },
+    { title: 'Tên',  dataIndex: 'scenario_name', key: 'scenario_name', render: (t) => <span className="font-semibold">{t}</span> },
+    { title: 'Cơ sở', dataIndex: 'is_baseline',   key: 'is_baseline',   render: (v) => v ? <Tag color="green">Âng</Tag> : <Tag>Không</Tag> },
+    { title: 'Ngày tạo', dataIndex: 'created_at', key: 'created_at', render: (t) => t ? new Date(t).toLocaleDateString('vi-VN') : 'N/A' },
   ]
 
   const impactColumns = [
     { title: 'KPI', dataIndex: 'kpi_name', key: 'kpi_name', render: (t) => <span className="font-semibold">{t}</span> },
-    { title: 'Base', dataIndex: 'base_value', key: 'base_value', render: (v) => Number(v).toLocaleString() },
-    { title: 'Scenario', dataIndex: 'whatif_value', key: 'whatif_value', render: (v) => Number(v).toLocaleString() },
+    { title: 'Cơ sở', dataIndex: 'base_value', key: 'base_value', render: (v) => Number(v).toLocaleString('vi-VN') },
+    { title: 'Kịch bản', dataIndex: 'whatif_value', key: 'whatif_value', render: (v) => Number(v).toLocaleString('vi-VN') },
     {
-      title: 'Impact', dataIndex: 'percent_change', key: 'percent_change',
+      title: 'Tác động', dataIndex: 'percent_change', key: 'percent_change',
       render: (v) => {
         const n = Number(v)
         const icon = n > 0 ? <RiseOutlined /> : <FallOutlined />
@@ -52,25 +52,25 @@ const DecisionImpactScenarios = () => {
     <Spin spinning={loadingScenarios || comparing}>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><ApartmentOutlined className="mr-3" />D1. Decision Impact Scenarios</h1>
-        <p className="text-gray-600">Analyze how decisions impact key performance indicators</p>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><ApartmentOutlined className="mr-3" />D1. Tác động quyết định</h1>
+        <p className="text-gray-600">Phân tích tác động của các quyết định đến các chỉ số hiệu suất</p>
       </div>
 
-      <Card title="Available Scenarios">
+      <Card title="Kịch bản hiện có">
         <Table columns={scenarioColumns} dataSource={scenarios} pagination={{ pageSize: 5 }} size="small" rowKey="scenario_id" />
       </Card>
 
-      <Card title="Compare Runs">
+      <Card title="So sánh lần chạy">
         <div className="flex items-center gap-4 flex-wrap">
-          <div><span className="mr-2">Base Run:</span><InputNumber min={1} value={baseRunId} onChange={setBaseRunId} /></div>
-          <div><span className="mr-2">Compare Run:</span><InputNumber min={1} value={compareRunId} onChange={setCompareRunId} /></div>
-          <Button type="primary" icon={<ThunderboltOutlined />} onClick={runCompare} disabled={!baseRunId || !compareRunId}>Analyze Impact</Button>
+          <div><span className="mr-2">Lần chạy cơ sở:</span><InputNumber min={1} value={baseRunId} onChange={setBaseRunId} /></div>
+          <div><span className="mr-2">Lần chạy so sánh:</span><InputNumber min={1} value={compareRunId} onChange={setCompareRunId} /></div>
+          <Button type="primary" icon={<ThunderboltOutlined />} onClick={runCompare} disabled={!baseRunId || !compareRunId}>Phân tích tác động</Button>
         </div>
       </Card>
 
       {comparison && (
         <>
-          <Card title="Impact Analysis">
+          <Card title="Phân tích tác động">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={impactData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -78,20 +78,20 @@ const DecisionImpactScenarios = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="impact" fill="#1890ff" name="Absolute Impact" />
-                <Bar dataKey="pctChange" fill="#f5222d" name="% Change" />
+                <Bar dataKey="impact" fill="#1890ff" name="Tác động tuyệt đối" />
+                <Bar dataKey="pctChange" fill="#f5222d" name="% Thay đổi" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
 
-          <Card title="Detailed Impact">
+          <Card title="Chi tiết tác động">
             <Table columns={impactColumns} dataSource={deltas} pagination={false} size="middle" rowKey="kpi_name" />
           </Card>
         </>
       )}
 
       {!comparison && !comparing && (
-        <Alert message="Select two run IDs above and click Analyze Impact to see decision impact analysis" type="info" showIcon />
+        <Alert message="Chọn hai mã lần chạy và nhấn Phân tích tác động để hiển thị kết quả" type="info" showIcon />
       )}
     </div>
     </Spin>

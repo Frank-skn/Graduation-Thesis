@@ -1,259 +1,309 @@
 """
-SS-MB-SMI Pyomo Optimization Model
-Exactly implements the mathematical formulation provided
+SS-MB-SMI Optimization Model — PuLP per-item decomposition.
+
+Mirrors D:/KLTN/temp.py exactly:
+- Per-item sub-problems solved independently with CBC
+- Capacity constraint is EQUALITY (== CAP[i,t]) per the paper
+- Variables: q (int>=0), r (0..CP-1 int), I (continuous),
+             bo/o/s (continuous>=0), p (binary)
+- Objective: min Σ(Co·o + Cs·s + Cb·bo + Cp·p)
 """
-from pyomo.environ import (
-    ConcreteModel, Set, Param, Var,
-    NonNegativeIntegers, NonNegativeReals, Binary,
-    Objective, Constraint, minimize, value
-)
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Tuple
+
+import pulp
+
 from backend.schemas.optimization import OptimizationInput
-from typing import Dict, Tuple, Any
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+HV_DEFAULT = 9999.0
+MAX_SOLVE_SECONDS_DEFAULT = 30
 
 
-def build_ss_mb_smi_model(data: OptimizationInput) -> ConcreteModel:
+# ---------------------------------------------------------------------------
+# Result dataclasses
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ModelSolution:
+    """Full solution across all items."""
+
+    Q_sol:  Dict[Tuple, int]   = field(default_factory=dict)
+    R_sol:  Dict[Tuple, int]   = field(default_factory=dict)
+    INV:    Dict[Tuple, float] = field(default_factory=dict)
+    BO_sol: Dict[Tuple, float] = field(default_factory=dict)
+    O_sol:  Dict[Tuple, float] = field(default_factory=dict)
+    S_sol:  Dict[Tuple, float] = field(default_factory=dict)
+    PE_sol: Dict[Tuple, int]   = field(default_factory=dict)
+
+    objective_value:     float = 0.0
+    solve_time_seconds:  float = 0.0
+    solver_status:       str   = "Optimal"
+    n_infeasible:        int   = 0
+    n_failed:            int   = 0
+
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _safe(v) -> float:
+    """Safely extract PuLP variable value."""
+    val = pulp.value(v)
+    return 0.0 if val is None else float(val)
+
+
+# ---------------------------------------------------------------------------
+# Per-item sub-problem
+# ---------------------------------------------------------------------------
+
+def _solve_item(
+    item: str,
+    j_list: List[str],
+    T: List[int],
+    BI: Dict,
+    DI: Dict,
+    U: Dict,
+    L: Dict,
+    CAP: Dict,
+    CP: Dict,
+    Co: Dict,
+    Cs: Dict,
+    Cb: Dict,
+    Cp_cost: Dict,
+    HV: float,
+    time_limit: int,
+) -> dict:
     """
-    Build the SS-MB-SMI MILP model
-    
-    Args:
-        data: OptimizationInput containing all parameters
-    
-    Returns:
-        ConcreteModel ready to solve
+    Solve the SS-MB-SMI sub-problem for a single item.
+
+    Returns a dict with Q_sol, R_sol, INV, BO_sol, O_sol, S_sol, PE_sol,
+    obj_val, status keys.
     """
-    model = ConcreteModel(name="SS_MB_SMI")
+    ijt_list = [(item, j, t) for j in j_list for t in T]
 
-    # =========================
-    # SETS
-    # =========================
-    model.I = Set(initialize=data.I, doc="Items (products)")
-    model.J = Set(initialize=data.J, doc="FGPs (warehouses)")
-    model.T = Set(initialize=data.T, doc="Time periods", ordered=True)
+    sub = pulp.LpProblem(f"SS_{item}", pulp.LpMinimize)
 
-    # =========================
-    # PARAMETERS
-    # =========================
-    model.BI = Param(model.I, model.J, initialize=data.BI, doc="Beginning inventory")
-    model.CP = Param(model.I, model.J, initialize=data.CP, doc="Case pack quantity")
+    # --- Variables ---
+    q = pulp.LpVariable.dicts("q", ijt_list, lowBound=0, cat="Integer")
 
-    model.Cb = Param(model.I, model.J, model.T, initialize=data.Cb, doc="Backorder cost")
-    model.Co = Param(model.I, model.J, model.T, initialize=data.Co, doc="Overstock cost")
-    model.Cs = Param(model.I, model.J, model.T, initialize=data.Cs, doc="Shortage cost")
-    model.Cp = Param(model.I, model.J, model.T, initialize=data.Cp, doc="Penalty cost")
-
-    model.U = Param(model.I, model.J, model.T, initialize=data.U, doc="Upper inventory bound")
-    model.L = Param(model.I, model.J, model.T, initialize=data.L, doc="Lower inventory bound")
-
-    model.CAP = Param(model.I, model.T, initialize=data.CAP, doc="Vendor capacity")
-    model.DI = Param(model.I, model.J, model.T, initialize=data.DI, doc="Delta inventory")
-
-    model.HV = Param(initialize=data.HV, doc="High value constant for linearization")
-
-    # =========================
-    # DECISION VARIABLES
-    # =========================
-    model.q = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeIntegers,
-        doc="Number of case packs"
-    )
-    
-    model.r = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeIntegers,
-        doc="Residual units"
-    )
-
-    model.I_inv = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeReals,
-        doc="Net inventory level"
-    )
-
-    model.bo = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeReals,
-        doc="Backorder quantity"
-    )
-    
-    model.o = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeReals,
-        doc="Overstock quantity"
-    )
-    
-    model.s = Var(
-        model.I, model.J, model.T,
-        domain=NonNegativeReals,
-        doc="Shortage quantity"
-    )
-
-    model.p = Var(
-        model.I, model.J, model.T,
-        domain=Binary,
-        doc="Penalty binary flag"
-    )
-
-    # =========================
-    # OBJECTIVE FUNCTION (1)
-    # =========================
-    def total_cost_rule(m):
-        """Minimize total cost"""
-        return sum(
-            m.Co[i, j, t] * m.o[i, j, t] +
-            m.Cs[i, j, t] * m.s[i, j, t] +
-            m.Cb[i, j, t] * m.bo[i, j, t] +
-            m.Cp[i, j, t] * m.p[i, j, t]
-            for i in m.I for j in m.J for t in m.T
+    r: Dict = {}
+    for i_, j_, t_ in ijt_list:
+        cp_ij = max(1, int(CP.get((i_, j_), 1)))
+        r[(i_, j_, t_)] = pulp.LpVariable(
+            f"r_{i_}_{j_}_{t_}", lowBound=0, upBound=cp_ij - 1, cat="Integer"
         )
 
-    model.OBJ = Objective(rule=total_cost_rule, sense=minimize, doc="Total cost objective")
+    Iv  = pulp.LpVariable.dicts("I",  ijt_list, lowBound=None, cat="Continuous")
+    bo  = pulp.LpVariable.dicts("bo", ijt_list, lowBound=0,    cat="Continuous")
+    o   = pulp.LpVariable.dicts("o",  ijt_list, lowBound=0,    cat="Continuous")
+    s   = pulp.LpVariable.dicts("s",  ijt_list, lowBound=0,    cat="Continuous")
+    p   = pulp.LpVariable.dicts("p",  ijt_list, cat="Binary")
 
-    # =========================
-    # CONSTRAINTS
-    # =========================
+    # --- Objective ---
+    obj_expr = pulp.lpSum(
+        Co.get(k, 0) * o[k]
+        + Cs.get(k, 0) * s[k]
+        + Cb.get(k, 0) * bo[k]
+        + Cp_cost.get(k, 0) * p[k]
+        for k in ijt_list
+    )
+    # Guard: ensure it is an LpAffineExpression when all costs are zero
+    if not isinstance(obj_expr, pulp.LpAffineExpression):
+        obj_expr = obj_expr + 0.0 * q[ijt_list[0]]
+    sub += obj_expr, "Total_Cost"
 
-    # (2) Inventory balance – t = 1 (first period)
-    def inventory_init_rule(m, i, j):
-        """Initial inventory balance"""
-        t0 = m.T.first()
-        return m.I_inv[i, j, t0] == (
-            m.BI[i, j] +
-            m.DI[i, j, t0] +
-            m.q[i, j, t0] * m.CP[i, j] +
-            m.r[i, j, t0]
+    # --- Constraints ---
+    t0 = T[0]
+    for j_ in j_list:
+        cp_ij = max(1, int(CP.get((item, j_), 1)))
+
+        # C2 – inventory balance t = t0
+        sub += (
+            Iv[(item, j_, t0)]
+            == BI.get((item, j_), 0)
+            + DI.get((item, j_, t0), 0)
+            + q[(item, j_, t0)] * cp_ij
+            + r[(item, j_, t0)],
+            f"InvInit_{j_}",
         )
-    
-    model.InventoryInit = Constraint(
-        model.I, model.J,
-        rule=inventory_init_rule,
-        doc="Inventory balance for t=1"
-    )
 
-    # (3) Inventory balance – t >= 2
-    def inventory_flow_rule(m, i, j, t):
-        """Inventory flow for subsequent periods"""
-        if t == m.T.first():
-            return Constraint.Skip
-        t_prev = m.T.prev(t)
-        return m.I_inv[i, j, t] == (
-            m.I_inv[i, j, t_prev] +
-            m.DI[i, j, t] +
-            m.q[i, j, t] * m.CP[i, j] +
-            m.r[i, j, t]
+        # C3 – inventory balance t > t0
+        for k in range(1, len(T)):
+            tc, tp = T[k], T[k - 1]
+            sub += (
+                Iv[(item, j_, tc)]
+                == Iv[(item, j_, tp)]
+                + DI.get((item, j_, tc), 0)
+                + q[(item, j_, tc)] * cp_ij
+                + r[(item, j_, tc)],
+                f"InvFlow_{j_}_{tc}",
+            )
+
+    # C4 – capacity equality per paper Eq.4
+    for t_ in T:
+        sub += (
+            pulp.lpSum(
+                q[(item, j_, t_)] * max(1, int(CP.get((item, j_), 1)))
+                + r[(item, j_, t_)]
+                for j_ in j_list
+            )
+            == CAP.get((item, t_), 0),
+            f"Cap_{t_}",
         )
-    
-    model.InventoryFlow = Constraint(
-        model.I, model.J, model.T,
-        rule=inventory_flow_rule,
-        doc="Inventory flow for t>=2"
-    )
 
-    # (4) Capacity constraint
-    def capacity_rule(m, i, t):
-        """Vendor capacity must be met exactly"""
-        return sum(
-            m.q[i, j, t] * m.CP[i, j] + m.r[i, j, t]
-            for j in m.J
-        ) == m.CAP[i, t]
-    
-    model.CapacityConstraint = Constraint(
-        model.I, model.T,
-        rule=capacity_rule,
-        doc="Capacity equality constraint"
-    )
+    # C5-C9 – deviation & penalty linearisations
+    for j_ in j_list:
+        for t_ in T:
+            k = (item, j_, t_)
+            hv = float(HV)
+            sub += bo[k] >= -Iv[k],                             f"BO_{j_}_{t_}"
+            sub += o[k]  >= Iv[k] - U.get(k, hv),              f"O_{j_}_{t_}"
+            sub += s[k]  >= L.get(k, 0) - Iv[k],               f"S_{j_}_{t_}"
+            sub += r[k]  <= hv * p[k],                          f"RU_{j_}_{t_}"
+            sub += r[k]  >= hv * (p[k] - 1) + 1,               f"RL_{j_}_{t_}"
 
-    # (5) Backorder linearization
-    def backorder_rule(m, i, j, t):
-        """Backorder >= -I (when inventory is negative)"""
-        return m.bo[i, j, t] >= -m.I_inv[i, j, t]
-    
-    model.BackorderConstraint = Constraint(
-        model.I, model.J, model.T,
-        rule=backorder_rule,
-        doc="Backorder linearization"
-    )
+    # --- Solve ---
+    solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=time_limit)
+    solver.solve(sub)
 
-    # (6) Overstock linearization
-    def overstock_rule(m, i, j, t):
-        """Overstock >= I - U (when above upper bound)"""
-        return m.o[i, j, t] >= m.I_inv[i, j, t] - m.U[i, j, t]
-    
-    model.OverstockConstraint = Constraint(
-        model.I, model.J, model.T,
-        rule=overstock_rule,
-        doc="Overstock linearization"
-    )
+    status = pulp.LpStatus[sub.status]
 
-    # (7) Shortage linearization
-    def shortage_rule(m, i, j, t):
-        """Shortage >= L - I (when below lower bound)"""
-        return m.s[i, j, t] >= m.L[i, j, t] - m.I_inv[i, j, t]
-    
-    model.ShortageConstraint = Constraint(
-        model.I, model.J, model.T,
-        rule=shortage_rule,
-        doc="Shortage linearization"
-    )
-
-    # (8) Linearization – upper bound for residual
-    def residual_upper_rule(m, i, j, t):
-        """r <= HV * p (if p=0, r must be 0)"""
-        return m.r[i, j, t] <= m.HV * m.p[i, j, t]
-    
-    model.ResidualUpper = Constraint(
-        model.I, model.J, model.T,
-        rule=residual_upper_rule,
-        doc="Residual upper bound linearization"
-    )
-
-    # (9) Linearization – lower bound for residual
-    def residual_lower_rule(m, i, j, t):
-        """r >= HV * (p - 1) + 1 (if p=1, r >= 1)"""
-        return m.r[i, j, t] >= m.HV * (m.p[i, j, t] - 1) + 1
-    
-    model.ResidualLower = Constraint(
-        model.I, model.J, model.T,
-        rule=residual_lower_rule,
-        doc="Residual lower bound linearization"
-    )
-
-    return model
-
-
-def extract_solution(model: ConcreteModel, data: OptimizationInput) -> Dict[str, Any]:
-    """
-    Extract solution from solved model
-    
-    Args:
-        model: Solved Pyomo model
-        data: Original input data
-    
-    Returns:
-        Dictionary with solution details
-    """
-    results = []
-    
-    for i in model.I:
-        for j in model.J:
-            for t in model.T:
-                results.append({
-                    "product_id": i,
-                    "warehouse_id": j,
-                    "box_id": 1,  # Default, should be mapped from CP
-                    "time_period": t,
-                    "q_case_pack": int(value(model.q[i, j, t])),
-                    "r_residual_units": int(value(model.r[i, j, t])),
-                    "net_inventory": float(value(model.I_inv[i, j, t])),
-                    "backorder_qty": float(value(model.bo[i, j, t])),
-                    "overstock_qty": float(value(model.o[i, j, t])),
-                    "shortage_qty": float(value(model.s[i, j, t])),
-                    "penalty_flag": bool(value(model.p[i, j, t]) > 0.5)
-                })
-    
-    return {
-        "results": results,
-        "objective_value": value(model.OBJ),
-        "num_variables": model.nvariables(),
-        "num_constraints": model.nconstraints()
+    out: dict = {
+        "status": status,
+        "obj_val": _safe(sub.objective),
+        "Q_sol": {}, "R_sol": {}, "INV": {},
+        "BO_sol": {}, "O_sol": {}, "S_sol": {}, "PE_sol": {},
     }
+    if status in ("Optimal", "Not Solved"):
+        for k in ijt_list:
+            out["Q_sol"][k]  = int(round(_safe(q[k])))
+            out["R_sol"][k]  = int(round(_safe(r[k])))
+            out["INV"][k]    = _safe(Iv[k])
+            out["BO_sol"][k] = _safe(bo[k])
+            out["O_sol"][k]  = _safe(o[k])
+            out["S_sol"][k]  = _safe(s[k])
+            out["PE_sol"][k] = int(round(_safe(p[k])))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+def solve_ss_mb_smi(
+    data: "OptimizationInput",
+    time_limit_per_item: int = MAX_SOLVE_SECONDS_DEFAULT,
+) -> "ModelSolution":
+    """
+    Solve SS-MB-SMI via per-item PuLP sub-problems (mirrors temp.py).
+
+    Each item is solved independently; results are accumulated in ModelSolution.
+    """
+    T = sorted(data.T)
+
+    # Build J_by_i: which warehouses carry item i
+    J_by_i: Dict[str, List[str]] = {}
+    for (i, j, _) in data.DI.keys():
+        J_by_i.setdefault(i, [])
+        if j not in J_by_i[i]:
+            J_by_i[i].append(j)
+
+    sol = ModelSolution()
+    t_start = time.time()
+
+    for item in data.I:
+        j_list = sorted(J_by_i.get(item, []))
+        if not j_list:
+            continue
+
+        result = _solve_item(
+            item=item,
+            j_list=j_list,
+            T=T,
+            BI=data.BI,
+            DI=data.DI,
+            U=data.U,
+            L=data.L,
+            CAP=data.CAP,
+            CP=data.CP,
+            Co=data.Co,
+            Cs=data.Cs,
+            Cb=data.Cb,
+            Cp_cost=data.Cp,
+            HV=getattr(data, "HV", HV_DEFAULT),
+            time_limit=time_limit_per_item,
+        )
+
+        status = result["status"]
+        if status not in ("Optimal",):
+            if status == "Infeasible":
+                sol.n_infeasible += 1
+            else:
+                sol.n_failed += 1
+
+        sol.objective_value += result["obj_val"]
+        sol.Q_sol.update(result["Q_sol"])
+        sol.R_sol.update(result["R_sol"])
+        sol.INV.update(result["INV"])
+        sol.BO_sol.update(result["BO_sol"])
+        sol.O_sol.update(result["O_sol"])
+        sol.S_sol.update(result["S_sol"])
+        sol.PE_sol.update(result["PE_sol"])
+
+    sol.solve_time_seconds = time.time() - t_start
+    if sol.n_infeasible == 0 and sol.n_failed == 0:
+        sol.solver_status = "Optimal"
+    elif sol.n_infeasible > 0:
+        sol.solver_status = "Infeasible"
+    else:
+        sol.solver_status = "Failed"
+
+    return sol
+
+
+# ---------------------------------------------------------------------------
+# Solution extraction helper
+# ---------------------------------------------------------------------------
+
+def extract_solution_dicts(
+    model_sol: "ModelSolution",
+    data: "OptimizationInput",
+) -> List[dict]:
+    """
+    Flatten ModelSolution into a list of row-dicts for DB persistence.
+
+    Each row: {product_id, warehouse_id, box_id, time_period,
+               q_case_pack, r_residual_units, net_inventory,
+               backorder_qty, overstock_qty, shortage_qty, penalty_flag}
+    """
+    rows: List[dict] = []
+    for (i, j, t), q_val in model_sol.Q_sol.items():
+        rows.append(
+            {
+                "product_id": i,
+                "warehouse_id": j,
+                "box_id": CP_to_box_id(data.CP.get((i, j), 1)),
+                "time_period": t,
+                "q_case_pack": q_val,
+                "r_residual_units": model_sol.R_sol.get((i, j, t), 0),
+                "net_inventory": model_sol.INV.get((i, j, t), 0.0),
+                "backorder_qty": model_sol.BO_sol.get((i, j, t), 0.0),
+                "overstock_qty": model_sol.O_sol.get((i, j, t), 0.0),
+                "shortage_qty": model_sol.S_sol.get((i, j, t), 0.0),
+                "penalty_flag": bool(model_sol.PE_sol.get((i, j, t), 0)),
+            }
+        )
+    return rows
+
+
+def CP_to_box_id(cp_value: int) -> int:
+    """Map CP value to a box_id integer (simple identity mapping)."""
+    return int(cp_value) if cp_value else 1

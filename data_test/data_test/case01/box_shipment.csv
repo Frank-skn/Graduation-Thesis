@@ -1,0 +1,4 @@
+packing_details_id,warehouse_id,is_active,created_at,updated_at
+1,WH01,True,2024-01-01 00:00:00,2024-01-01 00:00:00
+1,WH02,True,2024-01-01 00:00:00,2024-01-01 00:00:00
+1,WH03,True,2024-01-01 00:00:00,2024-01-01 00:00:00

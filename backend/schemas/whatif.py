@@ -94,6 +94,10 @@ class WhatIfKPIs(BaseModel):
     total_overstock: float = Field(0.0, description="Total overstock quantity")
     total_shortage: float = Field(0.0, description="Total shortage quantity")
     total_penalty: float = Field(0.0, description="Total penalty count")
+    cost_backorder: float = Field(0.0, description="Cost component: backorder")
+    cost_overstock: float = Field(0.0, description="Cost component: overstock")
+    cost_shortage:  float = Field(0.0, description="Cost component: shortage")
+    cost_penalty:   float = Field(0.0, description="Cost component: penalty")
     service_level: float = Field(0.0, description="Service level (%)")
     capacity_utilization: float = Field(0.0, description="Capacity utilization (%)")
 
@@ -112,6 +116,13 @@ class WhatIfResponse(BaseModel):
         default_factory=list,
         description="Which parameters were changed"
     )
+    # Extended savings metrics (mirrored from DssRunSummary)
+    baseline_cost: float = Field(0.0, description="Do-nothing baseline cost")
+    savings: float = Field(0.0, description="Absolute savings vs baseline")
+    savings_pct: float = Field(0.0, description="Savings as % of baseline")
+    n_changes: int = Field(0, description="Rows with reorder action")
+    si_mean: float = Field(0.0, description="Mean Safety Index")
+    ss_below_count: int = Field(0, description="Rows where inventory < safety floor")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="When this run was executed"

@@ -13,10 +13,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db_nds, get_db_dds
-from backend.data_access.repositories import OptimizationDataRepository
-from backend.data_access.models_dds import DDSModelParameters
-from backend.data_access.models_nds import DatasetVersion
+from backend.core.database import get_db_nds, get_csv_data
+from backend.data_access.csv_repository import CsvOptimizationDataRepository
+from backend.data_access.models_nds import ModelParameter, DatasetVersion
 from backend.schemas.data_overview import (
     DataOverview,
     ParameterSummary,
@@ -32,38 +31,46 @@ router = APIRouter()
 # ------------------------------------------------------------------ #
 
 @router.get("/", response_model=DataOverview)
-def get_data_overview(db: Session = Depends(get_db_dds)):
+def get_data_overview(csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data)):
     """
     Get high-level overview of the loaded optimization dataset.
 
     Returns product / warehouse / period counts and per-parameter
     summary statistics (min, max, mean, std, zero-count).
     """
-    repo = OptimizationDataRepository(db)
-    opt_input = repo.get_optimization_input()
+    opt_input = csv_repo.get_optimization_input()
 
-    # Build summary stats for each parameter dictionary
-    param_dicts = {
-        "BI": opt_input.BI,
-        "CP": opt_input.CP,
-        "U": opt_input.U,
-        "L": opt_input.L,
-        "DI": opt_input.DI,
-        "CAP": opt_input.CAP,
-        "Cb": opt_input.Cb,
-        "Co": opt_input.Co,
-        "Cs": opt_input.Cs,
-        "Cp": opt_input.Cp,
+    # Actual distinct combination counts from the CSV files.
+    # These reflect the real operational domain, not the theoretical Cartesian product:
+    #   BI[(i,j)]  → denominator = distinct (i,j) in inventory_flow
+    #   CP[(i,j)]  → denominator = |I|×|J| theoretical (packing coverage)
+    #   U/L/DI/cost[(i,j,t)] → denominator = distinct (i,j,t) in inventory_flow
+    #   CAP[(i,t)] → denominator = |I|×|T|
+    cc = csv_repo.get_actual_combination_counts()
+
+    param_meta = {
+        "BI":  (opt_input.BI,  "ij",  cc["ij_flow"]),   # vs actual (i,j) in flow
+        "CP":  (opt_input.CP,  "ij",  cc["ij_theor"]),  # vs |I|×|J| theoretical
+        "U":   (opt_input.U,   "ijt", cc["ijt_flow"]),  # vs actual (i,j,t) in flow
+        "L":   (opt_input.L,   "ijt", cc["ijt_flow"]),
+        "DI":  (opt_input.DI,  "ijt", cc["ijt_flow"]),
+        "CAP": (opt_input.CAP, "it",  cc["it"]),        # vs |I|×|T|
+        "Cb":  (opt_input.Cb,  "ijt", cc["ijt_flow"]),
+        "Co":  (opt_input.Co,  "ijt", cc["ijt_flow"]),
+        "Cs":  (opt_input.Cs,  "ijt", cc["ijt_flow"]),
+        "Cp":  (opt_input.Cp,  "ijt", cc["ijt_flow"]),
     }
 
     summaries: List[ParameterSummary] = []
-    for name, d in param_dicts.items():
+    for name, (d, idx_type, max_ent) in param_meta.items():
         if not d:
             continue
         float_values = [float(v) for v in d.values()]
         summaries.append(
             ParameterSummary(
                 name=name,
+                index_type=idx_type,
+                max_entries=max_ent,
                 num_entries=len(float_values),
                 min_value=min(float_values),
                 max_value=max(float_values),
@@ -111,12 +118,12 @@ class ModelParameterList(BaseModel):
 
 
 @router.get("/parameters", response_model=ModelParameterList)
-def get_model_parameters(db: Session = Depends(get_db_dds)):
+def get_model_parameters(db: Session = Depends(get_db_nds)):
     """
-    Get all model parameters from dds.dds_model_parameters.
+    Get all model parameters from SQLite model_parameter table.
     """
-    params = db.query(DDSModelParameters).order_by(
-        DDSModelParameters.param_name
+    params = db.query(ModelParameter).order_by(
+        ModelParameter.param_name
     ).all()
 
     return ModelParameterList(
@@ -146,13 +153,13 @@ class ModelParameterUpdate(BaseModel):
 def update_model_parameter(
     param_name: str,
     update: ModelParameterUpdate,
-    db: Session = Depends(get_db_dds),
+    db: Session = Depends(get_db_nds),
 ):
     """
     Update a model parameter value by name.
     """
-    param = db.query(DDSModelParameters).filter(
-        DDSModelParameters.param_name == param_name
+    param = db.query(ModelParameter).filter(
+        ModelParameter.param_name == param_name
     ).first()
 
     if not param:
@@ -235,19 +242,18 @@ class DatasetVersionCreate(BaseModel):
 def create_dataset_version(
     request: DatasetVersionCreate,
     db_nds: Session = Depends(get_db_nds),
-    db_dds: Session = Depends(get_db_dds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
     """
-    Create a dataset version snapshot from the current DDS data.
+    Create a dataset version snapshot from the current CSV data.
 
     Captures the current set of products, warehouses, and periods,
     computes a SHA-256 checksum, and stores the metadata in
-    nds.dataset_version.
+    dataset_version (SQLite).
     """
-    repo = OptimizationDataRepository(db_dds)
-    products = repo.get_products()
-    warehouses = repo.get_warehouses()
-    periods = repo.get_time_periods()
+    products = csv_repo.get_products()
+    warehouses = csv_repo.get_warehouses()
+    periods = csv_repo.get_time_periods()
 
     # Build snapshot metadata
     snapshot_meta = {

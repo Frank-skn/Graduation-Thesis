@@ -1,0 +1,4 @@
+product_id,warehouse_id,beginning_inventory,effective_date,created_at
+ITEM003,WH01,10,2024-01-01,2024-01-01 00:00:00
+ITEM003,WH02,10,2024-01-01,2024-01-01 00:00:00
+ITEM003,WH03,10,2024-01-01,2024-01-01 00:00:00

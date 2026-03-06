@@ -9,8 +9,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db_nds, get_db_dds
-from backend.data_access.repositories import OptimizationDataRepository
+from backend.core.database import get_db_nds, get_csv_data
+from backend.data_access.csv_repository import CsvOptimizationDataRepository
 from backend.data_access.models_nds import (
     SensitivityRun,
     OptimizationRun,
@@ -38,7 +38,7 @@ _sensitivity_svc = SensitivityService()
 def run_sensitivity(
     request: SensitivityRequest,
     db_nds: Session = Depends(get_db_nds),
-    db_dds: Session = Depends(get_db_dds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
     """
     Run one-at-a-time sensitivity analysis on a single parameter.
@@ -82,9 +82,8 @@ def run_sensitivity(
     db_nds.refresh(sensitivity)
 
     try:
-        # Fetch base input
-        data_repo = OptimizationDataRepository(db_dds)
-        base_input = data_repo.get_optimization_input()
+        # Fetch base input from CSV
+        base_input = csv_repo.get_optimization_input()
 
         # Optionally pre-compute base result
         base_result = None
@@ -203,7 +202,7 @@ def get_sensitivity_results(
 def run_tornado(
     request: TornadoRequest,
     db_nds: Session = Depends(get_db_nds),
-    db_dds: Session = Depends(get_db_dds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
     """
     Run tornado analysis across multiple parameters.
@@ -228,9 +227,8 @@ def run_tornado(
         )
 
     try:
-        # Fetch base input
-        data_repo = OptimizationDataRepository(db_dds)
-        base_input = data_repo.get_optimization_input()
+        # Fetch base input from CSV
+        base_input = csv_repo.get_optimization_input()
 
         # Execute tornado analysis
         result = _sensitivity_svc.run_tornado(
