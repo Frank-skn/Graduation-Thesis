@@ -47,7 +47,7 @@ docker-compose exec backend python scripts/load_sample_data.py
 ```
 
 6. **Access Application**
-- Frontend: http://localhost:8501
+- Frontend: http://localhost:3000
 - API Docs: http://localhost:8000/docs
 
 ## Using the DSS
