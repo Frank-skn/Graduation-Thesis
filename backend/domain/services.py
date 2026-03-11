@@ -30,6 +30,10 @@ class OptimizationResult:
     n_changes: int = 0
     si_mean: float = 0.0
     ss_below_count: int = 0
+    # Proportional allocation comparison
+    prop_cost: float = 0.0
+    savings_vs_prop: float = 0.0
+    savings_pct_prop: float = 0.0
 
 
 def _baseline_cost(data: OptimizationInput) -> float:
@@ -56,6 +60,100 @@ def _baseline_cost(data: OptimizationInput) -> float:
                 + data.Cb.get((i, j, t), 0.0) * bk
             )
     return total
+
+
+def _proportional_allocation_cost(data: OptimizationInput) -> float:
+    """
+    Heuristic baseline: phân bổ CAP[i,t] theo tỉ lệ deficit so với floor.
+
+    Mô phỏng cách người quản lý kho thực tế ra quyết định:
+    - Ai thiếu nhiều nhất → nhận nhiều nhất
+    - Không ai thiếu → chia đều
+    - Làm tròn xuống bội số case-pack (CP) để sát thực tế vận hành
+    - Phần dư sau làm tròn → ưu tiên cho warehouse thiếu nhất
+
+    Khác biệt với MILP:
+    - Myopic: quyết định từng kỳ, không nhìn trước các kỳ sau
+    - Không tối ưu toàn cục: có thể tạo overstock khi không ai thiếu
+      nhưng CAP vẫn phải phân bổ hết (equality constraint)
+    """
+    T_sorted = sorted({t for (_, _, t) in data.DI.keys()})
+    items = sorted({i for (i, _) in data.CAP.keys()})
+    IJ_pairs = sorted({(i, j) for (i, j, _) in data.DI.keys()})
+
+    total_cost = 0.0
+
+    for i in items:
+        j_list = sorted({j for (ii, j) in IJ_pairs if ii == i})
+        if not j_list:
+            continue
+
+        # Theo dõi tồn kho thực tế qua từng kỳ (carry-forward)
+        current_inv: Dict[str, float] = {
+            j: data.BI.get((i, j), 0.0) for j in j_list
+        }
+
+        for t in T_sorted:
+            # 1. Cập nhật tồn kho theo biến động cầu (DI)
+            for j in j_list:
+                current_inv[j] += data.DI.get((i, j, t), 0.0)
+
+            cap = data.CAP.get((i, t), 0.0)
+
+            # 2. Tính deficit: mức thiếu so với floor sau khi đã tính DI
+            deficit: Dict[str, float] = {
+                j: max(0.0, data.L.get((i, j, t), 0.0) - current_inv[j])
+                for j in j_list
+            }
+            total_deficit = sum(deficit.values())
+
+            # 3. Phân bổ theo tỉ lệ deficit, làm tròn xuống bội số CP
+            alloc: Dict[str, float] = {}
+            if total_deficit > 0:
+                for j in j_list:
+                    cp_ij = max(1, int(data.CP.get((i, j), 1)))
+                    raw = cap * (deficit[j] / total_deficit)
+                    alloc[j] = float(int(raw // cp_ij) * cp_ij)
+            else:
+                # Không ai thiếu → chia đều theo CP
+                n = len(j_list)
+                for j in j_list:
+                    cp_ij = max(1, int(data.CP.get((i, j), 1)))
+                    raw = cap / n
+                    alloc[j] = float(int(raw // cp_ij) * cp_ij)
+
+            # 4. Phân bổ phần dư (do làm tròn) cho warehouse thiếu nhất trước
+            remainder = cap - sum(alloc.values())
+            if remainder > 0:
+                j_priority = sorted(
+                    j_list,
+                    key=lambda j: deficit.get(j, 0.0),
+                    reverse=True,
+                )
+                min_cp = min(max(1, int(data.CP.get((i, j), 1))) for j in j_list)
+                for j in j_priority:
+                    if remainder < min_cp:
+                        break
+                    cp_ij = max(1, int(data.CP.get((i, j), 1)))
+                    extra = float(int(remainder // cp_ij) * cp_ij)
+                    if extra > 0:
+                        alloc[j] += extra
+                        remainder -= extra
+
+            # 5. Cập nhật tồn kho sau giao hàng và tính chi phí
+            for j in j_list:
+                current_inv[j] += alloc.get(j, 0.0)
+                iv = current_inv[j]
+                ov = max(0.0, iv - data.U.get((i, j, t), 9999.0))
+                sh = max(0.0, data.L.get((i, j, t), 0.0) - iv)
+                bk = max(0.0, -iv)
+                total_cost += (
+                    data.Co.get((i, j, t), 0.0) * ov
+                    + data.Cs.get((i, j, t), 0.0) * sh
+                    + data.Cb.get((i, j, t), 0.0) * bk
+                )
+
+    return total_cost
 
 
 class OptimizationService:
@@ -105,9 +203,12 @@ class OptimizationService:
 
         # --- Step 4: baseline & savings ---
         baseline = _baseline_cost(data)
+        prop_cost = _proportional_allocation_cost(data)
         opt_cost = model_sol.objective_value
         savings  = max(0.0, baseline - opt_cost)
         savings_pct = (savings / baseline * 100) if baseline > 0 else 0.0
+        savings_vs_prop = max(0.0, prop_cost - opt_cost)
+        savings_pct_prop = (savings_vs_prop / prop_cost * 100) if prop_cost > 0 else 0.0
 
         # --- Step 5: SI / SS metrics ---
         si_values = []
@@ -136,8 +237,11 @@ class OptimizationService:
 
         print(
             f"[OptimizationService] Done in {model_sol.solve_time_seconds:.1f}s | "
-            f"obj={opt_cost:.2f} | baseline={baseline:.2f} | "
-            f"savings={savings_pct:.1f}% | n_changes={n_changes}"
+            f"obj={opt_cost:.2f} | baseline_zero={baseline:.2f} | "
+            f"baseline_prop={prop_cost:.2f} | "
+            f"savings_vs_zero={savings_pct:.1f}% | "
+            f"savings_vs_prop={savings_pct_prop:.1f}% | "
+            f"n_changes={n_changes}"
         )
 
         return OptimizationResult(
@@ -156,6 +260,9 @@ class OptimizationService:
             n_changes=n_changes,
             si_mean=si_mean,
             ss_below_count=ss_below,
+            prop_cost=prop_cost,
+            savings_vs_prop=savings_vs_prop,
+            savings_pct_prop=savings_pct_prop,
         )
 
     # ------------------------------------------------------------------

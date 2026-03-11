@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Select, Alert, Spin, InputNumber, Button, Radio, Tabs, Progress } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Card, Row, Col, Table, Tag, Select, Alert, Spin, Button, Radio, Tabs, Empty } from 'antd'
 import {
   AppstoreOutlined,
   LineChartOutlined,
   FilterOutlined,
   WarningOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line, ReferenceLine } from 'recharts'
 import { useApi } from '../hooks/useApi'
@@ -17,11 +18,26 @@ const { TabPane } = Tabs
 
 const AllocationInventoryDashboard = () => {
   const { activeRunId, setActiveRunId } = useAppContext()
-  const [runIdInput, setRunIdInput] = useState(activeRunId || 1)
+  const [runs, setRuns] = useState([])
+  const [runsLoading, setRunsLoading] = useState(true)
   const [filterProduct, setFilterProduct] = useState(undefined)
   const [filterWarehouse, setFilterWarehouse] = useState(undefined)
   const [viewMode, setViewMode] = useState('chart')
   const [activeTab, setActiveTab] = useState('allocation')
+
+  const fetchRuns = () => {
+    setRunsLoading(true)
+    optimizationService.listRuns()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res?.runs ?? [])
+        setRuns(list)
+        if (!activeRunId && list.length > 0) setActiveRunId(list[0].run_id)
+      })
+      .catch(() => setRuns([]))
+      .finally(() => setRunsLoading(false))
+  }
+
+  useEffect(() => { fetchRuns() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: overview } = useApi(() => dataService.getOverview())
   
@@ -44,12 +60,6 @@ const AllocationInventoryDashboard = () => {
 
   const loading = allocationLoading || inventoryLoading
   const error = allocationError || inventoryError
-
-  const handleRunLoad = () => {
-    if (runIdInput) {
-      setActiveRunId(runIdInput)
-    }
-  }
 
   // Allocation data processing
   const warehouseStats = warehouses.map(wh => {
@@ -363,18 +373,23 @@ const AllocationInventoryDashboard = () => {
       <Card size="small" className="mb-6">
         <Row gutter={16} align="middle">
           <Col>
-            <span className="font-medium">Mã lần chạy:</span>
+            <span className="font-medium">Lần chạy:</span>
           </Col>
-          <Col>
-            <InputNumber
-              value={runIdInput}
-              onChange={setRunIdInput}
-              min={1}
-              style={{ width: 120 }}
+          <Col flex="auto">
+            <Select
+              style={{ minWidth: 340 }}
+              value={activeRunId}
+              onChange={setActiveRunId}
+              placeholder="Chọn lần chạy"
+              loading={runsLoading}
+              options={runs.map((r) => ({
+                value: r.run_id,
+                label: `Lần #${r.run_id} — ${r.solver_status} (mục tiêu: ${Number(r.objective_value ?? 0).toLocaleString('vi-VN')})`,
+              }))}
             />
           </Col>
           <Col>
-            <Button type="primary" onClick={handleRunLoad}>Tải</Button>
+            <Button icon={<ReloadOutlined />} onClick={fetchRuns} title="Làm mới danh sách" />
           </Col>
         </Row>
       </Card>
@@ -427,7 +442,7 @@ const AllocationInventoryDashboard = () => {
       {error && (
         <Alert
           message="Lỗi tải dữ liệu"
-          description={error.message}
+          description={String(error?.message || error)}
           type="error"
           showIcon
           className="mb-6"
@@ -453,10 +468,14 @@ const AllocationInventoryDashboard = () => {
 
       {!loading && !activeRunId && (
         <Card>
-          <div className="text-center py-20">
-            <WarningOutlined className="text-4xl text-gray-400 mb-4" />
-            <div className="text-gray-500">Vui lòng chọn lần chạy để xem kết quả</div>
-          </div>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              runs.length === 0
+                ? 'Chưa có lần chạy nào. Vui lòng vào trang B0 để chạy tối ưu hoá trước.'
+                : 'Vui lòng chọn lần chạy ở trên để xem kết quả.'
+            }
+          />
         </Card>
       )}
     </div>

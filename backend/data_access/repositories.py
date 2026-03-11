@@ -275,8 +275,11 @@ class ResultRepository(IResultRepository):
         n_changes: int,
         si_mean: float,
         ss_below_count: int,
+        prop_cost: float = 0.0,
+        savings_vs_prop: float = 0.0,
+        savings_pct_prop: float = 0.0,
     ) -> None:
-        """Persist the extended run summary (baseline cost, savings, SI/SS)."""
+        """Persist the extended run summary (baseline cost, savings, SI/SS, proportional)."""
         existing = self.db.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).first()
         if existing:
             existing.baseline_cost = baseline_cost
@@ -286,6 +289,9 @@ class ResultRepository(IResultRepository):
             existing.n_changes = n_changes
             existing.si_mean = si_mean
             existing.ss_below_count = ss_below_count
+            existing.prop_cost = prop_cost
+            existing.savings_vs_prop = savings_vs_prop
+            existing.savings_pct_prop = savings_pct_prop
         else:
             summary = DssRunSummary(
                 run_id=run_id,
@@ -296,6 +302,9 @@ class ResultRepository(IResultRepository):
                 n_changes=n_changes,
                 si_mean=si_mean,
                 ss_below_count=ss_below_count,
+                prop_cost=prop_cost,
+                savings_vs_prop=savings_vs_prop,
+                savings_pct_prop=savings_pct_prop,
             )
             self.db.add(summary)
         self.db.commit()
@@ -314,4 +323,7 @@ class ResultRepository(IResultRepository):
             "n_changes": int(s.n_changes or 0),
             "si_mean": float(s.si_mean or 0),
             "ss_below_count": int(s.ss_below_count or 0),
+            "prop_cost": float(s.prop_cost or 0),
+            "savings_vs_prop": float(s.savings_vs_prop or 0),
+            "savings_pct_prop": float(s.savings_pct_prop or 0),
         }

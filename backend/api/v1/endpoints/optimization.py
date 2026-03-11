@@ -67,6 +67,9 @@ def _run_optimization_task(
             n_changes=result.n_changes,
             si_mean=result.si_mean,
             ss_below_count=result.ss_below_count,
+            prop_cost=result.prop_cost,
+            savings_vs_prop=result.savings_vs_prop,
+            savings_pct_prop=result.savings_pct_prop,
         )
 
     except Exception as exc:

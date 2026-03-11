@@ -54,6 +54,11 @@ def startup_event():
             ("cost_shortage",  "NUMERIC"),
             ("cost_penalty",   "NUMERIC"),
         ],
+        "dss_run_summary": [
+            ("prop_cost",        "NUMERIC"),
+            ("savings_vs_prop",  "NUMERIC"),
+            ("savings_pct_prop", "NUMERIC"),
+        ],
     }
     with engine.connect() as conn:
         for table, cols in _migrations.items():

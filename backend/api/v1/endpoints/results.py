@@ -342,6 +342,9 @@ class RunSummaryExtended(BaseModel):
     n_changes: int = 0
     si_mean: float = 0
     ss_below_count: int = 0
+    prop_cost: float = 0
+    savings_vs_prop: float = 0
+    savings_pct_prop: float = 0
 
 
 @router.get("/{run_id}/summary-extended", response_model=RunSummaryExtended)
@@ -363,6 +366,9 @@ def get_summary_extended(run_id: int, db: Session = Depends(get_db_nds)):
         n_changes=int(s.n_changes or 0),
         si_mean=float(s.si_mean or 0),
         ss_below_count=int(s.ss_below_count or 0),
+        prop_cost=float(s.prop_cost or 0),
+        savings_vs_prop=float(s.savings_vs_prop or 0),
+        savings_pct_prop=float(s.savings_pct_prop or 0),
     )
 
 

@@ -157,5 +157,9 @@ class DssRunSummary(BaseNDS):
     n_changes = Column(Integer, default=0)          # rows with p=1
     si_mean = Column(Numeric(10, 4), default=0)     # mean Safety Index
     ss_below_count = Column(Integer, default=0)     # rows where I < L
+    # Proportional allocation comparison
+    prop_cost = Column(Numeric(18, 2), default=0)        # cost under proportional heuristic
+    savings_vs_prop = Column(Numeric(18, 2), default=0)  # absolute savings vs proportional
+    savings_pct_prop = Column(Numeric(5, 2), default=0)  # % savings vs proportional
 
     run = relationship("OptimizationRun")
