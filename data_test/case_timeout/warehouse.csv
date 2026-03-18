@@ -1,0 +1,7 @@
+warehouse_id,market_code,warehouse_name,country_code,created_at,updated_at
+WH01,REG-1,Distribution Center WH01,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH02,REG-2,Distribution Center WH02,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH03,REG-3,Distribution Center WH03,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH04,REG-4,Distribution Center WH04,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH05,REG-5,Distribution Center WH05,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH06,REG-6,Distribution Center WH06,XX,2024-01-01 00:00:00,2024-01-01 00:00:00

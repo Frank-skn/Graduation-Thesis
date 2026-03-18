@@ -21,6 +21,7 @@ services:
       - ./optimization:/app/optimization
       - ./shared:/app/shared
       - ./data:/app/data
+      - ./data_test:/app/data_test
     networks:
       - smi_network
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload

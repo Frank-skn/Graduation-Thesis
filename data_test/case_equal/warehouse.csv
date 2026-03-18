@@ -1,0 +1,3 @@
+warehouse_id,market_code,warehouse_name,country_code,created_at,updated_at
+WH01,REG-A,Warehouse A,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
+WH02,REG-B,Warehouse B,XX,2024-01-01 00:00:00,2024-01-01 00:00:00
