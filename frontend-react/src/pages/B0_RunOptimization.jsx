@@ -287,7 +287,7 @@ const RunOptimization = () => {
       <div>
         <h1 className="text-3xl font-bold text-primary-700 mb-1">
           <ThunderboltOutlined className="mr-3" />
-          B1. Chạy Tối Ưu Hoá
+          B1. Thực Thi Tối Ưu Hoá
         </h1>
         <p className="text-gray-500">
           Chạy mô hình tối ưu hoá SS-MB-SMI trước khi xem kết quả hoặc phân tích kịch bản.

@@ -44,7 +44,7 @@ const ScenarioComparison = () => {
     <div className="space-y-6">
       {error && <Alert message="Error" description={error} type="error" showIcon closable />}
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><SwapOutlined className="mr-3" />C3. Scenario Comparison</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><SwapOutlined className="mr-3" />C2. So Sánh Kịch Bản</h1>
         <p className="text-gray-600">Compare KPIs between two optimization runs</p>
       </div>
 

@@ -52,7 +52,7 @@ const DecisionImpactScenarios = () => {
     <Spin spinning={loadingScenarios || comparing}>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><ApartmentOutlined className="mr-3" />D1. Tác động quyết định</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><ApartmentOutlined className="mr-3" />D1. Tác Động Quyết Định Phân Bổ</h1>
         <p className="text-gray-600">Phân tích tác động của các quyết định đến các chỉ số hiệu suất</p>
       </div>
 

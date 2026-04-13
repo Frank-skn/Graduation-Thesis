@@ -108,7 +108,7 @@ class SensitivityRun(BaseNDS):
     __tablename__ = "sensitivity_run"
 
     sensitivity_id = Column(Integer, primary_key=True, autoincrement=True)
-    base_run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=False, index=True)
+    base_run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=True, index=True)
     parameter_name = Column(String(50), nullable=False)
     variation_points = Column(Text)  # JSON
     results = Column(Text)  # JSON

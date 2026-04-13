@@ -1,33 +1,69 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Button, Select, InputNumber, Alert, Spin, Slider, message, Progress } from 'antd'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Row, Col, Table, Tag, Button, InputNumber, Alert, Slider, message, Progress, Switch, Tooltip } from 'antd'
 import {
-  BarChartOutlined, ThunderboltOutlined, ExperimentOutlined,
+  BarChartOutlined, ExperimentOutlined,
 } from '@ant-design/icons'
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts'
-import { useMutation } from '../hooks/useApi'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts'
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 
-const { Option } = Select
+const usePollJob = (onComplete) => {
+  const [jobId, setJobId] = useState(null)
+  const [polling, setPolling] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const intervalRef = useRef(null)
+  const timerRef = useRef(null)
+
+  const startPolling = (id) => { setJobId(id); setPolling(true); setElapsed(0) }
+
+  useEffect(() => {
+    if (!polling || !jobId) return
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    intervalRef.current = setInterval(async () => {
+      try {
+        const res = await sensitivityService.pollJob(jobId)
+        if (res.status === 'completed') {
+          clearInterval(intervalRef.current); clearInterval(timerRef.current)
+          setPolling(false); onComplete(res.result)
+        } else if (res.status === 'failed') {
+          clearInterval(intervalRef.current); clearInterval(timerRef.current)
+          setPolling(false); message.error('Phân tích thất bại: ' + (res.error || 'Unknown'))
+        }
+      } catch { clearInterval(intervalRef.current); clearInterval(timerRef.current); setPolling(false) }
+    }, 4000)
+    return () => { clearInterval(intervalRef.current); clearInterval(timerRef.current) }
+  }, [polling, jobId])
+
+  return { polling, elapsed, startPolling }
+}
 
 const ParameterStability = () => {
   const { activeScenarioId } = useAppContext()
   const [scenarioId, setScenarioId] = useState(activeScenarioId || 1)
   const [variationLevel, setVariationLevel] = useState(15)
   const [results, setResults] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [fullDataset, setFullDataset] = useState(false)
 
-  const { mutate: runStabilityTest, loading } = useMutation(async (data) => {
-    const result = await sensitivityService.runTornado(data)
+  const { polling, elapsed, startPolling } = usePollJob((result) => {
     setResults(result)
-    return result
+    message.success('Kiểm tra ổn định hoàn thành!')
   })
 
-  const handleRunStability = () => {
-    runStabilityTest({
-      scenario_id: scenarioId,
-      parameters: ['DI', 'CAP', 'Cb', 'Co', 'Cs', 'Cp'],
-      variation_pct: variationLevel,
-    })
+  const loading = submitting || polling
+
+  const handleRunStability = async () => {
+    setSubmitting(true)
+    try {
+      const res = await sensitivityService.runTornado({
+        scenario_id: scenarioId,
+        parameters: ['DI', 'CAP', 'Cb', 'Co', 'Cs', 'Cp'],
+        variation_pct: variationLevel,
+        sample_size: fullDataset ? null : 50,
+      })
+      startPolling(res.job_id)
+    } catch { message.error('Không thể khởi động phân tích') }
+    finally { setSubmitting(false) }
   }
 
   const bars = results?.bars || []
@@ -66,10 +102,9 @@ const ParameterStability = () => {
   ]
 
   return (
-    <Spin spinning={loading}>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BarChartOutlined className="mr-3" />D3. Phân tích ổn định tham số</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BarChartOutlined className="mr-3" />D3. Độ Bền Vững Nghiệm Tối Ưu</h1>
         <p className="text-gray-600">Phân tích độ ổn định của nghiệm tối ưu khi các tham số thay đổi</p>
       </div>
 
@@ -80,9 +115,31 @@ const ParameterStability = () => {
             <span className="mr-2">Mức biến thiên: {variationLevel}%</span>
             <Slider min={5} max={30} value={variationLevel} onChange={setVariationLevel} />
           </div>
-          <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading}>Chạy kiểm tra ổn định</Button>
+          <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading} disabled={loading}>Chạy kiểm tra ổn định</Button>
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP (~14 phút)' : 'Chạy 50 mẫu đại diện (~1 phút)'}>
+            <div className="flex items-center gap-2 ml-2">
+              <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
+              <Switch size="small" checked={fullDataset} onChange={setFullDataset} />
+              <span className="text-xs text-gray-500">Đầy đủ</span>
+            </div>
+          </Tooltip>
         </div>
       </Card>
+
+      {polling && (
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              Đang kiểm tra độ bền vững trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
+              <span className="ml-2 font-mono text-blue-600">{elapsed}s</span>
+              <span className="ml-2 text-gray-400">(ước tính {fullDataset ? '~14 phút' : '~1 phút'})</span>
+            </span>
+          }
+          description="Kết quả sẽ tự động hiển thị khi hoàn thành. Vui lòng không đóng trang."
+        />
+      )}
 
       {results && (
         <>
@@ -114,7 +171,7 @@ const ParameterStability = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="param" />
                     <YAxis />
-                    <Tooltip formatter={(v) => `${Number(v).toLocaleString('vi-VN')}`} />
+                    <RechartsTooltip formatter={(v) => `${Number(v).toLocaleString('vi-VN')}`} />
                     <Bar dataKey="variationRange" fill="#1890ff" name="Khoảng biến thiên" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -167,15 +224,14 @@ const ParameterStability = () => {
       )}
 
       {!results && !loading && (
-        <Alert 
-          message="Cấu hình tham số kiểm tra ổn định và nhấn Chạy kiểm tra" 
+        <Alert
+          message="Cấu hình tham số kiểm tra ổn định và nhấn Chạy kiểm tra"
           description="Phân tích này giúp xác định các tham số có tác động lớn nhất đến độ ổn định nghiệm và hỗ trợ ra quyết định trong điều kiện không chắc chắn."
-          type="info" 
-          showIcon 
+          type="info"
+          showIcon
         />
       )}
     </div>
-    </Spin>
   )
 }
 

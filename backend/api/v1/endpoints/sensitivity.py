@@ -1,21 +1,17 @@
 """
-Sensitivity analysis endpoints.
-Provides one-at-a-time (OAT) parameter sensitivity, result retrieval,
-and tornado-chart analysis.
+Sensitivity analysis endpoints — background-job pattern.
+POST /run and POST /tornado return immediately with a job_id.
+Poll GET /jobs/{job_id} for status; GET /jobs/{job_id}/result for full result.
 """
 import json
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db_nds, get_csv_data
 from backend.data_access.csv_repository import CsvOptimizationDataRepository
-from backend.data_access.models_nds import (
-    SensitivityRun,
-    OptimizationRun,
-)
-from backend.domain.services import OptimizationService
+from backend.data_access.models_nds import SensitivityRun, OptimizationRun
 from backend.domain.sensitivity_service import SensitivityService
 from backend.schemas.sensitivity import (
     SensitivityRequest,
@@ -26,41 +22,128 @@ from backend.schemas.sensitivity import (
 
 router = APIRouter()
 
-# Singleton service instance
 _sensitivity_svc = SensitivityService()
 
 
+# ------------------------------------------------------------------ #
+#  Background task helpers                                            #
+# ------------------------------------------------------------------ #
+
+def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
+    """Background worker for OAT sensitivity."""
+    from backend.core.database import SessionLocalNDS
+    from backend.schemas.sensitivity import SensitivityRequest as Req
+
+    db = SessionLocalNDS()
+    try:
+        repo = CsvOptimizationDataRepository(data_dir)
+        base_input = repo.get_optimization_input()
+        request = Req(**request_dict)
+
+        result = _sensitivity_svc.run_sensitivity(
+            base_data=base_input,
+            request=request,
+        )
+
+        serialised = [
+            {
+                "variation_pct": pt.variation_pct,
+                "scale_factor": pt.scale_factor,
+                "objective_value": pt.objective_value,
+                "solver_status": pt.solver_status,
+                "kpis": pt.kpis,
+            }
+            for pt in result.points
+        ]
+
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.results = json.dumps(serialised)
+            row.status = "completed"
+            db.commit()
+
+    except Exception as exc:
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.status = "failed"
+            row.results = json.dumps({"error": str(exc)})
+            db.commit()
+    finally:
+        db.close()
+
+
+def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
+    """Background worker for Tornado analysis."""
+    from backend.core.database import SessionLocalNDS
+    from backend.schemas.sensitivity import TornadoRequest as Req
+
+    db = SessionLocalNDS()
+    try:
+        repo = CsvOptimizationDataRepository(data_dir)
+        base_input = repo.get_optimization_input()
+        request = Req(**request_dict)
+
+        result = _sensitivity_svc.run_tornado(
+            base_data=base_input,
+            request=request,
+        )
+
+        serialised = [
+            {
+                "parameter_name": bar.parameter_name,
+                "low_value": bar.low_value,
+                "high_value": bar.high_value,
+                "spread": bar.spread,
+                "low_pct_change": bar.low_pct_change,
+                "high_pct_change": bar.high_pct_change,
+            }
+            for bar in result.bars
+        ]
+
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.results = json.dumps({
+                "baseline_objective": result.baseline_objective,
+                "variation_pct": result.variation_pct,
+                "bars": serialised,
+            })
+            row.status = "completed"
+            db.commit()
+
+    except Exception as exc:
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.status = "failed"
+            row.results = json.dumps({"error": str(exc)})
+            db.commit()
+    finally:
+        db.close()
+
+
 # ================================================================== #
-#  1. POST /run -- One-at-a-time sensitivity analysis                  #
+#  1. POST /run — OAT sensitivity (background)                        #
 # ================================================================== #
 
-@router.post("/run", response_model=SensitivityResult, status_code=201)
+@router.post("/run", status_code=202)
 def run_sensitivity(
     request: SensitivityRequest,
+    background_tasks: BackgroundTasks,
     db_nds: Session = Depends(get_db_nds),
     csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
-    """
-    Run one-at-a-time sensitivity analysis on a single parameter.
-
-    For each variation percentage the specified parameter is scaled,
-    the optimization is re-solved, and the resulting objective value
-    and KPIs are recorded.
-
-    The results are persisted in nds.sensitivity_run for later retrieval.
-    """
-    # Validate parameter name
+    """Submit OAT sensitivity job. Returns job_id immediately. Poll /jobs/{job_id}."""
     valid_params = {"DI", "CAP", "Cb", "Co", "Cs", "Cp", "U", "L", "BI", "CP"}
     if request.parameter_name not in valid_params:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Invalid parameter '{request.parameter_name}'. "
-                f"Must be one of: {', '.join(sorted(valid_params))}"
-            ),
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid parameter '{request.parameter_name}'")
 
-    # Get base run for scenario_id reference (use latest for the scenario)
     latest_run = (
         db_nds.query(OptimizationRun)
         .filter(OptimizationRun.scenario_id == request.scenario_id)
@@ -68,202 +151,107 @@ def run_sensitivity(
         .first()
     )
 
-    base_run_id = latest_run.run_id if latest_run else 0
-
-    # Create sensitivity-run record
-    sensitivity = SensitivityRun(
-        base_run_id=base_run_id,
+    row = SensitivityRun(
+        base_run_id=latest_run.run_id if latest_run else None,
         parameter_name=request.parameter_name,
         variation_points=json.dumps(request.variation_percentages),
         status="running",
     )
-    db_nds.add(sensitivity)
+    db_nds.add(row)
     db_nds.commit()
-    db_nds.refresh(sensitivity)
+    db_nds.refresh(row)
 
-    try:
-        # Fetch base input from CSV
-        base_input = csv_repo.get_optimization_input()
-
-        # Optionally pre-compute base result
-        base_result = None
-        if latest_run:
-            # We could pass a pre-computed result, but
-            # SensitivityService will solve base if None is passed
-            pass
-
-        # Execute sensitivity analysis
-        result = _sensitivity_svc.run_sensitivity(
-            base_data=base_input,
-            request=request,
-            base_result=base_result,
-        )
-
-        # Persist results
-        serialised_points = []
-        for pt in result.points:
-            serialised_points.append({
-                "variation_pct": pt.variation_pct,
-                "scale_factor": pt.scale_factor,
-                "objective_value": pt.objective_value,
-                "solver_status": pt.solver_status,
-                "kpis": pt.kpis,
-            })
-
-        sensitivity.results = json.dumps(serialised_points)
-        sensitivity.status = "completed"
-        db_nds.commit()
-
-        return result
-
-    except Exception as e:
-        sensitivity.status = "failed"
-        sensitivity.results = json.dumps([])
-        db_nds.commit()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Sensitivity analysis failed: {str(e)}",
-        )
-
-
-# ================================================================== #
-#  2. GET /{sensitivity_id} -- Retrieve sensitivity results            #
-# ================================================================== #
-
-@router.get("/{sensitivity_id}", response_model=SensitivityResult)
-def get_sensitivity_results(
-    sensitivity_id: int,
-    db: Session = Depends(get_db_nds),
-):
-    """
-    Retrieve the results of a previously-run sensitivity analysis
-    by its sensitivity_id.
-    """
-    sensitivity = db.query(SensitivityRun).filter(
-        SensitivityRun.sensitivity_id == sensitivity_id
-    ).first()
-
-    if not sensitivity:
-        raise HTTPException(
-            status_code=404, detail="Sensitivity run not found"
-        )
-
-    # Deserialise stored JSON
-    variation_points: List[float] = []
-    if sensitivity.variation_points:
-        try:
-            variation_points = json.loads(sensitivity.variation_points)
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    points = []
-    baseline_objective = 0.0
-    if sensitivity.results:
-        try:
-            raw_points = json.loads(sensitivity.results)
-            from backend.schemas.sensitivity import SensitivityPoint
-            for rp in raw_points:
-                points.append(SensitivityPoint(**rp))
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    # Fetch base run objective for baseline
-    if sensitivity.base_run_id:
-        base_run = db.query(OptimizationRun).filter(
-            OptimizationRun.run_id == sensitivity.base_run_id
-        ).first()
-        if base_run:
-            baseline_objective = float(base_run.objective_value or 0)
-
-    # Determine scenario_id from base run
-    scenario_id = 0
-    if sensitivity.base_run_id:
-        base_run = db.query(OptimizationRun).filter(
-            OptimizationRun.run_id == sensitivity.base_run_id
-        ).first()
-        if base_run:
-            scenario_id = base_run.scenario_id
-
-    return SensitivityResult(
-        scenario_id=scenario_id,
-        parameter_name=sensitivity.parameter_name,
-        baseline_objective=baseline_objective,
-        baseline_kpis={},
-        points=points,
-        elasticity=None,
+    background_tasks.add_task(
+        _run_oat_task,
+        sensitivity_id=row.sensitivity_id,
+        request_dict=request.model_dump(),
+        data_dir=str(csv_repo._dir),
     )
 
+    return {"job_id": row.sensitivity_id, "status": "running",
+            "message": "OAT analysis started. Poll /sensitivity/jobs/{job_id} for status."}
+
 
 # ================================================================== #
-#  3. POST /tornado -- Tornado analysis across multiple parameters     #
+#  2. POST /tornado — Tornado analysis (background)                   #
 # ================================================================== #
 
-@router.post("/tornado", response_model=TornadoResult, status_code=201)
+@router.post("/tornado", status_code=202)
 def run_tornado(
     request: TornadoRequest,
+    background_tasks: BackgroundTasks,
     db_nds: Session = Depends(get_db_nds),
     csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
-    """
-    Run tornado analysis across multiple parameters.
-
-    For each parameter in the request, the model is solved at
-    +/- variation_pct. Results are returned sorted by descending
-    spread (most impactful parameter first).
-
-    This is computationally expensive -- it solves 2*N optimizations
-    where N = len(parameters).
-    """
-    # Validate parameters
+    """Submit Tornado job. Returns job_id immediately. Poll /sensitivity/jobs/{job_id}."""
     valid_params = {"DI", "CAP", "Cb", "Co", "Cs", "Cp", "U", "L", "BI", "CP"}
     invalid = set(request.parameters) - valid_params
     if invalid:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Invalid parameter(s): {', '.join(sorted(invalid))}. "
-                f"Must be one of: {', '.join(sorted(valid_params))}"
-            ),
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid parameter(s): {invalid}")
 
-    try:
-        # Fetch base input from CSV
-        base_input = csv_repo.get_optimization_input()
+    row = SensitivityRun(
+        base_run_id=None,
+        parameter_name="TORNADO:" + ",".join(request.parameters),
+        variation_points=json.dumps([request.variation_pct, -request.variation_pct]),
+        status="running",
+    )
+    db_nds.add(row)
+    db_nds.commit()
+    db_nds.refresh(row)
 
-        # Execute tornado analysis
-        result = _sensitivity_svc.run_tornado(
-            base_data=base_input,
-            request=request,
-            base_result=None,
-        )
+    background_tasks.add_task(
+        _run_tornado_task,
+        sensitivity_id=row.sensitivity_id,
+        request_dict=request.model_dump(),
+        data_dir=str(csv_repo._dir),
+    )
 
-        # Persist a summary record
-        sensitivity = SensitivityRun(
-            base_run_id=0,
-            parameter_name="TORNADO:" + ",".join(request.parameters),
-            variation_points=json.dumps(
-                [request.variation_pct, -request.variation_pct]
-            ),
-            results=json.dumps([
-                {
-                    "parameter_name": bar.parameter_name,
-                    "low_value": bar.low_value,
-                    "high_value": bar.high_value,
-                    "spread": bar.spread,
-                    "low_pct_change": bar.low_pct_change,
-                    "high_pct_change": bar.high_pct_change,
-                }
-                for bar in result.bars
-            ]),
-            status="completed",
-        )
-        db_nds.add(sensitivity)
-        db_nds.commit()
+    return {"job_id": row.sensitivity_id, "status": "running",
+            "message": "Tornado analysis started. Poll /sensitivity/jobs/{job_id} for status."}
 
-        return result
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Tornado analysis failed: {str(e)}",
-        )
+# ================================================================== #
+#  3. GET /jobs/{job_id} — Poll job status                            #
+# ================================================================== #
+
+@router.get("/jobs/{job_id}")
+def get_job_status(job_id: int, db: Session = Depends(get_db_nds)):
+    """Poll status of a sensitivity job. Returns status + result when completed."""
+    row = db.query(SensitivityRun).filter(
+        SensitivityRun.sensitivity_id == job_id
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    response = {"job_id": job_id, "status": row.status}
+
+    if row.status == "completed" and row.results:
+        try:
+            response["result"] = json.loads(row.results)
+        except Exception:
+            pass
+    elif row.status == "failed" and row.results:
+        try:
+            err = json.loads(row.results)
+            response["error"] = err.get("error", "Unknown error")
+        except Exception:
+            pass
+
+    return response
+
+
+# ================================================================== #
+#  4. GET /{sensitivity_id} — Legacy retrieve                         #
+# ================================================================== #
+
+@router.get("/{sensitivity_id}")
+def get_sensitivity_results(sensitivity_id: int, db: Session = Depends(get_db_nds)):
+    """Retrieve a completed sensitivity run by ID."""
+    row = db.query(SensitivityRun).filter(
+        SensitivityRun.sensitivity_id == sensitivity_id
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Sensitivity run not found")
+    return {"sensitivity_id": row.sensitivity_id, "status": row.status,
+            "parameter_name": row.parameter_name,
+            "result": json.loads(row.results) if row.results else None}

@@ -365,7 +365,7 @@ const AllocationInventoryDashboard = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">B2. Phân Bổ &amp; Tồn Kho</h1>
+        <h1 className="text-3xl font-bold mb-2">B3. Phân Bổ &amp; Động Thái Tồn Kho</h1>
         <p className="text-gray-600">Kết quả phân bổ và động thái tồn kho theo lần tối ưu</p>
       </div>
 

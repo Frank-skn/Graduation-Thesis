@@ -36,7 +36,6 @@ class SensitivityRequest(BaseModel):
     solver: Optional[str] = Field(default="cbc", description="Solver to use")
     time_limit: Optional[int] = Field(default=300, description="Solver time limit (s)")
     mip_gap: Optional[float] = Field(default=0.01, description="MIP gap tolerance")
-
     class Config:
         json_schema_extra = {
             "example": {
@@ -156,7 +155,7 @@ class TornadoRequest(BaseModel):
     solver: Optional[str] = Field(default="cbc", description="Solver to use")
     time_limit: Optional[int] = Field(default=300, description="Solver time limit (s)")
     mip_gap: Optional[float] = Field(default=0.01, description="MIP gap tolerance")
-
+    sample_size: Optional[int] = Field(default=None, description="Stratified sample size (None = full 943 products)")
     class Config:
         json_schema_extra = {
             "example": {

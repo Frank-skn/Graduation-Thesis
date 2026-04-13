@@ -142,7 +142,7 @@ const DataOverview = () => {
       <div>
         <h1 className="text-3xl font-bold text-primary-700 mb-2">
           <BarChartOutlined className="mr-3" />
-          A1. Data Overview
+          A1. Tổng Quan Dữ Liệu Đầu Vào
         </h1>
         <p className="text-gray-600">
           Monitor data freshness, quality metrics, and coverage across all sources

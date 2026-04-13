@@ -273,7 +273,7 @@ const ExecutiveSummary = () => {
         <div className="flex justify-between items-start flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold text-primary-700 mb-1">
-              <DashboardOutlined className="mr-3" />B2. Tóm Tắt &amp; Chi Tiết
+              <DashboardOutlined className="mr-3" />B2. Kết Quả &amp; Chi Phí
             </h1>
             <p className="text-gray-500">
               Kịch bản: <strong>{run.scenario_name || run.scenario_id || '—'}</strong>

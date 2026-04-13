@@ -151,7 +151,7 @@ const ParameterManagement = () => {
       <div>
         <h1 className="text-3xl font-bold mb-2">
           <SettingOutlined className="mr-3" />
-          Parameter Management
+          A2. Tham Số Mô Hình
         </h1>
         <p className="text-gray-600">Configure model parameters and manage dataset versions</p>
       </div>
