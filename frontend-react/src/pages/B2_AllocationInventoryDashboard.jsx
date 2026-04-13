@@ -261,15 +261,15 @@ const AllocationInventoryDashboard = () => {
       {/* Allocation Chart */}
       <Card title={<><AppstoreOutlined /> Phân bổ theo kho</>} className="mb-6">
         <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={warehouseStats}>
+          <ComposedChart data={warehouseStats} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="warehouse" />
             <YAxis yAxisId="left" />
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
-            <Bar yAxisId="left" dataKey="totalCasePack" fill="#1890ff" name="Kiện hàng" />
-            <Bar yAxisId="left" dataKey="totalResidual" fill="#52c41a" name="Đơn vị lẻ" />
+            <Bar yAxisId="left" dataKey="totalCasePack" fill="#1890ff" name="Kiện hàng" stackId="alloc" />
+            <Bar yAxisId="left" dataKey="totalResidual" fill="#52c41a" name="Đơn vị lẻ" stackId="alloc" />
             <Line yAxisId="right" type="monotone" dataKey="avgInventory" stroke="#ff7300" name="Tồn kho TB" />
           </ComposedChart>
         </ResponsiveContainer>

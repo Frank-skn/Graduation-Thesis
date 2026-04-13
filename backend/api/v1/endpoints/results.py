@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db_nds
+from backend.core.database import get_db_nds, get_csv_data
 from backend.data_access.models_nds import (
     OptimizationRun,
     OptimizationResult,
@@ -576,3 +576,109 @@ def get_changes_detail(
         for r in rows
     ]
     return ChangesDetailResponse(run_id=run_id, changes=changes, total=len(changes))
+
+
+# ================================================================== #
+#  8. GET /{run_id}/cost-by-warehouse                                  #
+# ================================================================== #
+
+class WarehouseCostRecord(BaseModel):
+    """Cost breakdown for a single warehouse."""
+    warehouse_id: str
+    cost_backorder: float = 0
+    cost_overstock: float = 0
+    cost_shortage: float = 0
+    cost_penalty: float = 0
+    total_cost: float = 0
+    pct_of_total: float = 0
+    total_backorder: float = 0
+    total_overstock: float = 0
+    total_shortage: float = 0
+    total_penalty: int = 0
+    n_products: int = 0
+
+
+class CostByWarehouseResponse(BaseModel):
+    run_id: int
+    warehouses: List[WarehouseCostRecord]
+    system_total: float = 0
+
+
+@router.get("/{run_id}/cost-by-warehouse", response_model=CostByWarehouseResponse)
+def get_cost_by_warehouse(
+    run_id: int,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Chi phí tối ưu breakdown theo từng nhà kho.
+    Tính cost = qty × unit_cost từ kết quả × CSV data.
+    """
+    _load_run(run_id, db)
+
+    results = db.query(OptimizationResult).filter(
+        OptimizationResult.run_id == run_id
+    ).all()
+    if not results:
+        raise HTTPException(status_code=404, detail="No results found for this run")
+
+    csv_repo = get_csv_data()
+    data = csv_repo.get_optimization_input()
+
+    wh_data: Dict[str, dict] = defaultdict(lambda: {
+        "cost_bo": 0.0, "cost_o": 0.0, "cost_s": 0.0, "cost_p": 0.0,
+        "qty_bo": 0.0, "qty_o": 0.0, "qty_s": 0.0, "qty_p": 0,
+        "products": set(),
+    })
+
+    for r in results:
+        i, j, t = r.product_id, r.warehouse_id, r.time_period
+        bo = float(r.backorder_qty or 0)
+        o = float(r.overstock_qty or 0)
+        s = float(r.shortage_qty or 0)
+        p = 1 if r.penalty_flag else 0
+
+        cb = data.Cb.get((i, j, t), 0)
+        co = data.Co.get((i, j, t), 0)
+        cs = data.Cs.get((i, j, t), 0)
+        cp = data.Cp.get((i, j, t), 0)
+
+        w = wh_data[j]
+        w["cost_bo"] += cb * bo
+        w["cost_o"] += co * o
+        w["cost_s"] += cs * s
+        w["cost_p"] += cp * p
+        w["qty_bo"] += bo
+        w["qty_o"] += o
+        w["qty_s"] += s
+        w["qty_p"] += p
+        w["products"].add(i)
+
+    system_total = sum(
+        d["cost_bo"] + d["cost_o"] + d["cost_s"] + d["cost_p"]
+        for d in wh_data.values()
+    )
+
+    records = []
+    for wid in sorted(wh_data.keys()):
+        d = wh_data[wid]
+        total = d["cost_bo"] + d["cost_o"] + d["cost_s"] + d["cost_p"]
+        records.append(WarehouseCostRecord(
+            warehouse_id=wid,
+            cost_backorder=round(d["cost_bo"], 2),
+            cost_overstock=round(d["cost_o"], 2),
+            cost_shortage=round(d["cost_s"], 2),
+            cost_penalty=round(d["cost_p"], 2),
+            total_cost=round(total, 2),
+            pct_of_total=round(total / system_total * 100, 2) if system_total > 0 else 0,
+            total_backorder=round(d["qty_bo"], 2),
+            total_overstock=round(d["qty_o"], 2),
+            total_shortage=round(d["qty_s"], 2),
+            total_penalty=d["qty_p"],
+            n_products=len(d["products"]),
+        ))
+
+    return CostByWarehouseResponse(
+        run_id=run_id,
+        warehouses=records,
+        system_total=round(system_total, 2),
+    )

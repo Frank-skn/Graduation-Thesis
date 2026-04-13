@@ -21,6 +21,8 @@ const optimizationService = {
     api.get(`/results/${runId}/si-ss`, { params: filters }),
   getChangesDetail: (runId, filters = {}) =>
     api.get(`/results/${runId}/changes-detail`, { params: filters }),
+  getCostByWarehouse: (runId) =>
+    api.get(`/results/${runId}/cost-by-warehouse`),
 };
 
 export default optimizationService;

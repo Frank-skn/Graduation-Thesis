@@ -6,7 +6,7 @@ import {
 import {
   DashboardOutlined, DollarOutlined, CheckCircleOutlined, ClockCircleOutlined,
   ReloadOutlined, RiseOutlined, FallOutlined, SafetyOutlined, BarChartOutlined,
-  WarningOutlined, TableOutlined,
+  WarningOutlined, TableOutlined, ShopOutlined,
 } from '@ant-design/icons'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
@@ -129,6 +129,32 @@ const ExecutiveSummary = () => {
   const compareBarData = baselineCost > 0
     ? [{ name: 'So sánh', 'Do-nothing': baselineCost, 'Proportional': propCost || undefined, 'MILP Tối ưu': optCost }]
     : []
+
+  // ── Warehouse cost breakdown ──────────────────────────
+  const [whCostData, setWhCostData]   = useState([])
+  const [whCostLoading, setWhCostLoading] = useState(false)
+  const [whFilter, setWhFilter]       = useState([])  // [] = tất cả
+
+  useEffect(() => {
+    if (!activeRunId) return
+    setWhCostLoading(true)
+    optimizationService.getCostByWarehouse(activeRunId)
+      .then((res) => setWhCostData(res?.warehouses ?? []))
+      .catch(() => setWhCostData([]))
+      .finally(() => setWhCostLoading(false))
+  }, [activeRunId])
+
+  const filteredWhCost = whFilter.length > 0
+    ? whCostData.filter((w) => whFilter.includes(w.warehouse_id))
+    : whCostData
+
+  const whCostChartData = filteredWhCost.map((w) => ({
+    name: w.warehouse_id,
+    'Backorder': w.cost_backorder,
+    'Overstock': w.cost_overstock,
+    'Shortage': w.cost_shortage,
+    'Penalty': w.cost_penalty,
+  }))
 
   // ── B3: State & logic cho chi tiết biến & SI/SS ───────
   const [varLoading, setVarLoading] = useState(false)
@@ -673,6 +699,97 @@ const ExecutiveSummary = () => {
                         />
                       </Tabs.TabPane>
                     </Tabs>
+                  </Card>
+                </Spin>
+              ),
+            },
+            {
+              key: 'whcost',
+              label: <span><ShopOutlined /> Chi phí theo kho</span>,
+              children: (
+                <Spin spinning={whCostLoading}>
+                  <Card title={<span className="text-lg font-bold"><ShopOutlined className="mr-2" />CHI PHÍ THEO NHÀ KHO</span>}
+                    extra={
+                      <Space>
+                        <Select mode="multiple" style={{ minWidth: 200 }} value={whFilter} onChange={setWhFilter}
+                          allowClear placeholder="Tất cả kho" maxTagCount={2}>
+                          {whCostData.map((w) => (
+                            <Option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_id}</Option>
+                          ))}
+                        </Select>
+                        <Button size="small" onClick={() => setWhFilter([])}>Tất cả</Button>
+                      </Space>
+                    }>
+                    <Row gutter={24}>
+                      <Col xs={24} lg={14}>
+                        <Table
+                          dataSource={filteredWhCost}
+                          rowKey="warehouse_id"
+                          size="middle"
+                          pagination={false}
+                          columns={[
+                            { title: 'Kho', dataIndex: 'warehouse_id', key: 'warehouse_id',
+                              render: (v) => <Tag color="blue">{v}</Tag> },
+                            { title: 'Backorder', dataIndex: 'cost_backorder', key: 'cost_backorder',
+                              align: 'right', render: (v) => fmt(v, 2),
+                              sorter: (a, b) => a.cost_backorder - b.cost_backorder },
+                            { title: 'Overstock', dataIndex: 'cost_overstock', key: 'cost_overstock',
+                              align: 'right', render: (v) => fmt(v, 2) },
+                            { title: 'Shortage', dataIndex: 'cost_shortage', key: 'cost_shortage',
+                              align: 'right', render: (v) => fmt(v, 2) },
+                            { title: 'Penalty', dataIndex: 'cost_penalty', key: 'cost_penalty',
+                              align: 'right', render: (v) => fmt(v, 2) },
+                            { title: 'Tổng', dataIndex: 'total_cost', key: 'total_cost',
+                              align: 'right', sorter: (a, b) => a.total_cost - b.total_cost,
+                              render: (v) => <span className="font-bold">{fmt(v, 2)}</span> },
+                            { title: '% Tổng', dataIndex: 'pct_of_total', key: 'pct_of_total',
+                              align: 'right',
+                              render: (v) => <Tag color={v > 40 ? 'red' : v > 20 ? 'orange' : 'green'}>{v.toFixed(2)}%</Tag> },
+                          ]}
+                          summary={() => {
+                            const totals = filteredWhCost.reduce((acc, w) => ({
+                              bo: acc.bo + w.cost_backorder,
+                              o: acc.o + w.cost_overstock,
+                              s: acc.s + w.cost_shortage,
+                              p: acc.p + w.cost_penalty,
+                              t: acc.t + w.total_cost,
+                            }), { bo: 0, o: 0, s: 0, p: 0, t: 0 })
+                            return (
+                              <Table.Summary.Row style={{ fontWeight: 'bold', background: '#fafafa' }}>
+                                <Table.Summary.Cell index={0}><strong>TỔNG</strong></Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right">{fmt(totals.bo, 2)}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={2} align="right">{fmt(totals.o, 2)}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={3} align="right">{fmt(totals.s, 2)}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={4} align="right">{fmt(totals.p, 2)}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={5} align="right"><strong>{fmt(totals.t, 2)}</strong></Table.Summary.Cell>
+                                <Table.Summary.Cell index={6} align="right"><Tag color="purple"><strong>100%</strong></Tag></Table.Summary.Cell>
+                              </Table.Summary.Row>
+                            )
+                          }}
+                        />
+                      </Col>
+                      <Col xs={24} lg={10}>
+                        <Text strong className="block mb-2">Chi phí theo thành phần mỗi kho</Text>
+                        {whCostChartData.length === 0
+                          ? <Empty description="Không có dữ liệu" />
+                          : (
+                            <ResponsiveContainer width="100%" height={300}>
+                              <BarChart data={whCostChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={80} tick={{ fontSize: 10 }} />
+                                <Tooltip formatter={(v) => [fmt(v, 2), '']} />
+                                <Legend />
+                                <Bar dataKey="Backorder" fill="#f5222d" stackId="a" />
+                                <Bar dataKey="Overstock" fill="#fa8c16" stackId="a" />
+                                <Bar dataKey="Shortage"  fill="#faad14" stackId="a" />
+                                <Bar dataKey="Penalty"   fill="#1890ff" stackId="a" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          )
+                        }
+                      </Col>
+                    </Row>
                   </Card>
                 </Spin>
               ),
