@@ -78,7 +78,7 @@ const DataOverview = () => {
 
   const freshnessColumns = [
     {
-      title: 'Data Source',
+      title: 'Nguồn Dữ Liệu',
       dataIndex: 'source',
       key: 'source',
       render: (text) => (
@@ -88,9 +88,9 @@ const DataOverview = () => {
         </span>
       ),
     },
-    { title: 'Entries', dataIndex: 'lastUpdated', key: 'lastUpdated' },
+    { title: 'Bản Ghi', dataIndex: 'lastUpdated', key: 'lastUpdated' },
     {
-      title: 'Completeness',
+      title: 'Mức Độ Đầy Đủ (%)',
       dataIndex: 'staleness',
       key: 'staleness',
       render: (value) => {
@@ -112,22 +112,22 @@ const DataOverview = () => {
       },
     },
     {
-      title: 'Status',
+      title: 'Trạng Thái',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        const configs = {
-          Fresh: { color: 'green', icon: CheckCircleOutlined },
-          Good: { color: 'blue', icon: CheckCircleOutlined },
-          Moderate: { color: 'orange', icon: ClockCircleOutlined },
-          Stale: { color: 'red', icon: ExclamationCircleOutlined },
-          Critical: { color: 'red', icon: ExclamationCircleOutlined },
+        const statusMap = {
+          Fresh: { label: 'Cập nhật', color: 'green', icon: CheckCircleOutlined },
+          Good: { label: 'Tốt', color: 'blue', icon: CheckCircleOutlined },
+          Moderate: { label: 'Trung bình', color: 'orange', icon: ClockCircleOutlined },
+          Stale: { label: 'Lỗi thời', color: 'red', icon: ExclamationCircleOutlined },
+          Critical: { label: 'Nghiêm trọng', color: 'red', icon: ExclamationCircleOutlined },
         }
-        const config = configs[status] || configs.Critical
+        const config = statusMap[status] || statusMap.Critical
         const Icon = config.icon
         return (
           <Tag color={config.color} icon={<Icon />}>
-            {status}
+            {config.label}
           </Tag>
         )
       },
@@ -145,7 +145,7 @@ const DataOverview = () => {
           A1. Tổng Quan Dữ Liệu Đầu Vào
         </h1>
         <p className="text-gray-600">
-          Monitor data freshness, quality metrics, and coverage across all sources
+          Giám sát mức độ đầy đủ dữ liệu, chất lượng và bảo đảm toàn bộ nguồn dữ liệu
         </p>
       </div>
 
@@ -155,7 +155,7 @@ const DataOverview = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Products</p>
+                <p className="text-sm text-gray-500 mb-1">Sản Phẩm</p>
                 <p className="text-2xl font-bold text-green-600">{numProducts}</p>
               </div>
               <CheckCircleOutlined className="text-3xl text-green-500" />
@@ -166,7 +166,7 @@ const DataOverview = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Warehouses</p>
+                <p className="text-sm text-gray-500 mb-1">Kho Hàng</p>
                 <p className="text-2xl font-bold text-blue-600">{numWarehouses}</p>
               </div>
               <DatabaseOutlined className="text-3xl text-blue-500" />
@@ -177,7 +177,7 @@ const DataOverview = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Time Periods</p>
+                <p className="text-sm text-gray-500 mb-1">Kỳ Thời Gian</p>
                 <p className="text-2xl font-bold text-purple-600">{numPeriods}</p>
               </div>
               <CalendarOutlined className="text-3xl text-purple-500" />
@@ -188,7 +188,7 @@ const DataOverview = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Combinations</p>
+                <p className="text-sm text-gray-500 mb-1">Tổ Hợp (SP-Kho)</p>
                 <p className="text-2xl font-bold text-orange-600">{totalCombinations}</p>
               </div>
               <SyncOutlined className="text-3xl text-orange-500" />
@@ -202,12 +202,12 @@ const DataOverview = () => {
         title={
           <span className="text-lg font-semibold flex items-center">
             <CalendarOutlined className="mr-2" />
-            Data Freshness & Completeness
+            Mức Độ Hoàn Chỉnh Dữ Liệu Theo Tham Số
           </span>
         }
         extra={
           <Button icon={<SyncOutlined />} type="primary" onClick={refresh}>
-            Refresh
+            Làm Mới
           </Button>
         }
       >
@@ -223,12 +223,18 @@ const DataOverview = () => {
       {/* Quality Metrics & Parameter Coverage */}
       <Row gutter={16}>
         <Col span={10}>
-          <Card title={<span className="text-lg font-semibold">Quality Metrics vs Targets</span>}>
+          <Card title={<span className="text-lg font-semibold">Chỉ Số Chất Lượng So Với Mục Tiêu</span>}>
             <div className="space-y-4">
-              {qualityMetrics.map((metric) => (
+              {qualityMetrics.map((metric) => {
+                const metricNames = {
+                  'Completeness': 'Tính Đầy Đủ',
+                  'Zero-free Rate': 'Tỉ Lệ Dữ Liệu Hợp Lệ',
+                  'Parameters': 'Số Tham Số',
+                }
+                return (
                 <div key={metric.metric}>
                   <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{metric.metric}</span>
+                    <span className="text-sm font-medium">{metricNames[metric.metric] || metric.metric}</span>
                     <span className="text-sm text-gray-500">{metric.value}% / {metric.target}%</span>
                   </div>
                   <Progress
@@ -238,19 +244,19 @@ const DataOverview = () => {
                     format={(pct) => `${pct}%`}
                   />
                 </div>
-              ))}
+              )})}
             </div>
           </Card>
         </Col>
         <Col span={14}>
-          <Card title={<span className="text-lg font-semibold">Parameter Completeness</span>}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={paramBarData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+          <Card title={<span className="text-lg font-semibold">Độ Hoàn Chỉnh Từng Tham Số (%)</span>}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={paramBarData} margin={{ top: 28, right: 24, left: 8, bottom: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                <RechartsTooltip formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Completeness' : 'Zero-free']} />
-                <Bar dataKey="completeness" name="Completeness" radius={[4,4,0,0]}>
+                <RechartsTooltip formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Tính Đầy Đủ' : 'Hợp Lệ']} />
+                <Bar dataKey="completeness" name="Tính Đầy Đủ" radius={[4,4,0,0]}>
                   {paramBarData.map((entry, idx) => (
                     <Cell key={entry.name} fill={entry.completeness >= 95 ? '#52c41a' : entry.completeness >= 70 ? '#fa8c16' : '#f5222d'} />
                   ))}

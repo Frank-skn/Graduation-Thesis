@@ -85,7 +85,7 @@ def startup_event():
             db.add(ModelParameter(
                 param_name="HV",
                 param_value=9999,
-                param_description="High value constant for binary linearization",
+                param_description="Hằng số tuyến tính hóa nhị phân (Binary Linearization)",
             ))
             db.commit()
     finally:

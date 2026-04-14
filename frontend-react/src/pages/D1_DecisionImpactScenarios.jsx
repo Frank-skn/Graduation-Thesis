@@ -1,24 +1,25 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Button, Alert, Spin, Select, InputNumber } from 'antd'
+import { useState } from 'react'
+import { Card, Table, Tag, Button, Alert, Spin } from 'antd'
 import {
-  ApartmentOutlined, ThunderboltOutlined, RiseOutlined, FallOutlined,
+  ApartmentOutlined, ThunderboltOutlined, RiseOutlined, FallOutlined, CheckCircleOutlined,
 } from '@ant-design/icons'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, ZAxis } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useApi } from '../hooks/useApi'
 import scenarioService from '../services/scenarioService'
+import optimizationService from '../services/optimizationService'
 
 const DecisionImpactScenarios = () => {
   const [baseRunId, setBaseRunId] = useState(null)
   const [compareRunId, setCompareRunId] = useState(null)
 
-  const { data: scenariosData, loading: loadingScenarios } = useApi(() => scenarioService.getScenarios())
+  const { data: runsData, loading: loadingRuns } = useApi(() => optimizationService.listRuns())
   const { data: comparison, loading: comparing, execute: runCompare } = useApi(
     () => baseRunId && compareRunId ? scenarioService.compareWhatIf(baseRunId, compareRunId) : Promise.resolve(null),
     [baseRunId, compareRunId],
     { immediate: false }
   )
 
-  const scenarios = scenariosData?.scenarios || []
+  const runs = (runsData?.runs || runsData || [])
   const deltas = comparison?.deltas || []
 
   const impactData = deltas.map(d => ({
@@ -27,11 +28,34 @@ const DecisionImpactScenarios = () => {
     pctChange: Number(d.percent_change) || 0,
   }))
 
-  const scenarioColumns = [
-    { title: 'ID',    dataIndex: 'scenario_id',   key: 'scenario_id',   width: 60 },
-    { title: 'Tên',  dataIndex: 'scenario_name', key: 'scenario_name', render: (t) => <span className="font-semibold">{t}</span> },
-    { title: 'Cơ sở', dataIndex: 'is_baseline',   key: 'is_baseline',   render: (v) => v ? <Tag color="green">Âng</Tag> : <Tag>Không</Tag> },
-    { title: 'Ngày tạo', dataIndex: 'created_at', key: 'created_at', render: (t) => t ? new Date(t).toLocaleDateString('vi-VN') : 'N/A' },
+  const runColumns = [
+    { title: 'Run ID', dataIndex: 'run_id', key: 'run_id', width: 80, render: (v) => <span className="font-mono font-bold text-blue-600">{v}</span> },
+    { title: 'Kết quả tối ưu', dataIndex: 'objective_value', key: 'objective_value', render: (v) => Number(v).toLocaleString('vi-VN') },
+    { title: 'Trạng thái', dataIndex: 'solver_status', key: 'solver_status', render: (s) => <Tag color="green" icon={<CheckCircleOutlined />}>{s}</Tag> },
+    { title: 'Thời gian chạy', dataIndex: 'run_time', key: 'run_time', render: (t) => t ? new Date(t).toLocaleString('vi-VN') : 'N/A' },
+    {
+      title: 'Chọn làm',
+      key: 'action',
+      render: (_, record) => (
+        <div className="flex gap-2">
+          <Button
+            size="small"
+            type={baseRunId === record.run_id ? 'primary' : 'default'}
+            onClick={() => setBaseRunId(record.run_id)}
+          >
+            Cơ sở
+          </Button>
+          <Button
+            size="small"
+            type={compareRunId === record.run_id ? 'primary' : 'default'}
+            danger={compareRunId === record.run_id}
+            onClick={() => setCompareRunId(record.run_id)}
+          >
+            So sánh
+          </Button>
+        </div>
+      ),
+    },
   ]
 
   const impactColumns = [
@@ -48,29 +72,70 @@ const DecisionImpactScenarios = () => {
     },
   ]
 
+  const runLabel = (id) => {
+    const r = runs.find(r => r.run_id === id)
+    return r ? `Run #${r.run_id} (${Number(r.objective_value).toLocaleString('vi-VN')})` : `Run #${id}`
+  }
+
   return (
-    <Spin spinning={loadingScenarios || comparing}>
+    <Spin spinning={loadingRuns || comparing}>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-primary-700 mb-2"><ApartmentOutlined className="mr-3" />D1. Tác Động Quyết Định Phân Bổ</h1>
         <p className="text-gray-600">Phân tích tác động của các quyết định đến các chỉ số hiệu suất</p>
       </div>
 
-      <Card title="Kịch bản hiện có">
-        <Table columns={scenarioColumns} dataSource={scenarios} pagination={{ pageSize: 5 }} size="small" rowKey="scenario_id" />
+      <Card
+        title="Các lần chạy tối ưu"
+        extra={<span className="text-sm text-gray-400">Chọn hai lần chạy để so sánh bằng cách nhấn nút bên dưới</span>}
+      >
+        <Table
+          columns={runColumns}
+          dataSource={runs}
+          pagination={{ pageSize: 5 }}
+          size="small"
+          rowKey="run_id"
+          rowClassName={(record) => {
+            if (record.run_id === baseRunId) return 'bg-blue-50'
+            if (record.run_id === compareRunId) return 'bg-red-50'
+            return ''
+          }}
+        />
       </Card>
 
-      <Card title="So sánh lần chạy">
+      <Card title="So sánh">
         <div className="flex items-center gap-4 flex-wrap">
-          <div><span className="mr-2">Lần chạy cơ sở:</span><InputNumber min={1} value={baseRunId} onChange={setBaseRunId} /></div>
-          <div><span className="mr-2">Lần chạy so sánh:</span><InputNumber min={1} value={compareRunId} onChange={setCompareRunId} /></div>
-          <Button type="primary" icon={<ThunderboltOutlined />} onClick={runCompare} disabled={!baseRunId || !compareRunId}>Phân tích tác động</Button>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Cơ sở:</span>
+            {baseRunId
+              ? <Tag color="blue">{runLabel(baseRunId)}</Tag>
+              : <span className="text-gray-400 italic">Chưa chọn</span>
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">So sánh:</span>
+            {compareRunId
+              ? <Tag color="red">{runLabel(compareRunId)}</Tag>
+              : <span className="text-gray-400 italic">Chưa chọn</span>
+            }
+          </div>
+          <Button
+            type="primary"
+            icon={<ThunderboltOutlined />}
+            onClick={runCompare}
+            disabled={!baseRunId || !compareRunId || baseRunId === compareRunId}
+          >
+            Phân tích tác động
+          </Button>
+          {baseRunId === compareRunId && baseRunId && (
+            <span className="text-orange-500 text-sm">Vui lòng chọn hai lần chạy khác nhau</span>
+          )}
         </div>
       </Card>
 
       {comparison && (
         <>
-          <Card title="Phân tích tác động">
+          <Card title="Biểu đồ tác động KPI">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={impactData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -91,7 +156,12 @@ const DecisionImpactScenarios = () => {
       )}
 
       {!comparison && !comparing && (
-        <Alert message="Chọn hai mã lần chạy và nhấn Phân tích tác động để hiển thị kết quả" type="info" showIcon />
+        <Alert
+          message="Hướng dẫn sử dụng"
+          description="Chọn lần chạy cơ sở và lần chạy so sánh từ bảng bên trên bằng cách nhấn nút 'Cơ sở' và 'So sánh', sau đó nhấn 'Phân tích tác động' để xem kết quả."
+          type="info"
+          showIcon
+        />
       )}
     </div>
     </Spin>

@@ -35,6 +35,7 @@ const ParameterManagement = () => {
 
   // Ensure parameters is always a valid array
   const parameters = Array.isArray(paramsData?.parameters) ? paramsData.parameters : []
+  
   const datasets = datasetsData?.datasets || []
   const loading = loadingOverview || loadingParams || loadingDatasets
 
@@ -82,30 +83,33 @@ const ParameterManagement = () => {
 
   const paramColumns = [
     {
-      title: 'Parameter',
+      title: 'Tham Số',
       dataIndex: 'param_name',
       key: 'param_name',
-      render: (text) => <span className="font-semibold">{text}</span>,
+      render: (text) => <span className="font-semibold text-gray-800">{text}</span>,
     },
     {
-      title: 'Current Value',
+      title: 'Giá Trị Hiện Tại',
       dataIndex: 'param_value',
       key: 'param_value',
-      render: (value, record) => editMode ? (
-        <InputNumber
-          value={editedParams[record.param_name] !== undefined ? editedParams[record.param_name] : value}
-          step={0.01}
-          onChange={(val) => handleEditChange(record.param_name, val)}
-        />
-      ) : (value !== null ? Number(value).toLocaleString() : 'N/A'),
+      render: (value) => editMode 
+        ? <InputNumber value={value} step={0.01} onChange={(val) => {}} />
+        : Number(value).toLocaleString(),
     },
-    { title: 'Description', dataIndex: 'param_description', key: 'param_description' },
     {
-      title: 'Status',
+      title: 'Mô Tả',
+      dataIndex: 'param_description',
+      key: 'param_description',
+      render: (text) => <span className="text-gray-600 text-sm">{text}</span>,
+    },
+    {
+      title: 'Trạng Thái',
       key: 'status',
-      render: (_, record) => editedParams[record.param_name] !== undefined
-        ? <Tag color="orange">Modified</Tag>
-        : <Tag color="green">Saved</Tag>,
+      render: (_, record) => {
+        return editedParams[record.param_name] !== undefined
+          ? <Tag color="orange">Đã Sửa</Tag>
+          : <Tag color="green">Đã Lưu</Tag>
+      },
     },
   ]
 
@@ -116,31 +120,31 @@ const ParameterManagement = () => {
 
   // Dataset version columns
   const datasetColumns = [
-    { title: 'ID', dataIndex: 'version_id', key: 'version_id', width: 60 },
+              { title: 'ID', dataIndex: 'version_id', key: 'version_id', width: 60 },
     {
-      title: 'Version Name',
+      title: 'Tên Phiên Bản',
       dataIndex: 'version_name',
       key: 'version_name',
       render: (text) => <span className="font-semibold">{text}</span>,
     },
-    { title: 'Description', dataIndex: 'description', key: 'description' },
+    { title: 'Mô Tả', dataIndex: 'description', key: 'description' },
     {
-      title: 'Created By',
+      title: 'Tạo Bởi',
       dataIndex: 'created_by',
       key: 'created_by',
       render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
-      title: 'Created At',
+      title: 'Ngày Tạo',
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date) => new Date(date).toLocaleString(),
     },
     {
-      title: 'Status',
+      title: 'Trạng Thái',
       dataIndex: 'is_active',
       key: 'is_active',
-      render: (active) => active ? <Tag color="green">Active</Tag> : <Tag color="default">Inactive</Tag>,
+      render: (active) => active ? <Tag color="green">Hoạt Động</Tag> : <Tag color="default">Bất Hoạt Động</Tag>,
     },
   ]
 
@@ -153,11 +157,11 @@ const ParameterManagement = () => {
           <SettingOutlined className="mr-3" />
           A2. Tham Số Mô Hình
         </h1>
-        <p className="text-gray-600">Configure model parameters and manage dataset versions</p>
+        <p className="text-gray-600">Quản lý tham số mô hình và phiên bản dữ liệu</p>
       </div>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        <TabPane tab={<><SettingOutlined />Parameters</>} key="parameters">
+        <TabPane tab={<><SettingOutlined />Tham Số</>} key="parameters">
           {/* Parameters Content */}
           <div className="space-y-6">
             {/* Header Controls */}
@@ -171,7 +175,7 @@ const ParameterManagement = () => {
                         icon={<EditOutlined />}
                         onClick={() => setEditMode(true)}
                       >
-                        Edit Parameters
+                        Chỉnh Sửa Tham Số
                       </Button>
                     ) : (
                       <>
@@ -179,7 +183,7 @@ const ParameterManagement = () => {
                           icon={<ReloadOutlined />}
                           onClick={handleCancel}
                         >
-                          Cancel
+                          Hủy Bỏ
                         </Button>
                         <Button
                           type="primary" 
@@ -187,7 +191,7 @@ const ParameterManagement = () => {
                           onClick={handleSave}
                           disabled={Object.keys(editedParams).length === 0}
                         >
-                          Save Changes
+                          Lưu Thay Đổi
                         </Button>
                       </>
                     )}
@@ -203,8 +207,8 @@ const ParameterManagement = () => {
             {/* Edit Mode Alert */}
             {editMode && (
               <Alert
-                message="Edit Mode Active"
-                description="You are currently editing parameters. Save changes or they will be lost."
+                message="Chế Độ Chỉnh Sửa Đang Hoạt Động"
+                description="Bạn đang chỉnh sửa tham số. Hãy lưu hoặc các thay đổi sẽ bị mất."
                 type="warning"
                 showIcon
               />
@@ -214,11 +218,11 @@ const ParameterManagement = () => {
             <Card size="small" style={{ borderLeft: '4px solid #c5a572' }}>
               <Row gutter={16}>
                 <Col span={12}>
-                  <span className="text-sm font-medium">Role:</span>
-                  <Tag color="blue" className="ml-2">Administrator</Tag>
+                  <span className="text-sm font-medium">Vai trò: </span>
+                  <Tag color="blue" className="ml-2">Quản Trị Viên</Tag>
                 </Col>
                 <Col span={12}>
-                  <span className="text-sm font-medium">Edit Permission:</span>
+                  <span className="text-sm font-medium">Quyền Chỉnh Sửa:</span>
                   <Switch
                     checked={hasPermission}
                     onChange={setHasPermission}
@@ -234,7 +238,7 @@ const ParameterManagement = () => {
               title={
                 <span className="text-lg font-semibold flex items-center">
                   <DollarOutlined className="mr-2" />
-                  Model Parameters
+                  Tham Số Mô Hình
                 </span>
               }
             >
@@ -252,7 +256,7 @@ const ParameterManagement = () => {
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Products</h3>
+                    <h3 className="text-lg font-semibold text-primary-700">Sản Phẩm</h3>
                     <p className="text-2xl font-bold text-green-600">{numProducts}</p>
                   </div>
                 </Card>
@@ -260,7 +264,7 @@ const ParameterManagement = () => {
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Warehouses</h3>
+                    <h3 className="text-lg font-semibold text-primary-700">Kho Hàng</h3>
                     <p className="text-2xl font-bold text-blue-600">{numWarehouses}</p>
                   </div>
                 </Card>
@@ -268,7 +272,7 @@ const ParameterManagement = () => {
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Time Periods</h3>
+                    <h3 className="text-lg font-semibold text-primary-700">Kỳ Thời Gian</h3>
                     <p className="text-2xl font-bold text-purple-600">{numPeriods}</p>
                   </div>
                 </Card>
@@ -277,18 +281,18 @@ const ParameterManagement = () => {
           </div>
         </TabPane>
 
-        <TabPane tab={<><BranchesOutlined />Version Control</>} key="versions">
+        <TabPane tab={<><BranchesOutlined />Quản Lý Phiên Bản</>} key="versions">
           {/* Version Control Content */}
           <div className="space-y-6">
             <Card
-              title={<><BranchesOutlined /> Dataset Version Control</>}
+              title={<><BranchesOutlined /> Quản Lý Phiên Bản Dữ Liệu</>}
               extra={
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => setShowCreateModal(true)}
                 >
-                  Create Version
+                  Tạo Phiên Bản
                 </Button>
               }
             >
@@ -301,7 +305,7 @@ const ParameterManagement = () => {
             </Card>
 
             {/* Version History Timeline */}
-            <Card title={<><HistoryOutlined /> Version History</>}>
+            <Card title={<><HistoryOutlined /> Lịch Sử Phiên Bản</>}>
               <Timeline>
                 {datasets.slice(0, 5).map(dataset => (
                   <Timeline.Item
@@ -326,7 +330,7 @@ const ParameterManagement = () => {
 
       {/* Create Dataset Modal */}
       <Modal
-        title="Create Dataset Version"
+        title="Tạo Phiên Bản Dữ Liệu"
         open={showCreateModal}
         onOk={handleCreateDataset}
         onCancel={() => {
@@ -338,19 +342,19 @@ const ParameterManagement = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="version_name"
-            label="Version Name"
-            rules={[{ required: true, message: 'Please enter version name' }]}
+            label="Tên Phiên Bản"
+            rules={[{ required: true, message: 'Vui lòng nhập tên phiên bản' }]}
           >
-            <Input placeholder="e.g., v1.0.0, baseline, scenario-A" />
+            <Input placeholder="ví dụ: v1.0.0, cơ bản, kịch bản-A" />
           </Form.Item>
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Mô Tả">
             <Input.TextArea 
-              placeholder="Describe the changes in this version"
+              placeholder="Mô tả những thay đổi trong phiên bản này"
               rows={3}
             />
           </Form.Item>
-          <Form.Item name="created_by" label="Created By" initialValue="user">
-            <Input placeholder="Your name" />
+          <Form.Item name="created_by" label="Tạo Bởi" initialValue="user">
+            <Input placeholder="Tên của bạn" />
           </Form.Item>
         </Form>
       </Modal>
