@@ -22,6 +22,7 @@ services:
       - ./shared:/app/shared
       - ./data:/app/data
       - ./data_test:/app/data_test
+      - ./hybrid_ga_alns:/app/hybrid_ga_alns
     networks:
       - smi_network
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
