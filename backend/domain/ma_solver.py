@@ -3,15 +3,9 @@ backend/domain/ma_solver.py
 ============================
 MA (Memetic Algorithm = Hybrid GA-ALNS) solver wrapper for DSS.
 
-Runs the hybrid_ga_alns algorithm on the bundled test data cases and
-returns results in the same row-dict format that OptimizationService uses.
-
-Design decisions:
-- Runs on test data (case_1, case_2, case_3) at integration time.
-  Real CSV data adapter will be added in a later phase.
-- Each case is treated as one "product" sub-problem.
-- Output rows are mapped to DSS OptimizationResult schema.
-- All exceptions are caught; failures return status="error" and empty rows.
+Supports two modes:
+1. solve_all()           — chạy trên bundled test data (case_1/2/3)
+2. solve_from_dss_data() — chạy trên data thực từ DSS CSV files
 """
 from __future__ import annotations
 
@@ -253,6 +247,85 @@ class MASolver:
             "rows"      : all_rows,
             "fitness"   : total_fitness,
             "elapsed_s" : round(elapsed, 3),
+            "status"    : status,
+            "details"   : details,
+        }
+
+    # ------------------------------------------------------------------
+    def solve_from_dss_data(
+        self,
+        data_dir: str,
+        product_ids: List[str] | None = None,
+    ) -> Dict[str, Any]:
+        """
+        Chạy MA trên data thực từ DSS CSV files.
+
+        Parameters
+        ----------
+        data_dir    : đường dẫn đến folder chứa CSV files
+        product_ids : danh sách product cần chạy (None = tất cả)
+        """
+        from backend.domain.ma_adapter import CSVDataLoader, build_problem
+
+        loader  = CSVDataLoader(data_dir)
+        all_pids = product_ids or loader.get_active_products()
+
+        all_rows: List[Dict[str, Any]] = []
+        total_fitness = 0.0
+        t_start       = time.perf_counter()
+        details       = []
+        n_ok = 0
+
+        log.info("MASolver.solve_from_dss_data: %d products to solve", len(all_pids))
+
+        for pid in all_pids:
+            t0 = time.perf_counter()
+            try:
+                problem = build_problem(pid, loader)
+                if problem is None:
+                    log.warning("Skipping %s: insufficient data", pid)
+                    details.append({"product": pid, "status": "skipped"})
+                    continue
+
+                rng = random.Random(self._seed)
+                ga  = _build_components(problem, self._cfg, rng)
+                _, sol = ga.run()
+                elapsed = time.perf_counter() - t0
+
+                rows = _solution_to_rows(pid, problem, sol)
+                all_rows.extend(rows)
+                total_fitness += float(sol.fitness)
+                n_ok += 1
+
+                log.info(
+                    "  [%d/%d] %s: fitness=%.2f elapsed=%.2fs",
+                    n_ok, len(all_pids), pid, sol.fitness, elapsed,
+                )
+                details.append({
+                    "product"  : pid,
+                    "status"   : "ok",
+                    "fitness"  : float(sol.fitness),
+                    "elapsed_s": round(elapsed, 3),
+                })
+
+            except Exception as exc:
+                elapsed = time.perf_counter() - t0
+                log.error("  %s failed after %.1fs: %s", pid, elapsed, exc, exc_info=True)
+                details.append({"product": pid, "status": "error", "error": str(exc)})
+
+        elapsed_total = time.perf_counter() - t_start
+        n_total = len(all_pids)
+        status  = "ok" if n_ok == n_total else ("partial" if n_ok > 0 else "error")
+
+        log.info(
+            "MASolver.solve_from_dss_data done: %d/%d ok | fitness=%.2f | elapsed=%.1fs",
+            n_ok, n_total, total_fitness, elapsed_total,
+        )
+
+        return {
+            "rows"      : all_rows,
+            "fitness"   : total_fitness,
+            "elapsed_s" : round(elapsed_total, 3),
             "status"    : status,
             "details"   : details,
         }

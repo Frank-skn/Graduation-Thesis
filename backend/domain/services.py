@@ -173,15 +173,23 @@ class OptimizationService:
         self.mip_gap    = mip_gap
 
     # ------------------------------------------------------------------
-    def solve(self, data: OptimizationInput) -> OptimizationResult:
+    def solve(
+        self,
+        data: OptimizationInput,
+        data_dir: str | None = None,
+        product_ids: list | None = None,
+    ) -> OptimizationResult:
         """
-        Execute Hybrid GA-ALNS on test data cases and return a rich result.
+        Execute Hybrid GA-ALNS on DSS real data (or test cases fallback).
         """
         print(f"[OptimizationService] Running MA (Hybrid GA-ALNS) solver …")
 
-        # --- Step 1: run MA solver on all test cases ---
+        # --- Step 1: run MA solver ---
         ma = MASolver()
-        ma_result = ma.solve_all()
+        if data_dir:
+            ma_result = ma.solve_from_dss_data(data_dir, product_ids=product_ids)
+        else:
+            ma_result = ma.solve_all()
 
         rows     = ma_result["rows"]
         opt_cost = ma_result["fitness"]

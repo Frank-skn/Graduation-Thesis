@@ -36,15 +36,20 @@ def _run_optimization_task(
     from backend.data_access.csv_repository import CsvOptimizationDataRepository as Repo
     db = SessionLocalNDS()
     try:
-        csv_repo = Repo(data_dir)
+        csv_repo  = Repo(data_dir)
         opt_input = csv_repo.get_optimization_input()
+        # Pass data_dir so MA adapter can read CSV files directly
 
         opt_service = OptimizationService(
             solver=request_dict["solver"],
             time_limit=request_dict["time_limit"],
             mip_gap=request_dict["mip_gap"],
         )
-        result = opt_service.solve(opt_input)
+        result = opt_service.solve(
+            opt_input,
+            data_dir=data_dir,
+            product_ids=request_dict.get("product_ids"),
+        )
 
         result_repo = ResultRepository(db)
         # Update run record with final status
@@ -113,9 +118,10 @@ def run_optimization(
         _run_optimization_task,
         run_id=run_id,
         request_dict={
-            "solver": request.solver,
-            "time_limit": request.time_limit,
-            "mip_gap": request.mip_gap,
+            "solver"     : request.solver,
+            "time_limit" : request.time_limit,
+            "mip_gap"    : request.mip_gap,
+            "product_ids": request.product_ids,
         },
         data_dir=str(csv_repo._dir),
     )
