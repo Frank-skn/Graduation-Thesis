@@ -52,9 +52,8 @@ class CSVDataLoader:
         self.warehouses: List[str] = (
             pd.read_csv(self._dir / "warehouse.csv", dtype=str)["warehouse_id"].tolist()
         )
-        # Dùng periods từ inventory_flow để đồng bộ với data thực (10 periods)
         self.periods: List[int] = sorted(
-            pd.read_csv(self._dir / "inventory_flow.csv")["time_period"].astype(int).unique().tolist()
+            pd.read_csv(self._dir / "time_period.csv")["time_period"].astype(int).tolist()
         )
         self.inv_begin = pd.read_csv(
             self._dir / "inventory_begin.csv",
