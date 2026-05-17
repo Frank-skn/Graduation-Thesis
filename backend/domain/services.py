@@ -37,6 +37,8 @@ class OptimizationResult:
     prop_cost: float = 0.0
     savings_vs_prop: float = 0.0
     savings_pct_prop: float = 0.0
+    # Inventory cost extracted from MA rows (for fair comparison with baseline/prop)
+    ma_inv_cost: float = 0.0
 
 
 def _baseline_cost(data: OptimizationInput) -> float:
@@ -209,15 +211,29 @@ class OptimizationService:
                 message="MA solver failed on all cases. Check logs for details.",
             )
 
-        # --- Step 2: KPIs from MA rows (using data costs where available) ---
-        kpis = self._calculate_kpis_from_rows(rows)
+        # --- Step 2: KPIs + inventory cost breakdown từ CSV ---
+        if data_dir:
+            from backend.domain.ma_adapter import (
+                CSVDataLoader, compute_baseline_from_csv, compute_proportional_from_csv
+            )
+            _loader   = CSVDataLoader(data_dir)
+            baseline  = compute_baseline_from_csv(_loader)
+            prop_cost = compute_proportional_from_csv(_loader)
+            # Tính inventory cost thuần từ MA rows (Co/Cs/Cb) — cùng đơn vị với baseline/prop
+            ma_inv_cost, cost_breakdown = self._compute_inv_cost_from_rows(rows, _loader)
+        else:
+            _loader       = None
+            baseline      = _baseline_cost(data)
+            prop_cost     = _proportional_allocation_cost(data)
+            ma_inv_cost   = opt_cost
+            cost_breakdown = {}
 
-        # --- Step 3: baseline & savings from OptimizationInput data ---
-        baseline  = _baseline_cost(data)
-        prop_cost = _proportional_allocation_cost(data)
-        savings   = max(0.0, baseline - opt_cost)
+        kpis = self._calculate_kpis_from_rows(rows, opt_cost=opt_cost, cost_breakdown=cost_breakdown)
+
+        # So sánh dùng inventory cost thuần (cùng đơn vị)
+        savings          = max(0.0, baseline - ma_inv_cost)
         savings_pct      = (savings / baseline * 100) if baseline > 0 else 0.0
-        savings_vs_prop  = max(0.0, prop_cost - opt_cost)
+        savings_vs_prop  = max(0.0, prop_cost - ma_inv_cost)
         savings_pct_prop = (savings_vs_prop / prop_cost * 100) if prop_cost > 0 else 0.0
 
         # --- Step 4: SI / SS metrics ---
@@ -266,7 +282,46 @@ class OptimizationService:
             prop_cost        = prop_cost,
             savings_vs_prop  = savings_vs_prop,
             savings_pct_prop = savings_pct_prop,
+            ma_inv_cost      = ma_inv_cost,
         )
+
+    # ------------------------------------------------------------------
+    def _compute_inv_cost_from_rows(self, rows: list, loader) -> tuple:
+        """
+        Tính inventory cost thuần (Co/Cs/Cb) từ MA rows + CSV unit cost.
+        Trả về (total_inv_cost, cost_breakdown_dict).
+        Dùng để so sánh công bằng với baseline và prop_cost (cùng đơn vị).
+        """
+        # Index unit cost từ loader
+        co_map: Dict = {}
+        cs_map: Dict = {}
+        cb_map: Dict = {}
+        for _, row in loader.unit_cost.iterrows():
+            key = (str(row["warehouse_id"]), int(row["time_period"]))
+            co_map[key] = float(row["overstock_cost"])
+            cs_map[key] = float(row["shortage_cost"])
+            cb_map[key] = float(row["backlog_cost"])
+
+        total_inv = 0.0
+        cost_bo = cost_ov = cost_sh = 0.0
+
+        for r in rows:
+            key = (r["warehouse_id"], r["time_period"])
+            bo = float(r.get("backorder_qty", 0))
+            ov = float(r.get("overstock_qty", 0))
+            sh = float(r.get("shortage_qty", 0))
+            cost_bo += cb_map.get(key, 1500.0) * bo
+            cost_ov += co_map.get(key, 0.1)   * ov
+            cost_sh += cs_map.get(key, 0.5)   * sh
+
+        total_inv = cost_bo + cost_ov + cost_sh
+        breakdown = {
+            "cost_backorder": cost_bo,
+            "cost_overstock": cost_ov,
+            "cost_shortage" : cost_sh,
+            "cost_penalty"  : 0.0,
+        }
+        return total_inv, breakdown
 
     # ------------------------------------------------------------------
     def _zero_kpis(self) -> Dict[str, float]:
@@ -280,8 +335,10 @@ class OptimizationService:
     def _calculate_kpis_from_rows(
         self,
         results: list,
+        opt_cost: float = 0.0,
+        cost_breakdown: Dict = {},
     ) -> Dict[str, float]:
-        """Compute KPI summary from MA row dicts (no external cost data needed)."""
+        """Compute KPI summary from MA row dicts."""
         total_bo = total_o = total_s = 0.0
         total_penalty = 0
         periods_ok = 0
@@ -303,20 +360,19 @@ class OptimizationService:
             r.get("q_case_pack", 0) + r.get("r_residual_units", 0)
             for r in results
         )
-        # capacity_utilization: ratio of allocated units vs total inventory processed
         total_inv = sum(abs(r.get("net_inventory", 0)) for r in results) or 1.0
         cap_util  = min(100.0, total_used / total_inv * 100)
 
         return {
-            "total_cost"          : 0.0,   # MA fitness covers all costs; set 0 to avoid double-count
+            "total_cost"          : opt_cost,
             "total_backorder"     : total_bo,
             "total_overstock"     : total_o,
             "total_shortage"      : total_s,
             "total_penalty"       : float(total_penalty),
-            "cost_backorder"      : 0.0,
-            "cost_overstock"      : 0.0,
-            "cost_shortage"       : 0.0,
-            "cost_penalty"        : 0.0,
+            "cost_backorder"      : cost_breakdown.get("cost_backorder", 0.0),
+            "cost_overstock"      : cost_breakdown.get("cost_overstock", 0.0),
+            "cost_shortage"       : cost_breakdown.get("cost_shortage",  0.0),
+            "cost_penalty"        : cost_breakdown.get("cost_penalty",   0.0),
             "service_level"       : service_level,
             "capacity_utilization": cap_util,
         }

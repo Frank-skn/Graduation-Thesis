@@ -79,9 +79,179 @@ class CSVDataLoader:
         self.distance_matrix = pd.read_csv(
             self._dir / "FGPs_distance.csv", index_col="State"
         )
+        _pricing = pd.read_csv(self._dir / "container_pricing.csv")
+        _row = _pricing[_pricing["Container_Type"] == "40ft Dry"]
+        self.TC: float = float(_row.iloc[0]["Base_Rate_USD_per_km"]) if not _row.empty else TC_DEFAULT
 
     def get_active_products(self) -> List[str]:
         return sorted(self.inv_flow["product_id"].str.strip().unique().tolist())
+
+
+def compute_baseline_from_csv(loader: CSVDataLoader) -> float:
+    """
+    Baseline (do-nothing) cost tính trực tiếp từ ver2 CSV.
+    Không giao hàng, tồn kho roll-forward theo delta_I qua từng kỳ.
+    """
+    warehouses = loader.warehouses
+    periods    = sorted(loader.periods)
+    products   = loader.get_active_products()
+
+    total = 0.0
+
+    for pid in products:
+        bi_df   = loader.inv_begin[loader.inv_begin["product_id"] == pid]
+        flow_df = loader.inv_flow[loader.inv_flow["product_id"] == pid]
+        cost_df = loader.unit_cost[loader.unit_cost["product_id"] == pid]
+
+        if flow_df.empty:
+            continue
+
+        delta_I: Dict = {}
+        U: Dict = {}
+        L: Dict = {}
+        for _, row in flow_df.iterrows():
+            wh = str(row["warehouse_id"])
+            t  = int(row["time_period"])
+            delta_I[(wh, t)] = float(row["inventory_fluctuation"])
+            U[(wh, t)]       = float(row["inventory_ceiling"])
+            L[(wh, t)]       = float(row["inventory_floor"])
+
+        Co: Dict = {}
+        Cs: Dict = {}
+        Cb: Dict = {}
+        for _, row in cost_df.iterrows():
+            wh = str(row["warehouse_id"])
+            t  = int(row["time_period"])
+            Co[(wh, t)] = float(row["overstock_cost"])
+            Cs[(wh, t)] = float(row["shortage_cost"])
+            Cb[(wh, t)] = float(row["backlog_cost"])
+
+        for wh in warehouses:
+            bi_row = bi_df[bi_df["warehouse_id"] == wh]
+            prev = float(bi_row.iloc[0]["beginning_inventory"]) if not bi_row.empty else 0.0
+
+            for t in periods:
+                prev += delta_I.get((wh, t), 0.0)
+                iv = prev
+                ov = max(0.0, iv - U.get((wh, t), 1e6))
+                sh = max(0.0, L.get((wh, t), 0.0) - iv)
+                bk = max(0.0, -iv)
+                total += (
+                    Co.get((wh, t), 0.1) * ov
+                    + Cs.get((wh, t), 0.5) * sh
+                    + Cb.get((wh, t), 1500.0) * bk
+                )
+
+    return total
+
+
+def compute_proportional_from_csv(loader: CSVDataLoader) -> float:
+    """
+    Proportional allocation heuristic tính trực tiếp từ ver2 CSV.
+    Phân bổ CAP[i,t] theo tỉ lệ deficit, làm tròn xuống bội số CP.
+    """
+    warehouses = loader.warehouses
+    periods    = sorted(loader.periods)
+    products   = loader.get_active_products()
+
+    total_cost = 0.0
+
+    for pid in products:
+        bi_df   = loader.inv_begin[loader.inv_begin["product_id"] == pid]
+        flow_df = loader.inv_flow[loader.inv_flow["product_id"] == pid]
+        cost_df = loader.unit_cost[loader.unit_cost["product_id"] == pid]
+        cap_df  = loader.capacity[loader.capacity["product_id"] == pid]
+        cp_row  = loader.packing[loader.packing["product_id"] == pid]
+
+        if flow_df.empty or cap_df.empty:
+            continue
+
+        CP = int(cp_row.iloc[0]["pack_multiple"]) if not cp_row.empty else 1
+
+        delta_I: Dict = {}
+        U: Dict = {}
+        L: Dict = {}
+        for _, row in flow_df.iterrows():
+            wh = str(row["warehouse_id"])
+            t  = int(row["time_period"])
+            delta_I[(wh, t)] = float(row["inventory_fluctuation"])
+            U[(wh, t)]       = float(row["inventory_ceiling"])
+            L[(wh, t)]       = float(row["inventory_floor"])
+
+        CAP: Dict = {}
+        for _, row in cap_df.iterrows():
+            CAP[int(row["time_period"])] = float(row["capacity"])
+
+        Co: Dict = {}
+        Cs: Dict = {}
+        Cb: Dict = {}
+        for _, row in cost_df.iterrows():
+            wh = str(row["warehouse_id"])
+            t  = int(row["time_period"])
+            Co[(wh, t)] = float(row["overstock_cost"])
+            Cs[(wh, t)] = float(row["shortage_cost"])
+            Cb[(wh, t)] = float(row["backlog_cost"])
+
+        # Beginning inventory per warehouse
+        current_inv: Dict[str, float] = {}
+        for wh in warehouses:
+            bi_row = bi_df[bi_df["warehouse_id"] == wh]
+            current_inv[wh] = float(bi_row.iloc[0]["beginning_inventory"]) if not bi_row.empty else 0.0
+
+        cp_val = max(1, CP)
+
+        for t in periods:
+            # 1. Cập nhật tồn kho theo delta_I
+            for wh in warehouses:
+                current_inv[wh] += delta_I.get((wh, t), 0.0)
+
+            cap = CAP.get(t, 0.0)
+
+            # 2. Deficit so với floor
+            deficit: Dict[str, float] = {
+                wh: max(0.0, L.get((wh, t), 0.0) - current_inv[wh])
+                for wh in warehouses
+            }
+            total_deficit = sum(deficit.values())
+
+            # 3. Phân bổ theo tỉ lệ deficit, làm tròn xuống bội số CP
+            alloc: Dict[str, float] = {}
+            if total_deficit > 0:
+                for wh in warehouses:
+                    raw = cap * (deficit[wh] / total_deficit)
+                    alloc[wh] = float(int(raw // cp_val) * cp_val)
+            else:
+                n = len(warehouses)
+                for wh in warehouses:
+                    raw = cap / n
+                    alloc[wh] = float(int(raw // cp_val) * cp_val)
+
+            # 4. Phân bổ phần dư cho warehouse thiếu nhất
+            remainder = cap - sum(alloc.values())
+            if remainder > 0:
+                j_priority = sorted(warehouses, key=lambda w: deficit.get(w, 0.0), reverse=True)
+                for wh in j_priority:
+                    if remainder < cp_val:
+                        break
+                    extra = float(int(remainder // cp_val) * cp_val)
+                    if extra > 0:
+                        alloc[wh] += extra
+                        remainder -= extra
+
+            # 5. Cập nhật tồn kho và tính chi phí
+            for wh in warehouses:
+                current_inv[wh] += alloc.get(wh, 0.0)
+                iv = current_inv[wh]
+                ov = max(0.0, iv - U.get((wh, t), 1e6))
+                sh = max(0.0, L.get((wh, t), 0.0) - iv)
+                bk = max(0.0, -iv)
+                total_cost += (
+                    Co.get((wh, t), 0.1) * ov
+                    + Cs.get((wh, t), 0.5) * sh
+                    + Cb.get((wh, t), 1500.0) * bk
+                )
+
+    return total_cost
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +384,7 @@ def build_problem(product_id: str, loader: CSVDataLoader) -> Optional[Problem]:
         L           = L,
         CAP         = CAP,
         CP          = CP,
-        TC          = TC_DEFAULT,
+        TC          = loader.TC,
         dist        = dist,
         Co          = Co,
         Cs          = Cs,

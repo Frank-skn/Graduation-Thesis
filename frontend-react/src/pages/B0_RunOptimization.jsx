@@ -207,7 +207,7 @@ const RunOptimization = () => {
   const MILESTONES = [
     { pct: 15, label: 'Nạp dữ liệu' },
     { pct: 40, label: 'Xây dựng mô hình' },
-    { pct: 70, label: 'Đang giải MILP' },
+    { pct: 70, label: 'Đang giải MA (GA-ALNS)' },
     { pct: 92, label: 'Kiểm tra nghiệm' },
   ]
 
@@ -313,7 +313,7 @@ const RunOptimization = () => {
             { title: 'Cấu hình', description: 'Chọn bộ giải và tham số', icon: <DatabaseOutlined /> },
             {
               title: 'Đang chạy',
-              description: `Giải MILP${step === 1 ? ` (${elapsedSec}s)` : ''}`,
+              description: `Giải MA (GA-ALNS)${step === 1 ? ` (${elapsedSec}s)` : ''}`,
               icon: step === 1 ? <LoadingOutlined /> : <PlayCircleOutlined />,
             },
             { title: 'Hoàn thành', description: 'Xem kết quả', icon: <CheckCircleOutlined /> },
@@ -447,7 +447,7 @@ const RunOptimization = () => {
         <Card>
           <div className="text-center space-y-5 py-4">
             <LoadingOutlined style={{ fontSize: 48, color: '#1890ff' }} />
-            <h2 className="text-xl font-semibold">Đang giải bài toán MILP...</h2>
+            <h2 className="text-xl font-semibold">Đang giải bài toán MA (Hybrid GA-ALNS)...</h2>
 
             {/* Time + item counter */}
             <div className="flex justify-center gap-8">
@@ -518,7 +518,7 @@ const RunOptimization = () => {
                   <strong>{counts.total_combinations ?? '--'}</strong>
                 </div>
                 <Divider className="my-2" />
-                <div className="text-xs text-gray-400">Mô hình: SS-MB-SMI MILP &middot; Bộ giải: CBC / GLPK</div>
+                <div className="text-xs text-gray-400">Mô hình: SS-MB-SMI &middot; Bộ giải: Hybrid GA-ALNS (MA)</div>
               </div>
             </Card>
           </Col>
@@ -528,29 +528,22 @@ const RunOptimization = () => {
               {errorMsg && (
                 <Alert type="error" message={errorMsg} showIcon closable className="mb-4" onClose={() => setErrorMsg(null)} />
               )}
-              <Form form={form} layout="vertical" initialValues={{ solver: 'cbc', time_limit: 300, mip_gap: 0.01 }}>
+              <Form form={form} layout="vertical" initialValues={{ solver: 'ma', time_limit: 4, mip_gap: 0.01 }}>
                 <Form.Item
                   label="Bộ giải (Solver)" name="solver" rules={[{ required: true }]}
-                  extra="CBC nhanh hơn cho tập dữ liệu lớn; GLPK ổn định hơn cho tập nhỏ."
+                  extra="MA (Hybrid GA-ALNS) là bộ giải mặc định cho bài toán SS-MB-SMI."
                 >
                   <Select>
+                    <Option value="ma">MA · Hybrid GA-ALNS (kiến nghị)</Option>
                     <Option value="cbc">CBC (không kiến nghị)</Option>
-                    <Option value="glpk">GLPK</Option>
                   </Select>
                 </Form.Item>
                 <Form.Item
-                  label="Giới hạn thời gian (giây)" name="time_limit"
-                  rules={[{ required: true, type: 'number', min: 10, max: 3600 }]}
-                  extra="Thời gian tối đa cho bộ giải. Trả nghiếm tốt nhất tìm được khi hết giờ."
+                  label="Giới hạn thời gian mỗi sản phẩm (giây)" name="time_limit"
+                  rules={[{ required: true, type: 'number', min: 1, max: 300 }]}
+                  extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để có nghiệm tốt hơn, giảm để chạy nhanh hơn."
                 >
-                  <InputNumber min={10} max={3600} step={30} style={{ width: '100%' }} />
-                </Form.Item>
-                <Form.Item
-                  label="Sai số MIP (MIP Gap)" name="mip_gap"
-                  rules={[{ required: true, type: 'number', min: 0, max: 1 }]}
-                  extra="Sai số tối đa so với nghiếm tối ưu. 0.01 = 1%."
-                >
-                  <InputNumber min={0} max={1} step={0.001} style={{ width: '100%' }} />
+                  <InputNumber min={1} max={300} step={1} style={{ width: '100%' }} />
                 </Form.Item>
                 <Form.Item className="mb-0">
                   <Button

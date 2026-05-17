@@ -66,7 +66,7 @@ def _run_optimization_task(
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=result.baseline_cost,
-            opt_cost=result.objective_value,
+            opt_cost=result.ma_inv_cost,
             savings=result.savings,
             savings_pct=result.savings_pct,
             n_changes=result.n_changes,
@@ -189,17 +189,20 @@ def get_run_status(
 @router.get("/results/{run_id}", response_model=OptimizationOutput)
 def get_results(
     run_id: int,
+    page: int = 1,
+    page_size: int = 500,
     db: Session = Depends(get_db_nds)
 ):
     """
-    Get optimization results by run ID
+    Get optimization results by run ID (paginated).
+    page=1, page_size=500 by default.
     """
     repo = ResultRepository(db)
-    results = repo.get_results(run_id)
-    
+    results = repo.get_results(run_id, page=page, page_size=page_size)
+
     if not results:
         raise HTTPException(status_code=404, detail="Results not found")
-    
+
     return results
 
 

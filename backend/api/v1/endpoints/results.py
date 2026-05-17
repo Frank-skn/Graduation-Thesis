@@ -145,17 +145,11 @@ def get_executive_summary(
 
     kpi = db.query(DssKPI).filter(DssKPI.run_id == run_id).first()
 
-    results = db.query(OptimizationResult).filter(
-        OptimizationResult.run_id == run_id
-    ).all()
-
-    products = set()
-    warehouses = set()
-    periods = set()
-    for r in results:
-        products.add(r.product_id)
-        warehouses.add(r.warehouse_id)
-        periods.add(r.time_period)
+    from sqlalchemy import func, distinct
+    products   = db.query(func.count(distinct(OptimizationResult.product_id))).filter(OptimizationResult.run_id == run_id).scalar() or 0
+    warehouses = db.query(func.count(distinct(OptimizationResult.warehouse_id))).filter(OptimizationResult.run_id == run_id).scalar() or 0
+    periods    = db.query(func.count(distinct(OptimizationResult.time_period))).filter(OptimizationResult.run_id == run_id).scalar() or 0
+    result_count = db.query(func.count(OptimizationResult.result_id)).filter(OptimizationResult.run_id == run_id).scalar() or 0
 
     run_meta = RunMetadata(
         run_id=run.run_id,
@@ -186,10 +180,10 @@ def get_executive_summary(
     return ExecutiveSummary(
         run=run_meta,
         kpis=kpi_detail,
-        result_count=len(results),
-        product_count=len(products),
-        warehouse_count=len(warehouses),
-        period_count=len(periods),
+        result_count=result_count,
+        product_count=products,
+        warehouse_count=warehouses,
+        period_count=periods,
     )
 
 
@@ -203,14 +197,15 @@ def get_allocation(
     product_id: Optional[str] = None,
     warehouse_id: Optional[str] = None,
     time_period: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 200,
     db: Session = Depends(get_db_nds),
 ):
     """
-    Get allocation details for an optimization run.
-
-    Supports optional filtering by product_id, warehouse_id,
-    and/or time_period via query parameters.
+    Get allocation details for an optimization run (paginated).
+    Filter by product_id, warehouse_id, time_period.
     """
+    from sqlalchemy import func
     _load_run(run_id, db)
 
     query = db.query(OptimizationResult).filter(
@@ -228,11 +223,12 @@ def get_allocation(
         query = query.filter(OptimizationResult.time_period == time_period)
         filters["time_period"] = time_period
 
+    total = query.count()
     results = query.order_by(
         OptimizationResult.product_id,
         OptimizationResult.warehouse_id,
         OptimizationResult.time_period,
-    ).all()
+    ).offset((page - 1) * page_size).limit(page_size).all()
 
     allocations = [
         AllocationRecord(
@@ -253,7 +249,7 @@ def get_allocation(
     return AllocationResponse(
         run_id=run_id,
         allocations=allocations,
-        total=len(allocations),
+        total=total,
         filters_applied=filters,
     )
 

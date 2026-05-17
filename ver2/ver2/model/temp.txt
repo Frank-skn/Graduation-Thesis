@@ -1,0 +1,320 @@
+"""
+oa_plt_milp.py  —  OA + PLT Combined MILP Model
+================================================
+Implements the SS-MB-SMI model from the paper.
+
+Min  Σ(Co·o + Cs·s + Cb·bo) + Σ Cp·pOA + Σ (Cp·pPLT + d·TC·x)
+
+Subject to constraints (1)–(20) as described.
+
+Usage:
+    from model.oa_plt_milp import OA_PLT_Model
+    mdl = OA_PLT_Model(params)
+    status = mdl.solve(time_limit=300)
+    results = mdl.get_results()
+"""
+
+from pulp import (
+    LpProblem, LpMinimize, LpVariable, LpStatus, lpSum,
+    PULP_CBC_CMD, value
+)
+
+
+class OA_PLT_Model:
+    """Combined OA + PLT MILP model."""
+
+    def __init__(self, params: dict):
+        """
+        params: dict loaded from parameters.json
+        Keys expected:
+          meta, OA_lead, PLT_lead, CP, TC, M, BI,
+          delta_I, U, L, CAP, cost, distance
+        """
+        self.params  = params
+        self.P       = [params["meta"]["product"]]
+        self.N       = params["meta"]["warehouses"]
+        self.T       = params["meta"]["T"]
+        self.periods = list(range(1, self.T + 1))
+        self.prob    = None
+        self._vars   = {}
+
+    # ── Key helpers ──────────────────────────────────────────────────────────
+    def _key(self, wh, t):         return f"{wh}_{t}"
+    def _key2(self, wi, wj, t):    return f"{wi}_{wj}_{t}"
+
+    def _dI(self, p, i, t):
+        return self.params["delta_I"].get(self._key(i, t), 0)
+
+    def _U(self, p, i, t):
+        return self.params["U"].get(self._key(i, t), 1e6)
+
+    def _L(self, p, i, t):
+        return self.params["L"].get(self._key(i, t), 0)
+
+    def _CAP(self, p, t):
+        return self.params["CAP"].get(str(t), 0)
+
+    def _cost(self, wh, t, kind):
+        return self.params["cost"].get(wh, {}).get(str(t), {}).get(kind, 0.0)
+
+    def _d(self, wi, wj):
+        return self.params["distance"].get(f"{wi}_{wj}", 0)
+
+    def _CP(self, p, wh):
+        return self.params["CP"]
+
+    def _PLT_lead(self, wi, wj):
+        return self.params["PLT_lead"].get(f"{wi}_{wj}", 2)
+
+    # ── Build model ──────────────────────────────────────────────────────────
+    def build(self):
+        P, N, T_list = self.P, self.N, self.periods  # T_list is [1, 2, ..., T]
+        periods_0 = list(range(0, self.T + 1))       # Included t=0 for Explicit Inventory Start
+        
+        M   = self.params["M"]
+        TC  = self.params["TC"]
+        OAL = self.params.get("OA_lead", 8)
+
+        prob = LpProblem("OA_PLT_Combined", LpMinimize)
+
+        # ── Decision variables (Sạch sẽ với LpVariable.dicts) ────────────
+        q_OA  = LpVariable.dicts("qOA",  (P, N, T_list), lowBound=0, cat='Integer')
+        r_OA  = LpVariable.dicts("rOA",  (P, N, T_list), lowBound=0, cat='Integer')
+        Q_OA  = LpVariable.dicts("QOA",  (P, N, T_list), lowBound=0, cat='Integer')
+
+        q_PLT = LpVariable.dicts("qPLT", (P, N, N, T_list), lowBound=0, cat='Integer')
+        r_PLT = LpVariable.dicts("rPLT", (P, N, N, T_list), lowBound=0, cat='Integer')
+        Q_PLT = LpVariable.dicts("QPLT", (P, N, N, T_list), lowBound=0, cat='Integer')
+
+        # Điểm mấu chốt: I có chu kỳ t=0
+        I_var = LpVariable.dicts("I",    (P, N, periods_0), cat='Continuous')
+
+        bo    = LpVariable.dicts("bo",   (P, N, T_list), lowBound=0)
+        o     = LpVariable.dicts("o",    (P, N, T_list), lowBound=0)
+        s     = LpVariable.dicts("s",    (P, N, T_list), lowBound=0)
+        E     = LpVariable.dicts("E",    (P, N, T_list), lowBound=0)
+
+        pOA   = LpVariable.dicts("pOA",  (P, N, T_list), cat='Binary')
+        pPLT  = LpVariable.dicts("pPLT", (P, N, N, T_list), cat='Binary')
+        x     = LpVariable.dicts("x",    (N, N, T_list), cat='Binary')
+
+        # ── Objective function ───────────────────────────────────────────────
+        obj_terms = []
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    # Cost terms
+                    obj_terms.append(self._cost(i, t, 'overstock') * o[p][i][t])
+                    obj_terms.append(self._cost(i, t, 'shortage')  * s[p][i][t])
+                    obj_terms.append(self._cost(i, t, 'backorder') * bo[p][i][t])
+                    obj_terms.append(self._cost(i, t, 'penalty')   * pOA[p][i][t])
+                    
+                    # Transshipment costs (PLT Penalty + Transportation)
+                    for j in N:
+                        if i != j:
+                            obj_terms.append(self._cost(j, t, 'penalty') * pPLT[p][i][j][t])
+                            obj_terms.append(self._d(i, j) * TC * x[i][j][t])
+                            
+        prob += lpSum(obj_terms), "Objective"
+
+        # ── Constraints chuẩn toán học trong mix paper.docx ────────────────
+
+        BI_map = self.params["BI"]
+        
+        # Calculate dynamic M for Q_PLT based on max capacity U
+        U_max = max(self._U(p, i, t) for p in P for i in N for t in T_list)
+        BI_max = max(abs(BI_map.get(i, 0)) for i in N)
+        M_QPLT = max(U_max, BI_max) * 2  # Safe big-M margin
+        
+        # (Eq. 1) I_{p,i,0} = BI_{p,i}
+        for p in P:
+            for i in N:
+                prob += (I_var[p][i][0] == BI_map[i], f"Init_Inv_{p}_{i}")
+
+        # (Eq. 2 & 3) Lô/Thùng Case-pack: Q = q * CP + r
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    cp = self._CP(p, i)
+                    prob += (Q_OA[p][i][t] == q_OA[p][i][t] * cp + r_OA[p][i][t], f"QOA_def_{p}_{i}_{t}")
+                    
+                    for j in N:
+                        if i != j:
+                            cp_j = self._CP(p, j)
+                            prob += (Q_PLT[p][i][j][t] == q_PLT[p][i][j][t] * cp_j + r_PLT[p][i][j][t], f"QPLT_def_{p}_{i}_{j}_{t}")
+
+        # (Eq. 4) Cân bằng tồn kho đệ quy từ t-1: I_{p,i,t} = I_{p,i,t-1} + OA_in + PLT_in - PLT_out + delta_I
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    # OA Arriving (Theo đúng công thức Paper: t - L_OA + 1)
+                    t_oa = t - OAL + 1
+                    oa_in = Q_OA[p][i][t_oa] if 1 <= t_oa <= self.T else 0
+
+                    # PLT Arriving (Theo đúng công thức Paper: t - L_PLT + 1)
+                    plt_in = []
+                    for j in N:
+                        if j != i:
+                            lt = self._PLT_lead(j, i)
+                            t_plt = t - lt + 1
+                            if 1 <= t_plt <= self.T:
+                                plt_in.append(Q_PLT[p][j][i][t_plt])
+
+                    # PLT Leaving
+                    plt_out = [Q_PLT[p][i][j][t] for j in N if j != i]
+
+                    prob += (
+                        I_var[p][i][t] == I_var[p][i][t-1] 
+                                        + oa_in 
+                                        + lpSum(plt_in) 
+                                        - lpSum(plt_out) 
+                                        + self._dI(p, i, t),
+                        f"Inv_balance_{p}_{i}_{t}"
+                    )
+
+        # (Eq. 5) Capping Capacity
+        for p in P:
+            for t in T_list:
+                prob += (lpSum(Q_OA[p][i][t] for i in N) == self._CAP(p, t), f"Capacity_{p}_{t}")
+
+        # (Eq. 7, 8, 9, 10, 11) Shortage, Overstock, Backorder, Surplus, and PLT limitation
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    prob += (bo[p][i][t] >= -I_var[p][i][t], f"bo_def_{p}_{i}_{t}")
+                    prob += (I_var[p][i][t] <= self._U(p,i,t) + o[p][i][t], f"o_def_{p}_{i}_{t}")
+                    prob += (I_var[p][i][t] >= self._L(p,i,t) - s[p][i][t], f"s_def_{p}_{i}_{t}")
+                    prob += (E[p][i][t]  >= I_var[p][i][t] - self._L(p,i,t), f"E_def_{p}_{i}_{t}")
+                    
+                    # Q_PLT <= E : PLT out cannot exceed safe surplus
+                    prob += (lpSum(Q_PLT[p][i][j][t] for j in N if j != i) <= E[p][i][t], f"PLT_surplus_{p}_{i}_{t}")
+
+        # (Eq. 12) Big-M Routing Activation for PLT: Q_PLT <= M_QPLT * x
+        for p in P:
+            for i in N:
+                for j in N:
+                    if i != j:
+                        for t in T_list:
+                            prob += (Q_PLT[p][i][j][t] <= M_QPLT * x[i][j][t], f"PLT_bigM_{p}_{i}_{j}_{t}")
+                            
+                            # Anti-PingPong Symmetry Breaking (Chỉ add 1 lần mỗi cặp i,j)
+                            if i < j:
+                                prob += (x[i][j][t] + x[j][i][t] <= 1, f"AntiPingPong_{i}_{j}_{t}")
+
+        # (Eq. 13 - 18) Remainder rules vs. Binary Penalty Activations
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    cp = self._CP(p, i)
+                    prob += (r_OA[p][i][t] <= cp - 1, f"rOA_ub_{p}_{i}_{t}")
+                    prob += (r_OA[p][i][t] <= (cp - 1) * pOA[p][i][t], f"rOA_bigM_{p}_{i}_{t}")
+                    prob += (r_OA[p][i][t] >= pOA[p][i][t], f"rOA_lb_{p}_{i}_{t}")
+                    
+                    for j in N:
+                        if i != j:
+                            cp_j = self._CP(p, j)
+                            prob += (r_PLT[p][i][j][t] <= cp_j - 1, f"rPLT_ub_{p}_{i}_{j}_{t}")
+                            prob += (r_PLT[p][i][j][t] <= (cp_j - 1) * pPLT[p][i][j][t], f"rPLT_bigM_{p}_{i}_{j}_{t}")
+                            prob += (r_PLT[p][i][j][t] >= pPLT[p][i][j][t], f"rPLT_lb_{p}_{i}_{j}_{t}")
+
+        # Eq. 21 (x_{i,i} = 0) is inherently excluded by logic `if i != j`
+        
+        self.prob  = prob
+        # Giữ lại format Dictionary tra cứu tương thích với hàm _get_results
+        self._vars = {
+            'q_OA':  {(p,i,t):   q_OA[p][i][t]   for p in P for i in N for t in T_list},
+            'r_OA':  {(p,i,t):   r_OA[p][i][t]   for p in P for i in N for t in T_list},
+            'Q_OA':  {(p,i,t):   Q_OA[p][i][t]   for p in P for i in N for t in T_list},
+            'q_PLT': {(p,i,j,t): q_PLT[p][i][j][t] for p in P for i in N for j in N if i!=j for t in T_list},
+            'r_PLT': {(p,i,j,t): r_PLT[p][i][j][t] for p in P for i in N for j in N if i!=j for t in T_list},
+            'Q_PLT': {(p,i,j,t): Q_PLT[p][i][j][t] for p in P for i in N for j in N if i!=j for t in T_list},
+            'I':     {(p,i,t):   I_var[p][i][t]  for p in P for i in N for t in T_list},  # Export chỉ lấy >= 1
+            'bo':    {(p,i,t):   bo[p][i][t]     for p in P for i in N for t in T_list},
+            'o':     {(p,i,t):   o[p][i][t]      for p in P for i in N for t in T_list},
+            's':     {(p,i,t):   s[p][i][t]      for p in P for i in N for t in T_list},
+            'E':     {(p,i,t):   E[p][i][t]      for p in P for i in N for t in T_list},
+            'pOA':   {(p,i,t):   pOA[p][i][t]    for p in P for i in N for t in T_list},
+            'pPLT':  {(p,i,j,t): pPLT[p][i][j][t] for p in P for i in N for j in N if i!=j for t in T_list},
+            'x':     {(i,j,t):   x[i][j][t]      for i in N for j in N if i!=j for t in T_list},
+        }
+        return self
+
+    def solve(self, time_limit: int = 300, msg: int = 1) -> str:
+        """Solve the MILP. Returns PuLP status string."""
+        if self.prob is None:
+            self.build()
+        solver = PULP_CBC_CMD(msg=msg, timeLimit=time_limit)
+        self.prob.solve(solver)
+        status = LpStatus[self.prob.status]
+        print(f"  Solver status: {status}")
+        print(f"  Objective    : {value(self.prob.objective):,.2f}")
+        return status
+
+    def get_results(self) -> dict:
+        """Extract solution values into plain dicts."""
+        P, N, T_list = self.P, self.N, self.periods
+
+        def v(var_dict, key, default=0.0):
+            var = var_dict.get(key)
+            if var is None:
+                return default
+            val = value(var)
+            return val if val is not None else default
+
+        results = {
+            "objective":   value(self.prob.objective),
+            "status":      LpStatus[self.prob.status],
+            "I":    {},
+            "Q_OA": {},
+            "q_OA": {},
+            "r_OA": {},
+            "Q_PLT":{},
+            "q_PLT":{},
+            "r_PLT":{},
+            "bo":   {},
+            "o":    {},
+            "s":    {},
+            "E":    {},
+            "pOA":  {},
+            "pPLT": {},
+            "x":    {},
+        }
+
+        vI    = self._vars['I']
+        vQOA  = self._vars['Q_OA']
+        vqOA  = self._vars['q_OA']
+        vrOA  = self._vars['r_OA']
+        vQPLT = self._vars['Q_PLT']
+        vqPLT = self._vars['q_PLT']
+        vrPLT = self._vars['r_PLT']
+        vbo   = self._vars['bo']
+        vo    = self._vars['o']
+        vs    = self._vars['s']
+        vE    = self._vars['E']
+        vpOA  = self._vars['pOA']
+        vpPLT = self._vars['pPLT']
+        vx    = self._vars['x']
+
+        for p in P:
+            for i in N:
+                for t in T_list:
+                    k = f"{i}_t{t}"
+                    results["I"][k]    = round(v(vI,   (p,i,t)), 2)
+                    results["Q_OA"][k] = round(v(vQOA, (p,i,t)), 0)
+                    results["q_OA"][k] = round(v(vqOA, (p,i,t)), 0)
+                    results["r_OA"][k] = round(v(vrOA, (p,i,t)), 0)
+                    results["bo"][k]   = round(v(vbo,  (p,i,t)), 2)
+                    results["o"][k]    = round(v(vo,   (p,i,t)), 2)
+                    results["s"][k]    = round(v(vs,   (p,i,t)), 2)
+                    results["E"][k]    = round(v(vE,   (p,i,t)), 2)
+                    results["pOA"][k]  = round(v(vpOA, (p,i,t)), 0)
+                    for j in N:
+                        if i != j:
+                            kp = f"{i}_{j}_t{t}"
+                            results["Q_PLT"][kp] = round(v(vQPLT, (p,i,j,t)), 0)
+                            results["q_PLT"][kp] = round(v(vqPLT, (p,i,j,t)), 0)
+                            results["r_PLT"][kp] = round(v(vrPLT, (p,i,j,t)), 0)
+                            results["pPLT"][kp]  = round(v(vpPLT, (p,i,j,t)), 0)
+                            results["x"][kp]     = round(v(vx,    (i,j,t)),    0)
+
+        return results

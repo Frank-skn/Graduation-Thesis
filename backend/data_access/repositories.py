@@ -215,15 +215,16 @@ class ResultRepository(IResultRepository):
             self.db.add(result)
         self.db.commit()
     
-    def get_results(self, run_id: int) -> Optional[OptimizationOutput]:
-        """Retrieve results"""
+    def get_results(self, run_id: int, page: int = 1, page_size: int = 500) -> Optional[OptimizationOutput]:
+        """Retrieve results (paginated)"""
+        offset = (page - 1) * page_size
         results = self.db.query(OptimizationResult).filter(
             OptimizationResult.run_id == run_id
-        ).all()
-        
+        ).offset(offset).limit(page_size).all()
+
         if not results:
             return None
-        
+
         results_list = [{
             "product_id": r.product_id,
             "warehouse_id": r.warehouse_id,
@@ -237,7 +238,7 @@ class ResultRepository(IResultRepository):
             "shortage_qty": float(r.shortage_qty or 0),
             "penalty_flag": r.penalty_flag
         } for r in results]
-        
+
         return OptimizationOutput(results=results_list)
     
     def save_kpis(self, run_id: int, kpis: Dict[str, float]) -> None:

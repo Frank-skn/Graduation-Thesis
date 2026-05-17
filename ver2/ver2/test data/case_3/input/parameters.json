@@ -1,0 +1,664 @@
+{
+  "meta": {
+    "case": "case_3",
+    "label": "Anticipated Surge in WH05 (Ticking Time Bomb)",
+    "product": "P_BOMB",
+    "warehouses": [
+      "WH01",
+      "WH02",
+      "WH03",
+      "WH04",
+      "WH05",
+      "WH06"
+    ],
+    "T": 10
+  },
+  "OA_lead": 8,
+  "PLT_lead": {
+    "WH01_WH02": 3,
+    "WH01_WH03": 3,
+    "WH01_WH04": 2,
+    "WH01_WH05": 3,
+    "WH01_WH06": 3,
+    "WH02_WH03": 3,
+    "WH02_WH04": 3,
+    "WH02_WH05": 3,
+    "WH02_WH06": 3,
+    "WH03_WH04": 2,
+    "WH03_WH05": 2,
+    "WH03_WH06": 3,
+    "WH04_WH05": 3,
+    "WH04_WH06": 3,
+    "WH05_WH06": 3,
+    "WH02_WH01": 2,
+    "WH03_WH01": 3,
+    "WH04_WH01": 2,
+    "WH05_WH01": 2,
+    "WH06_WH01": 2,
+    "WH03_WH02": 3,
+    "WH04_WH02": 3,
+    "WH05_WH02": 2,
+    "WH06_WH02": 2,
+    "WH04_WH03": 3,
+    "WH05_WH03": 3,
+    "WH06_WH03": 2,
+    "WH05_WH04": 2,
+    "WH06_WH04": 3,
+    "WH06_WH05": 2
+  },
+  "CP": 10,
+  "TC": 1.2,
+  "M": 1000,
+  "BI": {
+    "WH01": 23,
+    "WH02": 13,
+    "WH03": 11,
+    "WH04": 57,
+    "WH05": 83,
+    "WH06": 21
+  },
+  "delta_I": {
+    "WH01_1": -5,
+    "WH01_2": -5,
+    "WH01_3": -3,
+    "WH01_4": -3,
+    "WH01_5": -3,
+    "WH01_6": -23,
+    "WH01_7": -5,
+    "WH01_8": -5,
+    "WH01_9": -3,
+    "WH01_10": -3,
+    "WH02_1": 5,
+    "WH02_2": -5,
+    "WH02_3": 9,
+    "WH02_4": -1,
+    "WH02_5": -15,
+    "WH02_6": -5,
+    "WH02_7": -1,
+    "WH02_8": -3,
+    "WH02_9": -7,
+    "WH02_10": 7,
+    "WH03_1": -21,
+    "WH03_2": -3,
+    "WH03_3": -7,
+    "WH03_4": -7,
+    "WH03_5": -23,
+    "WH03_6": -3,
+    "WH03_7": 3,
+    "WH03_8": -5,
+    "WH03_9": -23,
+    "WH03_10": -7,
+    "WH04_1": -7,
+    "WH04_2": -7,
+    "WH04_3": -3,
+    "WH04_4": -1,
+    "WH04_5": 7,
+    "WH04_6": 3,
+    "WH04_7": -7,
+    "WH04_8": -5,
+    "WH04_9": -1,
+    "WH04_10": -5,
+    "WH05_1": 5,
+    "WH05_2": -3,
+    "WH05_3": 9,
+    "WH05_4": -3,
+    "WH05_5": -3,
+    "WH05_6": -3,
+    "WH05_7": -3,
+    "WH05_8": -29,
+    "WH05_9": -3,
+    "WH05_10": -3,
+    "WH06_1": -3,
+    "WH06_2": -7,
+    "WH06_3": -3,
+    "WH06_4": -1,
+    "WH06_5": -3,
+    "WH06_6": -7,
+    "WH06_7": -7,
+    "WH06_8": -7,
+    "WH06_9": -25,
+    "WH06_10": 11
+  },
+  "U": {
+    "WH01_1": 73,
+    "WH01_2": 73,
+    "WH01_3": 73,
+    "WH01_4": 73,
+    "WH01_5": 73,
+    "WH01_6": 73,
+    "WH01_7": 73,
+    "WH01_8": 73,
+    "WH01_9": 73,
+    "WH01_10": 73,
+    "WH02_1": 49,
+    "WH02_2": 49,
+    "WH02_3": 49,
+    "WH02_4": 49,
+    "WH02_5": 49,
+    "WH02_6": 49,
+    "WH02_7": 49,
+    "WH02_8": 49,
+    "WH02_9": 49,
+    "WH02_10": 49,
+    "WH03_1": 48,
+    "WH03_2": 48,
+    "WH03_3": 48,
+    "WH03_4": 48,
+    "WH03_5": 48,
+    "WH03_6": 48,
+    "WH03_7": 48,
+    "WH03_8": 48,
+    "WH03_9": 48,
+    "WH03_10": 48,
+    "WH04_1": 90,
+    "WH04_2": 90,
+    "WH04_3": 90,
+    "WH04_4": 90,
+    "WH04_5": 90,
+    "WH04_6": 90,
+    "WH04_7": 90,
+    "WH04_8": 90,
+    "WH04_9": 90,
+    "WH04_10": 90,
+    "WH05_1": 112,
+    "WH05_2": 112,
+    "WH05_3": 112,
+    "WH05_4": 112,
+    "WH05_5": 112,
+    "WH05_6": 112,
+    "WH05_7": 112,
+    "WH05_8": 112,
+    "WH05_9": 112,
+    "WH05_10": 112,
+    "WH06_1": 53,
+    "WH06_2": 53,
+    "WH06_3": 53,
+    "WH06_4": 53,
+    "WH06_5": 53,
+    "WH06_6": 53,
+    "WH06_7": 53,
+    "WH06_8": 53,
+    "WH06_9": 53,
+    "WH06_10": 53
+  },
+  "L": {
+    "WH01_1": 5,
+    "WH01_2": 5,
+    "WH01_3": 5,
+    "WH01_4": 5,
+    "WH01_5": 5,
+    "WH01_6": 5,
+    "WH01_7": 5,
+    "WH01_8": 5,
+    "WH01_9": 5,
+    "WH01_10": 5,
+    "WH02_1": 4,
+    "WH02_2": 4,
+    "WH02_3": 4,
+    "WH02_4": 4,
+    "WH02_5": 4,
+    "WH02_6": 4,
+    "WH02_7": 4,
+    "WH02_8": 4,
+    "WH02_9": 4,
+    "WH02_10": 4,
+    "WH03_1": 6,
+    "WH03_2": 6,
+    "WH03_3": 6,
+    "WH03_4": 6,
+    "WH03_5": 6,
+    "WH03_6": 6,
+    "WH03_7": 6,
+    "WH03_8": 6,
+    "WH03_9": 6,
+    "WH03_10": 6,
+    "WH04_1": 45,
+    "WH04_2": 45,
+    "WH04_3": 45,
+    "WH04_4": 45,
+    "WH04_5": 45,
+    "WH04_6": 45,
+    "WH04_7": 45,
+    "WH04_8": 45,
+    "WH04_9": 45,
+    "WH04_10": 45,
+    "WH05_1": 77,
+    "WH05_2": 77,
+    "WH05_3": 77,
+    "WH05_4": 77,
+    "WH05_5": 77,
+    "WH05_6": 77,
+    "WH05_7": 77,
+    "WH05_8": 77,
+    "WH05_9": 77,
+    "WH05_10": 77,
+    "WH06_1": 14,
+    "WH06_2": 14,
+    "WH06_3": 14,
+    "WH06_4": 14,
+    "WH06_5": 14,
+    "WH06_6": 14,
+    "WH06_7": 14,
+    "WH06_8": 14,
+    "WH06_9": 14,
+    "WH06_10": 14
+  },
+  "CAP": {
+    "1": 114,
+    "2": 131,
+    "3": 127,
+    "4": 112,
+    "5": 72,
+    "6": 81,
+    "7": 119,
+    "8": 115,
+    "9": 90,
+    "10": 113
+  },
+  "cost": {
+    "WH01": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    },
+    "WH02": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    },
+    "WH03": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    },
+    "WH04": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    },
+    "WH05": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    },
+    "WH06": {
+      "1": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "2": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "3": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "4": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "5": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "6": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "7": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "8": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "9": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      },
+      "10": {
+        "overstock": 0.1,
+        "shortage": 0.5,
+        "backorder": 1500.0,
+        "penalty": 2000.0
+      }
+    }
+  },
+  "distance": {
+    "WH01_WH02": 150,
+    "WH01_WH03": 350,
+    "WH01_WH04": 600,
+    "WH01_WH05": 800,
+    "WH01_WH06": 900,
+    "WH02_WH03": 200,
+    "WH02_WH04": 500,
+    "WH02_WH05": 750,
+    "WH02_WH06": 850,
+    "WH03_WH04": 300,
+    "WH03_WH05": 450,
+    "WH03_WH06": 500,
+    "WH04_WH05": 250,
+    "WH04_WH06": 300,
+    "WH05_WH06": 150,
+    "WH02_WH01": 150,
+    "WH03_WH01": 350,
+    "WH04_WH01": 600,
+    "WH05_WH01": 800,
+    "WH06_WH01": 900,
+    "WH03_WH02": 200,
+    "WH04_WH02": 500,
+    "WH05_WH02": 750,
+    "WH06_WH02": 850,
+    "WH04_WH03": 300,
+    "WH05_WH03": 450,
+    "WH06_WH03": 500,
+    "WH05_WH04": 250,
+    "WH06_WH04": 300,
+    "WH06_WH05": 150
+  }
+}

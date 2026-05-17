@@ -115,7 +115,7 @@ def _build_components(problem, cfg: Dict, rng: random.Random):
         k_tournament = ga_cfg["k_tournament"],
         delta_G      = alns_cfg["delta_G"],
         top_k_alns   = alns_cfg["top_k_alns"],
-        time_limit_s = stop_cfg["time_limit_seconds"],
+        time_limit_s = time_limit_s if time_limit_s is not None else stop_cfg["time_limit_seconds"],
         milp_seed    = milp_seed,
         rng          = rng,
     )
@@ -267,6 +267,7 @@ class MASolver:
         """
         from backend.domain.ma_adapter import CSVDataLoader, build_problem
 
+        print("[MA] Loading CSV data...", flush=True)
         loader  = CSVDataLoader(data_dir)
         all_pids = product_ids or loader.get_active_products()
 
@@ -276,14 +277,15 @@ class MASolver:
         details       = []
         n_ok = 0
 
-        log.info("MASolver.solve_from_dss_data: %d products to solve", len(all_pids))
+        print(f"[MA] {len(all_pids)} products to solve", flush=True)
 
         for pid in all_pids:
             t0 = time.perf_counter()
             try:
+                print(f"[MA] Solving {pid}...", flush=True)
                 problem = build_problem(pid, loader)
                 if problem is None:
-                    log.warning("Skipping %s: insufficient data", pid)
+                    print(f"[MA] Skipping {pid}: insufficient data", flush=True)
                     details.append({"product": pid, "status": "skipped"})
                     continue
 
