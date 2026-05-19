@@ -23,6 +23,11 @@ const optimizationService = {
     api.get(`/results/${runId}/changes-detail`, { params: filters }),
   getCostByWarehouse: (runId) =>
     api.get(`/results/${runId}/cost-by-warehouse`),
+  // PLT & inventory trajectory (Tier-2 features)
+  getPLTTransfers: (runId, filters = {}) =>
+    api.get(`/results/${runId}/plt-transfers`, { params: filters }),
+  getInventoryByWarehouse: (runId) =>
+    api.get(`/results/${runId}/inventory-by-warehouse`),
 };
 
 export default optimizationService;

@@ -39,6 +39,8 @@ class OptimizationResult:
     savings_pct_prop: float = 0.0
     # Inventory cost extracted from MA rows (for fair comparison with baseline/prop)
     ma_inv_cost: float = 0.0
+    # PLT transfer rows (product_id, from_warehouse_id, to_warehouse_id, time_period, qty)
+    plt_rows: list = None
 
 
 def _baseline_cost(data: OptimizationInput) -> float:
@@ -194,6 +196,7 @@ class OptimizationService:
             ma_result = ma.solve_all()
 
         rows     = ma_result["rows"]
+        plt_rows = ma_result.get("plt_rows", [])
         opt_cost = ma_result["fitness"]
         elapsed  = ma_result["elapsed_s"]
         status   = ma_result["status"]
@@ -209,6 +212,7 @@ class OptimizationService:
                 is_optimal=False,
                 is_feasible=False,
                 message="MA solver failed on all cases. Check logs for details.",
+                plt_rows=[],
             )
 
         # --- Step 2: KPIs + inventory cost breakdown từ CSV ---
@@ -283,6 +287,7 @@ class OptimizationService:
             savings_vs_prop  = savings_vs_prop,
             savings_pct_prop = savings_pct_prop,
             ma_inv_cost      = ma_inv_cost,
+            plt_rows         = plt_rows,
         )
 
     # ------------------------------------------------------------------

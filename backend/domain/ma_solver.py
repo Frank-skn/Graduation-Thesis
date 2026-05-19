@@ -55,7 +55,7 @@ AVAILABLE_CASES = ["case_1", "case_2", "case_3"]
 # Build MA components (mirrors runner.py build_components)
 # ---------------------------------------------------------------------------
 
-def _build_components(problem, cfg: Dict, rng: random.Random):
+def _build_components(problem, cfg: Dict, rng: random.Random, time_limit_s: float | None = None):
     (
         Problem, ObjectiveCalculator, ConstraintHandler, Decoder,
         GeneticOperators, GeneticAlgorithm, ALNSSolver, generate_milp_seed
@@ -178,6 +178,35 @@ def _solution_to_rows(
     return rows
 
 
+def _solution_to_plt_rows(
+    product_id: str,
+    problem,
+    sol,
+) -> List[Dict[str, Any]]:
+    """
+    Extract PLT (Lateral Transshipment) transfers from DecodedSolution.Q_PLT.
+    Only non-zero transfers are collected.
+
+    Returns list of dicts with keys:
+        product_id, from_warehouse_id, to_warehouse_id, time_period, qty
+    """
+    plt_rows: List[Dict[str, Any]] = []
+    p = problem
+
+    for (src, dst, t), qty in sol.Q_PLT.items():
+        if qty <= 0:
+            continue
+        plt_rows.append({
+            "product_id"        : product_id,
+            "from_warehouse_id" : src,
+            "to_warehouse_id"   : dst,
+            "time_period"       : t,
+            "qty"               : round(float(qty), 4),
+        })
+
+    return plt_rows
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -214,6 +243,7 @@ class MASolver:
         (Problem, *_) = _import_ma()
 
         all_rows: List[Dict[str, Any]] = []
+        all_plt_rows: List[Dict[str, Any]] = []
         total_fitness = 0.0
         t_start       = time.perf_counter()
         details       = []
@@ -225,6 +255,7 @@ class MASolver:
 
             if case_result["status"] in ("ok", "timeout"):
                 all_rows.extend(case_result["rows"])
+                all_plt_rows.extend(case_result.get("plt_rows", []))
                 total_fitness += case_result["fitness"]
                 n_ok += 1
                 log.info(
@@ -245,6 +276,7 @@ class MASolver:
 
         return {
             "rows"      : all_rows,
+            "plt_rows"  : all_plt_rows,
             "fitness"   : total_fitness,
             "elapsed_s" : round(elapsed, 3),
             "status"    : status,
@@ -272,6 +304,7 @@ class MASolver:
         all_pids = product_ids or loader.get_active_products()
 
         all_rows: List[Dict[str, Any]] = []
+        all_plt_rows: List[Dict[str, Any]] = []
         total_fitness = 0.0
         t_start       = time.perf_counter()
         details       = []
@@ -295,13 +328,15 @@ class MASolver:
                 elapsed = time.perf_counter() - t0
 
                 rows = _solution_to_rows(pid, problem, sol)
+                plt_rows = _solution_to_plt_rows(pid, problem, sol)
                 all_rows.extend(rows)
+                all_plt_rows.extend(plt_rows)
                 total_fitness += float(sol.fitness)
                 n_ok += 1
 
                 log.info(
-                    "  [%d/%d] %s: fitness=%.2f elapsed=%.2fs",
-                    n_ok, len(all_pids), pid, sol.fitness, elapsed,
+                    "  [%d/%d] %s: fitness=%.2f elapsed=%.2fs plt_transfers=%d",
+                    n_ok, len(all_pids), pid, sol.fitness, elapsed, len(plt_rows),
                 )
                 details.append({
                     "product"  : pid,
@@ -326,6 +361,7 @@ class MASolver:
 
         return {
             "rows"      : all_rows,
+            "plt_rows"  : all_plt_rows,
             "fitness"   : total_fitness,
             "elapsed_s" : round(elapsed_total, 3),
             "status"    : status,
@@ -364,10 +400,16 @@ class MASolver:
                 problem    = problem,
                 sol        = sol,
             )
+            plt_rows = _solution_to_plt_rows(
+                product_id = problem.product,
+                problem    = problem,
+                sol        = sol,
+            )
 
             return {
                 "status"   : "ok",
                 "rows"     : rows,
+                "plt_rows" : plt_rows,
                 "fitness"  : float(sol.fitness),
                 "elapsed_s": round(elapsed, 3),
             }

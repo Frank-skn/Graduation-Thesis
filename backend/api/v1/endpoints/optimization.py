@@ -21,6 +21,7 @@ from backend.data_access.models_nds import (
     DssKPI,
     DssRunSummary,
     WhatIfScenario,
+    OptimizationPLT,
 )
 from backend.domain.services import OptimizationService
 
@@ -63,6 +64,8 @@ def _run_optimization_task(
 
         result_repo.save_results(run_id, result.output)
         result_repo.save_kpis(run_id, result.kpis)
+        if result.plt_rows:
+            result_repo.save_plt_transfers(run_id, result.plt_rows)
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=result.baseline_cost,
@@ -239,6 +242,7 @@ def delete_run(
     # Cascade-delete child records in correct order
     db_nds.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).delete()
     db_nds.query(DssKPI).filter(DssKPI.run_id == run_id).delete()
+    db_nds.query(OptimizationPLT).filter(OptimizationPLT.run_id == run_id).delete()
     db_nds.query(ResultModel).filter(ResultModel.run_id == run_id).delete()
     # Detach what-if scenarios that reference this run (don't delete the scenario itself)
     db_nds.query(WhatIfScenario).filter(WhatIfScenario.run_id == run_id).update(

@@ -43,8 +43,8 @@ function App() {
           <Route path="/b0-run-optimization" element={<B0_RunOptimization />} />
           <Route path="/b1-executive-summary" element={<RequireRun><B1_ExecutiveSummary /></RequireRun>} />
           <Route path="/b2-allocation-inventory-dashboard" element={<RequireRun><B2_AllocationInventoryDashboard /></RequireRun>} />
-          {/* B3 đã được gộp vào B1 (B2) — redirect để hỗ trợ liên kết cũ */}
           <Route path="/b3-variable-details" element={<Navigate to="/b1-executive-summary" replace />} />
+          <Route path="/b4-plt-analysis" element={<Navigate to="/b2-allocation-inventory-dashboard" replace />} />
           
           {/* Group C: Scenario Analysis */}
           <Route path="/c1-scenario-management" element={<C1_ScenarioManagement />} />

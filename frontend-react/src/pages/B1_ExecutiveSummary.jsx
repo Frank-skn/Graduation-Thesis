@@ -92,10 +92,6 @@ const ExecutiveSummary = () => {
   const savingsPct = ext.savings_pct
     ? Number(ext.savings_pct)
     : (baselineCost > 0 ? (savingsAmt / baselineCost * 100) : 0)
-  const propCost        = Number(ext.prop_cost) || 0
-  const savingsVsProp   = Number(ext.savings_vs_prop) || 0
-  const savingsPctProp  = Number(ext.savings_pct_prop) || 0
-
   // ── Bảng phân tích chi phí ────────────────────────────
   const costRows = [
     { key: 'backorder', name: 'Chi phí tồn thiếu (Backlog)',   value: Number(kpis.cost_backorder) || 0 },
@@ -127,7 +123,7 @@ const ExecutiveSummary = () => {
   }))
 
   const compareBarData = baselineCost > 0
-    ? [{ name: 'So sánh', 'Do-nothing': baselineCost, 'Proportional': propCost || undefined, 'MILP Tối ưu': optCost }]
+    ? [{ name: 'So sánh', 'Do-nothing': baselineCost, 'MA Tối ưu': optCost }]
     : []
 
   // ── Warehouse cost breakdown ──────────────────────────
@@ -290,8 +286,8 @@ const ExecutiveSummary = () => {
             />
             <Button icon={<ReloadOutlined />} onClick={fetchRuns} title="Làm mới" />
             <Tag color={
-              run.solver_status === 'Optimal' ? 'green'
-              : run.solver_status === 'Feasible' ? 'orange' : 'red'
+              /^optimal$/i.test(run.solver_status) ? 'green'
+              : /^feasible$/i.test(run.solver_status) ? 'orange' : 'red'
             }>
               {run.solver_status || '—'}
             </Tag>
@@ -300,7 +296,7 @@ const ExecutiveSummary = () => {
 
         {/* ── KPI Cards ── */}
         <Row gutter={16}>
-          <Col span={5}>
+          <Col span={6}>
             <Card>
               <Statistic
                 title="Tổng chi phí tối ưu"
@@ -311,7 +307,7 @@ const ExecutiveSummary = () => {
               />
             </Card>
           </Col>
-          <Col span={4}>
+          <Col span={6}>
             <Card>
               <Statistic
                 title="Mức độ phục vụ"
@@ -323,7 +319,7 @@ const ExecutiveSummary = () => {
               />
             </Card>
           </Col>
-          <Col span={5}>
+          <Col span={6}>
             <Card>
               <Statistic
                 title="Tiết kiệm vs Do-nothing"
@@ -339,21 +335,6 @@ const ExecutiveSummary = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card style={{ borderColor: propCost > 0 ? '#1890ff' : undefined }}>
-              <Statistic
-                title="Tiết kiệm vs Proportional"
-                value={savingsPctProp}
-                precision={2}
-                suffix="%"
-                prefix={<BarChartOutlined />}
-                valueStyle={{ color: savingsPctProp >= 0 ? '#1890ff' : '#cf1322' }}
-              />
-              <div className="text-xs text-gray-400 mt-1">
-                Tiết kiệm: {fmt(savingsVsProp, 0)} &nbsp;|&nbsp; Prop: {fmt(propCost, 0)}
-              </div>
-            </Card>
-          </Col>
-          <Col span={4}>
             <Card>
               <Statistic
                 title="Thời gian giải"
@@ -429,30 +410,6 @@ const ExecutiveSummary = () => {
                             </div>
                           </div>
                         )}
-                        {propCost > 0 && (
-                          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mt-3">
-                            <h4 className="font-bold text-blue-700 mb-3">
-                              <BarChartOutlined className="mr-1" />So sánh với Proportional Allocation
-                            </h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Chi phí Proportional (heuristic):</span>
-                                <span className="font-semibold text-gray-700">{fmt(propCost, 2)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Chi phí tối ưu (MILP):</span>
-                                <span className="font-semibold text-blue-700">{fmt(optCost, 2)}</span>
-                              </div>
-                              <Divider className="my-2" />
-                              <div className="flex justify-between text-base">
-                                <span className="font-bold text-blue-700">MILP tốt hơn:</span>
-                                <span className="font-bold text-blue-700">
-                                  {fmt(savingsVsProp, 2)} ({savingsPctProp.toFixed(2)}%)
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </Col>
                       <Col xs={24} lg={12}>
                         <p className="text-sm font-semibold text-gray-600 mb-2">Biểu đồ thành phần chi phí tối ưu</p>
@@ -469,7 +426,7 @@ const ExecutiveSummary = () => {
                         </ResponsiveContainer>
                         {compareBarData.length > 0 && (
                           <>
-                            <p className="text-sm font-semibold text-gray-600 mt-4 mb-2">So sánh tổng: Do-nothing vs Proportional vs MILP</p>
+                            <p className="text-sm font-semibold text-gray-600 mt-4 mb-2">So sánh tổng: Do-nothing vs MA Tối ưu</p>
                             <ResponsiveContainer width="100%" height={160}>
                               <BarChart data={compareBarData} layout="vertical" margin={{ left: 10, right: 80 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -477,9 +434,8 @@ const ExecutiveSummary = () => {
                                 <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
                                 <Tooltip formatter={(v) => [fmt(v, 2)]} />
                                 <Legend />
-                                <Bar dataKey="Do-nothing"   fill="#d9d9d9" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="Proportional" fill="#1890ff" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="MILP Tối ưu"  fill="#52c41a" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="Do-nothing" fill="#d9d9d9" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="MA Tối ưu"  fill="#52c41a" radius={[0, 4, 4, 0]} />
                               </BarChart>
                             </ResponsiveContainer>
                           </>

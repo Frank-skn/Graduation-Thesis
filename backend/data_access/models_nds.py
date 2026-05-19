@@ -144,6 +144,21 @@ class ModelParameter(BaseNDS):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class OptimizationPLT(BaseNDS):
+    """PLT (Proactive Lateral Transshipment) transfers per optimization run."""
+    __tablename__ = "optimization_plt"
+
+    plt_id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=False, index=True)
+    product_id = Column(String(50), nullable=False)
+    from_warehouse_id = Column(String(50), nullable=False)
+    to_warehouse_id = Column(String(50), nullable=False)
+    time_period = Column(Integer, nullable=False)
+    qty = Column(Numeric(18, 4), nullable=False, default=0)
+
+    run = relationship("OptimizationRun")
+
+
 class DssRunSummary(BaseNDS):
     """Extended run summary: baseline cost, savings, SI/SS metrics."""
     __tablename__ = "dss_run_summary"

@@ -205,12 +205,13 @@ def create_whatif(
             base_kpis = result_repo.get_kpis(latest_run.run_id)
             base_objective = float(latest_run.objective_value or 0)
 
-        # Run what-if
-        whatif_response = _whatif_svc.run_whatif(
+        # Run what-if — pass data_dir so MA solver can read CSV files
+        whatif_response, whatif_output, whatif_plt_rows = _whatif_svc.run_whatif(
             base_data=base_input,
             request=request,
             base_kpis=base_kpis,
             base_objective=base_objective,
+            data_dir=str(csv_repo._dir),
         )
 
         # Save the optimization run to DB
@@ -237,12 +238,17 @@ def create_whatif(
             "capacity_utilization": whatif_response.kpis.capacity_utilization,
         }
         result_repo.save_kpis(run_id, kpi_dict)
+        # Save detailed rows so B2 variables/SI-SS/changes tabs work for what-if runs
+        result_repo.save_results(run_id, whatif_output)
+        if whatif_plt_rows:
+            result_repo.save_plt_transfers(run_id, whatif_plt_rows)
 
         # Save extended run summary (baseline cost, savings, SI/SS)
+        # Use ma_inv_cost (inventory-only) for fair comparison with baseline/prop
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=whatif_response.baseline_cost,
-            opt_cost=whatif_response.objective_value,
+            opt_cost=whatif_response.ma_inv_cost,
             savings=whatif_response.savings,
             savings_pct=whatif_response.savings_pct,
             n_changes=whatif_response.n_changes,

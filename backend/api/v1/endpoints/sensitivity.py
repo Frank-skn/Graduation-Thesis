@@ -43,6 +43,7 @@ def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
         result = _sensitivity_svc.run_sensitivity(
             base_data=base_input,
             request=request,
+            data_dir=data_dir,
         )
 
         serialised = [
@@ -90,6 +91,7 @@ def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
         result = _sensitivity_svc.run_tornado(
             base_data=base_input,
             request=request,
+            data_dir=data_dir,
         )
 
         serialised = [

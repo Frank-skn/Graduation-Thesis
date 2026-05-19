@@ -5,6 +5,7 @@ solves the modified problem, and returns comparison results.
 """
 import copy
 from typing import Dict, Any, List, Optional, Tuple
+from backend.schemas.optimization import OptimizationOutput
 
 from backend.schemas.optimization import OptimizationInput
 from backend.schemas.whatif import (
@@ -50,29 +51,26 @@ class WhatIfService:
         request: WhatIfCreate,
         base_kpis: Optional[Dict[str, float]] = None,
         base_objective: Optional[float] = None,
-    ) -> WhatIfResponse:
+        data_dir: Optional[str] = None,
+    ) -> Tuple[WhatIfResponse, OptimizationOutput]:
         """
         Execute a what-if scenario.
 
-        Args:
-            base_data: The original (unmodified) optimization input.
-            request: What-if creation request with scenario type + overrides.
-            base_kpis: KPIs from the base run (used for comparison).
-            base_objective: Objective value from the base run.
-
         Returns:
-            WhatIfResponse containing solver results and KPIs.
+            (WhatIfResponse, OptimizationOutput) — response + raw rows for DB persistence.
         """
         # 1. Clone & modify
         modified_data = self.apply_whatif(base_data, request.scenario_type, request.overrides)
 
-        # 2. Solve
+        # 2. Solve — MA solver reads from CSV so we pass data_dir; overrides affect
+        #    the OptimizationInput used for baseline/prop cost computation only.
         svc = OptimizationService(
-            solver=request.solver or "cbc",
+            solver="ma",
             time_limit=request.time_limit or 300,
             mip_gap=request.mip_gap or 0.01,
         )
-        result: OptimizationResult = svc.solve(modified_data)
+        product_ids = getattr(request, 'product_ids', None)
+        result: OptimizationResult = svc.solve(modified_data, data_dir=data_dir, product_ids=product_ids)
 
         # 3. Build response
         kpis = WhatIfKPIs(
@@ -91,7 +89,7 @@ class WhatIfService:
 
         params_modified = self._affected_parameters(request.scenario_type)
 
-        return WhatIfResponse(
+        response = WhatIfResponse(
             whatif_id=self._allocate_id(),
             base_scenario_id=request.base_scenario_id,
             scenario_type=request.scenario_type,
@@ -102,12 +100,14 @@ class WhatIfService:
             kpis=kpis,
             parameters_modified=params_modified,
             baseline_cost=result.baseline_cost,
+            ma_inv_cost=result.ma_inv_cost,
             savings=result.savings,
             savings_pct=result.savings_pct,
             n_changes=result.n_changes,
             si_mean=result.si_mean,
             ss_below_count=result.ss_below_count,
         )
+        return response, result.output, result.plt_rows or []
 
     def compare(
         self,

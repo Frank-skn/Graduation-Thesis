@@ -16,6 +16,7 @@ from backend.data_access.models_nds import (
     OptimizationResult,
     DssKPI,
     DssRunSummary,
+    OptimizationPLT,
 )
 
 router = APIRouter()
@@ -397,10 +398,13 @@ def get_variables(
     run_id: int,
     product_id: Optional[str] = None,
     warehouse_id: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 600,
     db: Session = Depends(get_db_nds),
 ):
     """
     Biến quyết định chi tiết (q, r, I, bo, o, s, p) cho mỗi ô (sản phẩm × kho × kỳ).
+    Bắt buộc lọc theo product_id hoặc dùng pagination (page_size tối đa 600).
     """
     _load_run(run_id, db)
     query = db.query(OptimizationResult).filter(OptimizationResult.run_id == run_id)
@@ -408,11 +412,12 @@ def get_variables(
         query = query.filter(OptimizationResult.product_id == product_id)
     if warehouse_id:
         query = query.filter(OptimizationResult.warehouse_id == warehouse_id)
+    total = query.count()
     rows = query.order_by(
         OptimizationResult.product_id,
         OptimizationResult.warehouse_id,
         OptimizationResult.time_period,
-    ).all()
+    ).offset((page - 1) * page_size).limit(page_size).all()
     records = [
         VariableRecord(
             product_id=r.product_id,
@@ -428,7 +433,7 @@ def get_variables(
         )
         for r in rows
     ]
-    return VariablesResponse(run_id=run_id, variables=records, total=len(records))
+    return VariablesResponse(run_id=run_id, variables=records, total=total)
 
 
 # ================================================================== #
@@ -458,6 +463,8 @@ def get_si_ss(
     run_id: int,
     product_id: Optional[str] = None,
     warehouse_id: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 600,
     db: Session = Depends(get_db_nds),
 ):
     """
@@ -474,7 +481,7 @@ def get_si_ss(
         OptimizationResult.product_id,
         OptimizationResult.warehouse_id,
         OptimizationResult.time_period,
-    ).all()
+    ).offset((page - 1) * page_size).limit(page_size).all()
 
     # shortage_qty > 0  ↔  inv < L  (the model constraint: s >= L - I)
     records = []
@@ -678,3 +685,205 @@ def get_cost_by_warehouse(
         warehouses=records,
         system_total=round(system_total, 2),
     )
+
+
+# ================================================================== #
+#  9. GET /{run_id}/plt-transfers                                      #
+# ================================================================== #
+
+class PLTRecord(BaseModel):
+    """Single PLT lateral transshipment transfer."""
+    plt_id: int = 0
+    product_id: str
+    from_warehouse_id: str
+    to_warehouse_id: str
+    time_period: int
+    qty: float
+
+
+class PLTSummaryRecord(BaseModel):
+    """Aggregated PLT transfer volume between a warehouse pair."""
+    from_warehouse_id: str
+    to_warehouse_id: str
+    total_qty: float
+    n_products: int
+    n_periods: int
+
+
+class PLTTransfersResponse(BaseModel):
+    run_id: int
+    transfers: List[PLTRecord]
+    summary: List[PLTSummaryRecord]
+    total: int
+    has_plt: bool
+
+
+@router.get("/{run_id}/plt-transfers", response_model=PLTTransfersResponse)
+def get_plt_transfers(
+    run_id: int,
+    product_id: Optional[str] = None,
+    from_warehouse_id: Optional[str] = None,
+    to_warehouse_id: Optional[str] = None,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Dữ liệu điều chuyển ngang PLT (Proactive Lateral Transshipment) cho một lần chạy.
+
+    Trả về danh sách chi tiết từng transfer và bảng tổng hợp theo cặp nhà máy (i→j).
+    """
+    _load_run(run_id, db)
+
+    query = db.query(OptimizationPLT).filter(OptimizationPLT.run_id == run_id)
+    if product_id:
+        query = query.filter(OptimizationPLT.product_id == product_id)
+    if from_warehouse_id:
+        query = query.filter(OptimizationPLT.from_warehouse_id == from_warehouse_id)
+    if to_warehouse_id:
+        query = query.filter(OptimizationPLT.to_warehouse_id == to_warehouse_id)
+
+    rows = query.order_by(
+        OptimizationPLT.time_period,
+        OptimizationPLT.product_id,
+        OptimizationPLT.from_warehouse_id,
+        OptimizationPLT.to_warehouse_id,
+    ).all()
+
+    transfers = [
+        PLTRecord(
+            plt_id=r.plt_id,
+            product_id=r.product_id,
+            from_warehouse_id=r.from_warehouse_id,
+            to_warehouse_id=r.to_warehouse_id,
+            time_period=r.time_period,
+            qty=float(r.qty or 0),
+        )
+        for r in rows
+    ]
+
+    # Aggregate summary per (from, to) pair
+    pair_data: Dict[tuple, dict] = defaultdict(lambda: {
+        "total_qty": 0.0, "products": set(), "periods": set()
+    })
+    for r in rows:
+        key = (r.from_warehouse_id, r.to_warehouse_id)
+        pair_data[key]["total_qty"] += float(r.qty or 0)
+        pair_data[key]["products"].add(r.product_id)
+        pair_data[key]["periods"].add(r.time_period)
+
+    summary = [
+        PLTSummaryRecord(
+            from_warehouse_id=k[0],
+            to_warehouse_id=k[1],
+            total_qty=round(v["total_qty"], 2),
+            n_products=len(v["products"]),
+            n_periods=len(v["periods"]),
+        )
+        for k, v in sorted(pair_data.items())
+    ]
+
+    return PLTTransfersResponse(
+        run_id=run_id,
+        transfers=transfers,
+        summary=summary,
+        total=len(transfers),
+        has_plt=len(transfers) > 0,
+    )
+
+
+# ================================================================== #
+#  10. GET /{run_id}/inventory-by-warehouse                            #
+# ================================================================== #
+
+class WarehouseInventoryPoint(BaseModel):
+    """Single time-period inventory stats for one warehouse (aggregated over all products)."""
+    time_period: int
+    total_net_inventory: float
+    total_backorder: float
+    total_overstock: float
+    total_shortage: float
+    n_products: int
+    n_backorder: int   # products with backorder > 0
+    n_shortage: int    # products with shortage > 0
+    n_overstock: int   # products with overstock > 0
+
+
+class WarehouseInventorySeries(BaseModel):
+    """Full time-series for one warehouse."""
+    warehouse_id: str
+    periods: List[WarehouseInventoryPoint]
+    total_backorder: float = 0
+    total_overstock: float = 0
+    total_shortage: float = 0
+
+
+class InventoryByWarehouseResponse(BaseModel):
+    run_id: int
+    warehouses: List[WarehouseInventorySeries]
+
+
+@router.get("/{run_id}/inventory-by-warehouse", response_model=InventoryByWarehouseResponse)
+def get_inventory_by_warehouse(
+    run_id: int,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    Trajectory tồn kho theo từng nhà máy (aggregated over all products per period).
+
+    Dùng để vẽ đồ thị Ip,i,t — tổng tồn kho, backorder, shortage, overstock
+    theo giai đoạn t cho từng FGP (WH01–WH06).
+    """
+    _load_run(run_id, db)
+
+    results = db.query(OptimizationResult).filter(
+        OptimizationResult.run_id == run_id
+    ).order_by(
+        OptimizationResult.warehouse_id,
+        OptimizationResult.time_period,
+    ).all()
+
+    # Group: warehouse -> period -> aggregated stats
+    wh_period: Dict[str, Dict[int, dict]] = defaultdict(lambda: defaultdict(lambda: {
+        "net_inv": 0.0, "bo": 0.0, "ov": 0.0, "sh": 0.0,
+        "n_products": 0, "n_bo": 0, "n_sh": 0, "n_ov": 0,
+    }))
+
+    for r in results:
+        cell = wh_period[r.warehouse_id][r.time_period]
+        cell["net_inv"] += float(r.net_inventory or 0)
+        cell["bo"]      += float(r.backorder_qty or 0)
+        cell["ov"]      += float(r.overstock_qty or 0)
+        cell["sh"]      += float(r.shortage_qty or 0)
+        cell["n_products"] += 1
+        if (r.backorder_qty or 0) > 0: cell["n_bo"] += 1
+        if (r.shortage_qty or 0) > 0:  cell["n_sh"] += 1
+        if (r.overstock_qty or 0) > 0: cell["n_ov"] += 1
+
+    warehouses_out: List[WarehouseInventorySeries] = []
+    for wid in sorted(wh_period.keys()):
+        period_map = wh_period[wid]
+        periods_out = [
+            WarehouseInventoryPoint(
+                time_period=t,
+                total_net_inventory=round(period_map[t]["net_inv"], 2),
+                total_backorder=round(period_map[t]["bo"], 2),
+                total_overstock=round(period_map[t]["ov"], 2),
+                total_shortage=round(period_map[t]["sh"], 2),
+                n_products=period_map[t]["n_products"],
+                n_backorder=period_map[t]["n_bo"],
+                n_shortage=period_map[t]["n_sh"],
+                n_overstock=period_map[t]["n_ov"],
+            )
+            for t in sorted(period_map.keys())
+        ]
+        total_bo = sum(p.total_backorder for p in periods_out)
+        total_ov = sum(p.total_overstock for p in periods_out)
+        total_sh = sum(p.total_shortage  for p in periods_out)
+        warehouses_out.append(WarehouseInventorySeries(
+            warehouse_id=wid,
+            periods=periods_out,
+            total_backorder=round(total_bo, 2),
+            total_overstock=round(total_ov, 2),
+            total_shortage=round(total_sh, 2),
+        ))
+
+    return InventoryByWarehouseResponse(run_id=run_id, warehouses=warehouses_out)

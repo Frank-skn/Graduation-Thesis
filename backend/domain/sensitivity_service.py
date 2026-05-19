@@ -48,6 +48,7 @@ class SensitivityService:
         base_data: OptimizationInput,
         request: SensitivityRequest,
         base_result: Optional[OptimizationResult] = None,
+        data_dir: Optional[str] = None,
     ) -> SensitivityResult:
         """
         Run OAT sensitivity on a single parameter.
@@ -56,12 +57,13 @@ class SensitivityService:
             base_data: Original OptimizationInput.
             request: SensitivityRequest specifying parameter and variations.
             base_result: Pre-computed base result (avoids re-solving base).
+            data_dir: Path to CSV data directory (required for MA solver).
 
         Returns:
             SensitivityResult with baseline and per-variation points.
         """
         solver_kwargs = dict(
-            solver=request.solver or "cbc",
+            solver="ma",
             time_limit=request.time_limit or 300,
             mip_gap=request.mip_gap or 0.01,
         )
@@ -73,9 +75,9 @@ class SensitivityService:
 
         # Solve baseline if not provided
         if base_result is None:
-            base_result = OptimizationService(**solver_kwargs).solve(base_data)
+            base_result = OptimizationService(**solver_kwargs).solve(base_data, data_dir=data_dir)
 
-        baseline_obj = base_result.objective_value
+        baseline_obj = base_result.ma_inv_cost or base_result.objective_value
         baseline_kpis = dict(base_result.kpis)
 
         # Run each variation
@@ -93,12 +95,12 @@ class SensitivityService:
 
             try:
                 svc = OptimizationService(**solver_kwargs)
-                res = svc.solve(modified)
+                res = svc.solve(modified, data_dir=data_dir)
                 points.append(
                     SensitivityPoint(
                         variation_pct=pct,
                         scale_factor=round(scale_factor, 4),
-                        objective_value=res.objective_value,
+                        objective_value=res.ma_inv_cost or res.objective_value,
                         solver_status=res.solver_status,
                         kpis=dict(res.kpis),
                     )
@@ -136,6 +138,7 @@ class SensitivityService:
         base_data: OptimizationInput,
         request: TornadoRequest,
         base_result: Optional[OptimizationResult] = None,
+        data_dir: Optional[str] = None,
     ) -> TornadoResult:
         """
         Run tornado analysis across multiple parameters.
@@ -144,12 +147,13 @@ class SensitivityService:
             base_data: Original OptimizationInput.
             request: TornadoRequest with parameters and variation_pct.
             base_result: Pre-computed base result (avoids re-solving base).
+            data_dir: Path to CSV data directory (required for MA solver).
 
         Returns:
             TornadoResult with bars sorted by descending spread.
         """
         solver_kwargs = dict(
-            solver=request.solver or "cbc",
+            solver="ma",
             time_limit=request.time_limit or 300,
             mip_gap=request.mip_gap or 0.01,
         )
@@ -160,18 +164,18 @@ class SensitivityService:
             base_data = self._sample_products(base_data, sample_size)
 
         if base_result is None:
-            base_result = OptimizationService(**solver_kwargs).solve(base_data)
+            base_result = OptimizationService(**solver_kwargs).solve(base_data, data_dir=data_dir)
 
-        baseline_obj = base_result.objective_value
+        baseline_obj = base_result.ma_inv_cost or base_result.objective_value
         variation = request.variation_pct
 
         bars: List[TornadoBar] = []
         for param_name in request.parameters:
             low_obj = self._solve_at_variation(
-                base_data, param_name, -variation, solver_kwargs
+                base_data, param_name, -variation, solver_kwargs, data_dir=data_dir
             )
             high_obj = self._solve_at_variation(
-                base_data, param_name, +variation, solver_kwargs
+                base_data, param_name, +variation, solver_kwargs, data_dir=data_dir
             )
 
             # If either solve failed, skip this parameter
@@ -221,17 +225,18 @@ class SensitivityService:
         param_name: str,
         variation_pct: float,
         solver_kwargs: Dict[str, Any],
+        data_dir: Optional[str] = None,
     ) -> Optional[float]:
         """
         Scale *param_name* by (1 + variation_pct/100), solve, and return
-        the objective value.  Returns None on solver failure.
+        the inventory cost value.  Returns None on solver failure.
         """
         scale_factor = 1.0 + variation_pct / 100.0
         modified = self._scale_parameter(base_data, param_name, scale_factor)
         try:
             svc = OptimizationService(**solver_kwargs)
-            res = svc.solve(modified)
-            return res.objective_value
+            res = svc.solve(modified, data_dir=data_dir)
+            return res.ma_inv_cost or res.objective_value
         except RuntimeError:
             return None
 
