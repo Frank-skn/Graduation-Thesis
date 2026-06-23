@@ -1,0 +1,26 @@
+{
+  "product_rows": 100,
+  "unique_product_id": 100,
+  "duplicate_product_id": 0,
+  "old_cases": 70,
+  "fixed_cases": 30,
+  "inventory_begin.csv_rows": 369,
+  "inventory_begin.csv_missing_product_refs": 0,
+  "inventory_flow.csv_rows": 3690,
+  "inventory_flow.csv_missing_product_refs": 0,
+  "unit_cost.csv_rows": 3690,
+  "unit_cost.csv_missing_product_refs": 0,
+  "vendor_capacity.csv_rows": 1000,
+  "vendor_capacity.csv_missing_product_refs": 0,
+  "packing_details.csv_rows": 100,
+  "packing_details.csv_missing_product_refs": 0,
+  "packing_details_unique": 100,
+  "packing_details_duplicate": 0,
+  "box_shipment_rows": 423,
+  "box_shipment_missing_packing_refs": 0,
+  "unit_cost_penalty_min": 500.0,
+  "unit_cost_penalty_max": 500.0,
+  "unit_cost_penalty_unique_values": [
+    500.0
+  ]
+}

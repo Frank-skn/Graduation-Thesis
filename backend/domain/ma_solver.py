@@ -64,6 +64,7 @@ def _build_components(problem, cfg: Dict, rng: random.Random, time_limit_s: floa
     ga_cfg   = cfg["ga"]
     alns_cfg = cfg["alns"]
     stop_cfg = cfg["stopping"]
+    ls_cfg   = cfg.get("local_search", {})
 
     obj_calc   = ObjectiveCalculator(problem)
     constraint = ConstraintHandler(problem)
@@ -97,27 +98,33 @@ def _build_components(problem, cfg: Dict, rng: random.Random, time_limit_s: floa
         try:
             milp_seed = generate_milp_seed(
                 problem    = problem,
-                time_limit = ga_cfg.get("milp_time_limit", 15),
+                time_limit = int(ga_cfg.get("milp_time_limit", 15)),
             )
         except Exception:
             pass  # milp_seed is optional warm-start only
 
     ga = GeneticAlgorithm(
-        problem      = problem,
-        decoder      = decoder,
-        obj_calc     = obj_calc,
-        constraint   = constraint,
-        operators    = operators,
-        alns_solver  = alns,
-        n_pop        = ga_cfg["n_pop"],
-        G_max        = ga_cfg["G_max"],
-        G_stag       = ga_cfg["G_stag"],
-        k_tournament = ga_cfg["k_tournament"],
-        delta_G      = alns_cfg["delta_G"],
-        top_k_alns   = alns_cfg["top_k_alns"],
-        time_limit_s = time_limit_s if time_limit_s is not None else stop_cfg["time_limit_seconds"],
-        milp_seed    = milp_seed,
-        rng          = rng,
+        problem                 = problem,
+        decoder                 = decoder,
+        obj_calc                = obj_calc,
+        constraint              = constraint,
+        operators               = operators,
+        alns_solver             = alns,
+        n_pop                   = ga_cfg["n_pop"],
+        G_max                   = ga_cfg["G_max"],
+        G_stag                  = ga_cfg["G_stag"],
+        k_tournament            = ga_cfg["k_tournament"],
+        delta_G                 = alns_cfg["delta_G"],
+        top_k_alns              = alns_cfg["top_k_alns"],
+        time_limit_s            = time_limit_s if time_limit_s is not None else stop_cfg["time_limit_seconds"],
+        milp_seed               = milp_seed,
+        rng                     = rng,
+        # V6.1 local search params
+        enable_local_search     = bool(ls_cfg.get("enabled", True)),
+        local_search_top_k      = int(ls_cfg.get("top_k", 3)),
+        local_search_max_trials = int(ls_cfg.get("max_trials", 100)),
+        milp_seed_fraction      = float(ga_cfg.get("milp_seed_fraction", 0.35)),
+        heuristic_fraction      = float(ga_cfg.get("heuristic_fraction", 0.45)),
     )
 
     return ga
@@ -157,9 +164,10 @@ def _solution_to_rows(
             shortage   = max(0.0, l_val - inv)
             penalty    = r_oa > 0  # partial case-pack penalty flag
 
-            # q_case_pack = full cases allocated; r = residual units
-            q_cases  = q_oa // p.CP if p.CP > 0 else 0
-            r_units  = q_oa % p.CP  if p.CP > 0 else 0
+            # Dùng case_pack(wh, t) hỗ trợ cả CP dạng int lẫn dict (v6 model)
+            cp_val  = p.case_pack(wh, t) if hasattr(p, "case_pack") else (p.CP if p.CP > 0 else 1)
+            q_cases = q_oa // cp_val if cp_val > 0 else 0
+            r_units = q_oa % cp_val  if cp_val > 0 else 0
 
             rows.append({
                 "product_id"       : product_id,
@@ -236,6 +244,9 @@ class MASolver:
         self._cases     = cases or AVAILABLE_CASES
         self._seed      = seed
         self._cfg       = json.loads(Path(self._cfg_path).read_text(encoding="utf-8"))
+        # Override seed from config if present
+        if "seed" in self._cfg:
+            self._seed = int(self._cfg["seed"])
 
     # ------------------------------------------------------------------
     def solve_all(self) -> Dict[str, Any]:

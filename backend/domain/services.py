@@ -12,6 +12,7 @@ from typing import Dict
 
 from backend.schemas.optimization import OptimizationInput, OptimizationOutput
 from backend.domain.ma_solver import MASolver
+from backend.domain.greedy_heuristic import compute_greedy_baseline_cost
 
 
 @dataclass
@@ -45,28 +46,20 @@ class OptimizationResult:
 
 def _baseline_cost(data: OptimizationInput) -> float:
     """
-    Baseline = do-nothing cost: let inventory roll forward as
-        base_inv[i,j,t] = BI[i,j] + DI[i,j,t1] + DI[i,j,t2] + ... + DI[i,j,t]
-    (no shipments), evaluate costs at each (i,j,t).
-    Mirrors temp.py exactly.
+    Baseline = Greedy Operational Heuristic cost.
+    
+    Mô phỏng cách vận hành thực tế:
+    1. Cập nhật tồn kho theo cầu (DI)
+    2. Điều chuyển PLT từ warehouse dư sang thiếu (nếu có)
+    3. Phân bổ OA từ nguồn cung theo mức thiếu hụt dự kiến
+    4. Tính chi phí: Co×overstock + Cs×shortage + Cb×backorder
+    
+    Khác biệt với do-nothing cũ:
+    - Có OA allocation thông minh (không do-nothing)
+    - Có khả năng PLT transfer
+    - Chính xác hơn với thực tế vận hành
     """
-    T_sorted = sorted({t for (_, _, t) in data.DI.keys()})
-    IJ_pairs = sorted({(i, j) for (i, j, _) in data.DI.keys()})
-    total = 0.0
-    for (i, j) in IJ_pairs:
-        prev = data.BI.get((i, j), 0.0)
-        for t in T_sorted:
-            prev += data.DI.get((i, j, t), 0.0)  # cumulative carry-forward
-            iv = prev
-            ov = max(0.0, iv - data.U.get((i, j, t), 9999.0))
-            sh = max(0.0, data.L.get((i, j, t), 0.0) - iv)
-            bk = max(0.0, -iv)
-            total += (
-                data.Co.get((i, j, t), 0.0) * ov
-                + data.Cs.get((i, j, t), 0.0) * sh
-                + data.Cb.get((i, j, t), 0.0) * bk
-            )
-    return total
+    return compute_greedy_baseline_cost(data, lt_oa=8, tc=1.2)
 
 
 def _proportional_allocation_cost(data: OptimizationInput) -> float:

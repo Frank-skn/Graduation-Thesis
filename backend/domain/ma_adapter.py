@@ -83,6 +83,19 @@ class CSVDataLoader:
         _row = _pricing[_pricing["Container_Type"] == "40ft Dry"]
         self.TC: float = float(_row.iloc[0]["Base_Rate_USD_per_km"]) if not _row.empty else TC_DEFAULT
 
+        # --- LT_OA per-warehouse (từ oa_lead_time.csv) ---
+        # warehouse_id trong CSV là số nguyên (1-6), map sang WH01-WH06
+        wh_num_to_id = {str(i + 1): f"WH0{i + 1}" for i in range(6)}
+        lt_df = pd.read_csv(self._dir / "oa_lead_time.csv")
+        self.lt_oa_per_wh: Dict[str, int] = {}
+        for _, row in lt_df.iterrows():
+            wh_id = wh_num_to_id.get(str(int(row["warehouse_id"])))
+            if wh_id:
+                self.lt_oa_per_wh[wh_id] = int(row["week_lead_time"])
+        # Fallback: nếu warehouse không có trong CSV thì dùng LT_OA_DEFAULT
+        for wh in self.warehouses:
+            self.lt_oa_per_wh.setdefault(wh, LT_OA_DEFAULT)
+
     def get_active_products(self) -> List[str]:
         return sorted(self.inv_flow["product_id"].str.strip().unique().tolist())
 
@@ -333,8 +346,8 @@ def build_problem(product_id: str, loader: CSVDataLoader) -> Optional[Problem]:
             Cb.setdefault((wh, t), 1500.0)
             Cp.setdefault((wh, t), 2000.0)
 
-    # --- LT_OA ---
-    LT_OA = LT_OA_DEFAULT
+    # --- LT_OA: Dict[Wh, int] per-warehouse (v6 model) ---
+    LT_OA: Dict[str, int] = {wh: loader.lt_oa_per_wh.get(wh, LT_OA_DEFAULT) for wh in warehouses}
 
     # --- LT_PLT[(i,j)] ---
     # plt_lead_time.csv dùng số (1-6), map sang WHxx
@@ -346,10 +359,9 @@ def build_problem(product_id: str, loader: CSVDataLoader) -> Optional[Problem]:
         if frm and to:
             LT_PLT[(frm, to)] = int(row["lead_time_weeks"])
 
-    # --- PLT_periods: t ≤ LT_OA - 1 ---
-    plt_cutoff = LT_OA - 1
+    # --- PLT_periods: t ≤ LT_OA[wh] - 1  (per-warehouse, v6 model) ---
     PLT_periods = {
-        wh: frozenset(t for t in periods if t <= plt_cutoff)
+        wh: frozenset(t for t in periods if t <= LT_OA[wh] - 1)
         for wh in warehouses
     }
 

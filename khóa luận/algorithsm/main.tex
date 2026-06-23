@@ -1,0 +1,90 @@
+
+\documentclass[12pt]{article}
+
+%==================== VIETNAMESE ====================
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+%==================== MATH ====================
+\usepackage{amsmath, amssymb, amsthm}
+
+%==================== ALGORITHM ====================
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+%==================== GRAPHICS ====================
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+
+%==================== TABLES ====================
+\usepackage{booktabs, longtable, array, multirow}
+
+%==================== LAYOUT ====================
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+
+%==================== STYLE ====================
+\tikzstyle{startstop} = [ellipse, draw, thick, fill=blue!10, align=center, minimum width=3cm, minimum height=1cm]
+\tikzstyle{process}   = [rectangle, draw, thick, fill=yellow!10, align=center, minimum width=3.5cm, minimum height=0.9cm]
+\tikzstyle{decision}  = [diamond, draw, thick, fill=red!10, align=center, aspect=2.5, inner sep=1pt]
+\tikzstyle{io}        = [trapezium, trapezium left angle=70, trapezium right angle=110, draw, thick, fill=green!10, align=center]
+\tikzstyle{arrow}     = [->, thick, >=Stealth]
+
+%==================== MATH COMMANDS ====================
+\newcommand{\QOA}{Q^{OA}}
+\newcommand{\QPLT}{Q^{PLT}}
+\newcommand{\qOA}{q^{OA}}
+\newcommand{\qPLT}{q^{PLT}}
+\newcommand{\rOA}{r^{OA}}
+\newcommand{\rPLT}{r^{PLT}}
+\newcommand{\Inv}{I}
+\newcommand{\pos}[1]{\left[#1\right]^+}
+\newcommand{\ind}[1]{\mathbf{1}\!\left(#1\right)}
+
+\renewcommand{\arraystretch}{1.4}
+
+%==================== DOCUMENT ====================
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\LARGE\bfseries Phương pháp Hybrid GA--ALNS\\[0.5em]
+  cho bài toán Phân bổ và Chuyển ngang Hàng hóa\\[0.5em]
+  Đa Nhà máy với Ràng buộc Tồn kho}\\[2cm]
+  {\large Kết hợp Genetic Algorithm và\\
+  Adaptive Large Neighborhood Search}\\[3cm]
+  {\normalsize Tài liệu kỹ thuật -- Khóa luận tốt nghiệp}
+  \vfill
+  {\large \today}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%==================== SECTION 1 ====================
+\input{sec1_overview}
+
+%==================== SECTION 2 ====================
+\input{sec2_ga}
+
+%==================== SECTION 3 ====================
+\input{sec3_alns}
+
+%==================== SECTION 4 ====================
+\input{sec4_hybrid}
+
+%==================== SECTION 5 ====================
+\input{sec5_example}
+
+%==================== SECTION 6 ====================
+\input{sec6_complexity}
+
+\end{document}

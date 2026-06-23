@@ -1,0 +1,172 @@
+\documentclass[12pt]{article}
+
+%==================== VIETNAMESE ====================
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+%==================== MATH ====================
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{booktabs, longtable}
+\geometry{a4paper, margin=1in}
+
+%==================== FORMAT ====================
+\renewcommand{\arraystretch}{1.5}
+
+\begin{document}
+
+\section{Mô hình toán học}
+
+\subsection{Tổng quan}
+
+Mô hình được xây dựng nhằm tối ưu hóa phân bổ hàng hóa trong hệ thống đa nhà máy, có xét đến quy tắc đóng gói (case-pack), độ trễ thời gian và hoạt động chuyển ngang.
+
+Hàng hóa được phân bổ từ nguồn trung tâm (OA) và có thể được cân bằng thông qua chuyển ngang (PLT). Một đặc điểm quan trọng là mọi quyết định vận chuyển phải tuân theo quy tắc đóng gói tại nhà máy nhận.
+
+\subsection{Giả định}
+
+\begin{itemize}
+\item Thời gian được chia thành các giai đoạn rời rạc.
+\item Năng lực phân bổ là hữu hạn.
+\item Case-pack phụ thuộc vào nhà máy nhận.
+\item Chuyển ngang chỉ xảy ra trước khi hàng OA đến.
+\item Tồn kho được cập nhật có xét lead time.
+\end{itemize}
+
+\subsection{Ký hiệu}
+
+\begin{longtable}{p{0.25\textwidth}p{0.7\textwidth}}
+\toprule
+\textbf{Ký hiệu} & \textbf{Diễn giải} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Ký hiệu} & \textbf{Diễn giải} \\
+\midrule
+\endhead
+
+\multicolumn{2}{l}{\textbf{Tập chỉ số}}\\
+$p \in P$ & Tập sản phẩm \\
+$i,j \in L$ & Tập nhà máy/kho \\
+$t \in T$ & Tập giai đoạn \\
+
+\addlinespace
+\multicolumn{2}{l}{\textbf{Tham số}}\\
+$LT_i^{OA}$ & Thời gian điều phối \\
+$LT_{i,j}^{PLT}$ & Thời gian vận chuyển \\
+$BI_{p,i}$ & Tồn kho ban đầu \\
+$CP_{p,i,t}$ & Kích thước case-pack \\
+$C^b_{p,i,t}$ & Chi phí backorder \\
+$C^o_{p,i,t}$ & Chi phí overstock \\
+$C^s_{p,i,t}$ & Chi phí shortage \\
+$C^p_{p,i,t}$ & Chi phí phạt OA \\
+$C^p_{p,i,j,t}$ & Chi phí phạt PLT \\
+$U_{p,i,t}$ & Mức trần tồn kho \\
+$L_{p,i,t}$ & Mức sàn tồn kho \\
+$CAP_{p,t}$ & Năng lực \\
+$\Delta I_{p,i,t}$ & Biến động tồn kho \\
+$d_{i,j}$ & Khoảng cách \\
+$TC$ & Chi phí vận chuyển \\
+
+\addlinespace
+\multicolumn{2}{l}{\textbf{Biến}}\\
+$q^{OA}_{p,i,t}$ & Số case đầy đủ OA \\
+$r^{OA}_{p,i,t}$ & Phần dư OA \\
+$Q^{OA}_{p,i,t}$ & Tổng lượng OA \\
+$q^{PLT}_{p,i,j,t}$ & Case đầy đủ PLT \\
+$r^{PLT}_{p,i,j,t}$ & Phần dư PLT \\
+$Q^{PLT}_{p,i,j,t}$ & Tổng lượng PLT \\
+$I_{p,i,t}$ & Tồn kho \\
+\bottomrule
+\end{longtable}
+
+\subsection{Hàm phụ trợ}
+
+\begin{equation}
+[z]^+ = \max(z,0)
+\end{equation}
+
+\begin{equation}
+\mathbf{1}(\cdot)=
+\begin{cases}
+1, & \text{nếu đúng}\\
+0, & \text{ngược lại}
+\end{cases}
+\end{equation}
+
+\begin{equation}
+T_j^{PLT} = \{t \in T \mid t \le LT_j^{OA} - 1\}
+\end{equation}
+
+\subsection{Hàm mục tiêu}
+
+\begin{align}
+\min Z
+=& \sum_{p \in P} \sum_{i \in L} \sum_{t \in T}
+\Big(
+C^o_{p,i,t} [I_{p,i,t} - U_{p,i,t}]^+
++ C^s_{p,i,t} [L_{p,i,t} - I_{p,i,t}]^+
++ C^b_{p,i,t} [-I_{p,i,t}]^+
+\Big) \\
+&+ \sum_{p \in P} \sum_{i \in L} \sum_{t \in T}
+C^p_{p,i,t} \mathbf{1}(r^{OA}_{p,i,t} > 0) \\
+&+ \sum_{p \in P} \sum_{i \in L} \sum_{\substack{j \in L \\ j \neq i}} \sum_{t \in T_j^{PLT}}
+\Big(
+C^p_{p,i,j,t} \mathbf{1}(r^{PLT}_{p,i,j,t} > 0)
++ d_{i,j} \, TC \, \mathbf{1}(Q^{PLT}_{p,i,j,t} > 0)
+\Big)
+\end{align}
+
+\subsection{Ràng buộc}
+
+\begin{equation}
+I_{p,i,0} = BI_{p,i}
+\end{equation}
+
+\begin{equation}
+Q^{OA}_{p,i,t} = CP_{p,i,t} q^{OA}_{p,i,t} + r^{OA}_{p,i,t}
+\end{equation}
+
+\begin{equation}
+Q^{PLT}_{p,i,j,t} = CP_{p,j,t} q^{PLT}_{p,i,j,t} + r^{PLT}_{p,i,j,t}, \quad t \in T_j^{PLT}
+\end{equation}
+
+\begin{equation}
+0 \le r^{OA}_{p,i,t} < CP_{p,i,t}
+\end{equation}
+
+\begin{equation}
+0 \le r^{PLT}_{p,i,j,t} < CP_{p,j,t}, \quad t \in T_j^{PLT}
+\end{equation}
+
+\begin{align}
+I_{p,i,t}
+=& I_{p,i,t-1}
++ Q^{OA}_{p,i,t-L_i^{OA}} \\
+&+ \sum_{\substack{j \in L \\ j \neq i}} Q^{PLT}_{p,j,i,t-L_{j,i}^{PLT}}
+- \sum_{\substack{j \in L \\ j \neq i}} Q^{PLT}_{p,i,j,t}
++ \Delta I_{p,i,t}
+\end{align}
+
+\begin{equation}
+\sum_{i \in L} Q^{OA}_{p,i,t} = CAP_{p,t}
+\end{equation}
+
+\begin{equation}
+\sum_{\substack{j \in L \\ j \neq i}} Q^{PLT}_{p,i,j,t}
+\le I_{p,i,t} - L_{p,i,t}
+\end{equation}
+
+\begin{equation}
+q^{OA}_{p,i,t},\; q^{PLT}_{p,i,j,t} \in \mathbb{Z}_+
+\end{equation}
+
+\begin{equation}
+Q^{OA}_{p,i,t},\; Q^{PLT}_{p,i,j,t},\; I_{p,i,t} \ge 0
+\end{equation}
+
+
+
+\end{document}
