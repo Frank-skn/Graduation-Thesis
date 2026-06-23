@@ -14,7 +14,7 @@ from backend.data_access.interfaces import (
 from backend.data_access.models_dds import (
     DimProduct, DimWarehouse, DimTime, FactInventorySMI, DDSPackingConfig, DDSModelParameters
 )
-from backend.data_access.models_nds import Scenario, OptimizationRun, OptimizationResult, DssKPI, DssRunSummary
+from backend.data_access.models_nds import Scenario, OptimizationRun, OptimizationResult, DssKPI, DssRunSummary, OptimizationPLT
 from backend.schemas.optimization import OptimizationInput, OptimizationOutput
 
 
@@ -215,15 +215,16 @@ class ResultRepository(IResultRepository):
             self.db.add(result)
         self.db.commit()
     
-    def get_results(self, run_id: int) -> Optional[OptimizationOutput]:
-        """Retrieve results"""
+    def get_results(self, run_id: int, page: int = 1, page_size: int = 500) -> Optional[OptimizationOutput]:
+        """Retrieve results (paginated)"""
+        offset = (page - 1) * page_size
         results = self.db.query(OptimizationResult).filter(
             OptimizationResult.run_id == run_id
-        ).all()
-        
+        ).offset(offset).limit(page_size).all()
+
         if not results:
             return None
-        
+
         results_list = [{
             "product_id": r.product_id,
             "warehouse_id": r.warehouse_id,
@@ -237,7 +238,7 @@ class ResultRepository(IResultRepository):
             "shortage_qty": float(r.shortage_qty or 0),
             "penalty_flag": r.penalty_flag
         } for r in results]
-        
+
         return OptimizationOutput(results=results_list)
     
     def save_kpis(self, run_id: int, kpis: Dict[str, float]) -> None:
@@ -265,6 +266,54 @@ class ResultRepository(IResultRepository):
             "capacity_utilization": float(kpi.capacity_utilization or 0)
         }
 
+    def save_plt_transfers(self, run_id: int, plt_rows: List[Dict[str, Any]]) -> None:
+        """Save PLT (Lateral Transshipment) transfer rows for a run."""
+        for row in plt_rows:
+            rec = OptimizationPLT(
+                run_id=run_id,
+                product_id=row["product_id"],
+                from_warehouse_id=row["from_warehouse_id"],
+                to_warehouse_id=row["to_warehouse_id"],
+                time_period=row["time_period"],
+                qty=row["qty"],
+            )
+            self.db.add(rec)
+        self.db.commit()
+
+    def get_plt_transfers(
+        self,
+        run_id: int,
+        product_id: Optional[str] = None,
+        from_warehouse_id: Optional[str] = None,
+        to_warehouse_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve PLT transfer rows, optionally filtered."""
+        query = self.db.query(OptimizationPLT).filter(
+            OptimizationPLT.run_id == run_id
+        )
+        if product_id:
+            query = query.filter(OptimizationPLT.product_id == product_id)
+        if from_warehouse_id:
+            query = query.filter(OptimizationPLT.from_warehouse_id == from_warehouse_id)
+        if to_warehouse_id:
+            query = query.filter(OptimizationPLT.to_warehouse_id == to_warehouse_id)
+
+        rows = query.order_by(
+            OptimizationPLT.product_id,
+            OptimizationPLT.time_period,
+            OptimizationPLT.from_warehouse_id,
+            OptimizationPLT.to_warehouse_id,
+        ).all()
+
+        return [{
+            "plt_id"            : r.plt_id,
+            "product_id"        : r.product_id,
+            "from_warehouse_id" : r.from_warehouse_id,
+            "to_warehouse_id"   : r.to_warehouse_id,
+            "time_period"       : r.time_period,
+            "qty"               : float(r.qty or 0),
+        } for r in rows]
+
     def save_run_summary(
         self,
         run_id: int,
@@ -275,8 +324,11 @@ class ResultRepository(IResultRepository):
         n_changes: int,
         si_mean: float,
         ss_below_count: int,
+        prop_cost: float = 0.0,
+        savings_vs_prop: float = 0.0,
+        savings_pct_prop: float = 0.0,
     ) -> None:
-        """Persist the extended run summary (baseline cost, savings, SI/SS)."""
+        """Persist the extended run summary (baseline cost, savings, SI/SS, proportional)."""
         existing = self.db.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).first()
         if existing:
             existing.baseline_cost = baseline_cost
@@ -286,6 +338,9 @@ class ResultRepository(IResultRepository):
             existing.n_changes = n_changes
             existing.si_mean = si_mean
             existing.ss_below_count = ss_below_count
+            existing.prop_cost = prop_cost
+            existing.savings_vs_prop = savings_vs_prop
+            existing.savings_pct_prop = savings_pct_prop
         else:
             summary = DssRunSummary(
                 run_id=run_id,
@@ -296,6 +351,9 @@ class ResultRepository(IResultRepository):
                 n_changes=n_changes,
                 si_mean=si_mean,
                 ss_below_count=ss_below_count,
+                prop_cost=prop_cost,
+                savings_vs_prop=savings_vs_prop,
+                savings_pct_prop=savings_pct_prop,
             )
             self.db.add(summary)
         self.db.commit()
@@ -314,4 +372,7 @@ class ResultRepository(IResultRepository):
             "n_changes": int(s.n_changes or 0),
             "si_mean": float(s.si_mean or 0),
             "ss_below_count": int(s.ss_below_count or 0),
+            "prop_cost": float(s.prop_cost or 0),
+            "savings_vs_prop": float(s.savings_vs_prop or 0),
+            "savings_pct_prop": float(s.savings_pct_prop or 0),
         }

@@ -1,16 +1,60 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Button, Select, InputNumber, Alert, Spin, message, Radio } from 'antd'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Row, Col, Table, Tag, Button, Select, InputNumber, Alert, message, Radio, Switch, Tooltip } from 'antd'
 import {
   LineChartOutlined, BarChartOutlined, ThunderboltOutlined,
 } from '@ant-design/icons'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
-import { useMutation } from '../hooks/useApi'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 
 const { Option } = Select
 
 const PARAMETERS = ['DI', 'CAP', 'Cb', 'Co', 'Cs', 'Cp', 'U', 'L', 'BI', 'CP']
+
+const usePollJob = (onComplete) => {
+  const [jobId, setJobId] = useState(null)
+  const [polling, setPolling] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const intervalRef = useRef(null)
+  const timerRef = useRef(null)
+
+  const startPolling = (id) => {
+    setJobId(id)
+    setPolling(true)
+    setElapsed(0)
+  }
+
+  useEffect(() => {
+    if (!polling || !jobId) return
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    intervalRef.current = setInterval(async () => {
+      try {
+        const res = await sensitivityService.pollJob(jobId)
+        if (res.status === 'completed') {
+          clearInterval(intervalRef.current)
+          clearInterval(timerRef.current)
+          setPolling(false)
+          onComplete(res.result)
+        } else if (res.status === 'failed') {
+          clearInterval(intervalRef.current)
+          clearInterval(timerRef.current)
+          setPolling(false)
+          message.error('Phân tích thất bại: ' + (res.error || 'Unknown error'))
+        }
+      } catch (e) {
+        clearInterval(intervalRef.current)
+        clearInterval(timerRef.current)
+        setPolling(false)
+      }
+    }, 4000)
+    return () => {
+      clearInterval(intervalRef.current)
+      clearInterval(timerRef.current)
+    }
+  }, [polling, jobId])
+
+  return { polling, elapsed, startPolling }
+}
 
 const SensitivityAnalysis = () => {
   const { activeScenarioId } = useAppContext()
@@ -21,35 +65,55 @@ const SensitivityAnalysis = () => {
 
   const [oatResult, setOatResult] = useState(null)
   const [tornadoResult, setTornadoResult] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [fullDataset, setFullDataset] = useState(false)
 
-  const { mutate: runOAT, loading: runningOAT } = useMutation(async (data) => {
-    const result = await sensitivityService.runSensitivity(data)
-    setOatResult(result)
-    return result
+  const { polling: pollingOAT, elapsed: elapsedOAT, startPolling: startOAT } = usePollJob((result) => {
+    // OAT result stored as array of points in DB
+    setOatResult(Array.isArray(result) ? { points: result, parameter_name: selectedParam, baseline_objective: result[0]?.baseline_objective || 0, elasticity: null } : result)
+    message.success('Phân tích OAT hoàn thành!')
   })
 
-  const { mutate: runTornado, loading: runningTornado } = useMutation(async (data) => {
-    const result = await sensitivityService.runTornado(data)
+  const { polling: pollingTornado, elapsed: elapsedTornado, startPolling: startTornado } = usePollJob((result) => {
+    // Tornado result stored as {baseline_objective, variation_pct, bars}
     setTornadoResult(result)
-    return result
+    message.success('Phân tích Tornado hoàn thành!')
   })
 
-  const loading = runningOAT || runningTornado
+  const loading = submitting || pollingOAT || pollingTornado
 
-  const handleRunOAT = () => {
-    runOAT({
-      scenario_id: scenarioId,
-      parameter_name: selectedParam,
-      variation_percentages: [-20, -10, -5, 5, 10, 20],
-    })
+  const handleRunOAT = async () => {
+    setSubmitting(true)
+    try {
+      const res = await sensitivityService.runSensitivity({
+        scenario_id: scenarioId,
+        parameter_name: selectedParam,
+        variation_percentages: [-20, -10, -5, 5, 10, 20],
+        sample_size: fullDataset ? null : 50,
+      })
+      startOAT(res.job_id)
+    } catch (e) {
+      message.error('Không thể khởi động phân tích')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleRunTornado = () => {
-    runTornado({
-      scenario_id: scenarioId,
-      parameters: PARAMETERS.slice(0, 6),
-      variation_pct: variationPct,
-    })
+  const handleRunTornado = async () => {
+    setSubmitting(true)
+    try {
+      const res = await sensitivityService.runTornado({
+        scenario_id: scenarioId,
+        parameters: PARAMETERS.slice(0, 6),
+        variation_pct: variationPct,
+        sample_size: fullDataset ? null : 50,
+      })
+      startTornado(res.job_id)
+    } catch (e) {
+      message.error('Không thể khởi động phân tích')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // OAT chart data
@@ -69,10 +133,9 @@ const SensitivityAnalysis = () => {
   }))
 
   return (
-    <Spin spinning={loading}>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><LineChartOutlined className="mr-3" />D2. Phân tích độ nhạy</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><LineChartOutlined className="mr-3" />D2. Phân Tích Độ Nhạy Tham Số</h1>
         <p className="text-gray-600">Phân tích độ nhạy của tham số và biểu đồ tornado</p>
       </div>
 
@@ -88,17 +151,40 @@ const SensitivityAnalysis = () => {
               <Select value={selectedParam} onChange={setSelectedParam} style={{ width: 120 }}>
                 {PARAMETERS.map(p => <Option key={p} value={p}>{p}</Option>)}
               </Select>
-              <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleRunOAT} loading={runningOAT}>Chạy OAT</Button>
+              <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleRunOAT} loading={pollingOAT || submitting} disabled={loading}>Chạy OAT</Button>
             </>
           )}
           {analysisType === 'tornado' && (
             <>
               <div><span className="mr-2">Biến thiên %:</span><InputNumber min={1} max={50} value={variationPct} onChange={setVariationPct} /></div>
-              <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={runningTornado}>Chạy Tornado</Button>
+              <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={pollingTornado || submitting} disabled={loading}>Chạy Tornado</Button>
             </>
           )}
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP (~14 phút)' : 'Chạy 50 mẫu đại diện (~1 phút)'}>
+            <div className="flex items-center gap-2 ml-2">
+              <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
+              <Switch size="small" checked={fullDataset} onChange={setFullDataset} />
+              <span className="text-xs text-gray-500">Đầy đủ</span>
+            </div>
+          </Tooltip>
         </div>
       </Card>
+
+      {(pollingOAT || pollingTornado) && (
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              Đang phân tích {pollingOAT ? `OAT (${selectedParam})` : 'Tornado'}
+              {' '}trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
+              <span className="ml-2 font-mono text-blue-600">{pollingOAT ? elapsedOAT : elapsedTornado}s</span>
+              <span className="ml-2 text-gray-400">(ước tính {fullDataset ? '~14 phút' : '~1 phút'})</span>
+            </span>
+          }
+          description="Kết quả sẽ tự động hiển thị khi hoàn thành. Vui lòng không đóng trang."
+        />
+      )}
 
       {analysisType === 'oat' && oatResult && (
         <>
@@ -113,7 +199,7 @@ const SensitivityAnalysis = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="variation" />
                 <YAxis />
-                <Tooltip formatter={(v) => [`${Number(v).toLocaleString('vi-VN')}`]} />
+                <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString('vi-VN')}`]} />
                 <ReferenceLine y={Number(oatResult.baseline_objective)} stroke="#f5222d" strokeDasharray="3 3" label="Cơ sở" />
                 <Line type="monotone" dataKey="objective" stroke="#1890ff" strokeWidth={2} name="Giá trị mục tiêu" />
               </LineChart>
@@ -134,7 +220,7 @@ const SensitivityAnalysis = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis type="category" dataKey="parameter" width={60} />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <ReferenceLine x={0} stroke="#000" />
                 <Bar dataKey="low" fill="#52c41a" name="Thấp (-)" />
@@ -163,7 +249,6 @@ const SensitivityAnalysis = () => {
         <Alert message="Chọn tham số và chạy phân tích để xem kết quả" type="info" showIcon />
       )}
     </div>
-    </Spin>
   )
 }
 

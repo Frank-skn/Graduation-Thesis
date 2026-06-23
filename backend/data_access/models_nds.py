@@ -108,7 +108,7 @@ class SensitivityRun(BaseNDS):
     __tablename__ = "sensitivity_run"
 
     sensitivity_id = Column(Integer, primary_key=True, autoincrement=True)
-    base_run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=False, index=True)
+    base_run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=True, index=True)
     parameter_name = Column(String(50), nullable=False)
     variation_points = Column(Text)  # JSON
     results = Column(Text)  # JSON
@@ -144,6 +144,21 @@ class ModelParameter(BaseNDS):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class OptimizationPLT(BaseNDS):
+    """PLT (Proactive Lateral Transshipment) transfers per optimization run."""
+    __tablename__ = "optimization_plt"
+
+    plt_id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=False, index=True)
+    product_id = Column(String(50), nullable=False)
+    from_warehouse_id = Column(String(50), nullable=False)
+    to_warehouse_id = Column(String(50), nullable=False)
+    time_period = Column(Integer, nullable=False)
+    qty = Column(Numeric(18, 4), nullable=False, default=0)
+
+    run = relationship("OptimizationRun")
+
+
 class DssRunSummary(BaseNDS):
     """Extended run summary: baseline cost, savings, SI/SS metrics."""
     __tablename__ = "dss_run_summary"
@@ -157,5 +172,9 @@ class DssRunSummary(BaseNDS):
     n_changes = Column(Integer, default=0)          # rows with p=1
     si_mean = Column(Numeric(10, 4), default=0)     # mean Safety Index
     ss_below_count = Column(Integer, default=0)     # rows where I < L
+    # Proportional allocation comparison
+    prop_cost = Column(Numeric(18, 2), default=0)        # cost under proportional heuristic
+    savings_vs_prop = Column(Numeric(18, 2), default=0)  # absolute savings vs proportional
+    savings_pct_prop = Column(Numeric(5, 2), default=0)  # % savings vs proportional
 
     run = relationship("OptimizationRun")

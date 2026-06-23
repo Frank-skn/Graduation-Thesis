@@ -1,0 +1,212 @@
+
+\section{Ví dụ minh họa}
+
+\subsection{Thiết lập bài toán}
+
+Xét bài toán nhỏ với:
+\begin{itemize}
+  \item 1 sản phẩm ($|P| = 1$), bỏ chỉ số $p$
+  \item 2 nhà máy: $L = \{1, 2\}$
+  \item 3 giai đoạn: $T = \{1, 2, 3\}$
+  \item Lead time OA: $LT_1^{OA} = LT_2^{OA} = 2$ (hàng OA đến sau 2 giai đoạn)
+  \item Lead time PLT: $LT_{1,2}^{PLT} = LT_{2,1}^{PLT} = 1$ (PLT mất 1 giai đoạn)
+  \item $T_j^{PLT} = \{t : t \leq LT_j^{OA} - 1\} = \{1\}$ (PLT chỉ ở giai đoạn 1)
+\end{itemize}
+
+\subsection{Dữ liệu tham số}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Tham số} & \textbf{Giai đoạn 1} & \textbf{Giai đoạn 2} & \textbf{Giai đoạn 3} \\
+\midrule
+$CAP_t$ & 100 & 100 & 100 \\
+$L_{1,t}$ (mức sàn NM1) & 40 & 40 & 40 \\
+$L_{2,t}$ (mức sàn NM2) & 30 & 30 & 30 \\
+$U_{1,t}$ (mức trần NM1) & 120 & 120 & 120 \\
+$U_{2,t}$ (mức trần NM2) & 100 & 100 & 100 \\
+$\Delta I_{1,t}$ (tiêu dùng NM1) & $-20$ & $-25$ & $-30$ \\
+$\Delta I_{2,t}$ (tiêu dùng NM2) & $-15$ & $-20$ & $-25$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Tham số} & \textbf{Nhà máy 1} & \textbf{Nhà máy 2} \\
+\midrule
+$BI_i$ (tồn kho ban đầu) & 50 & 35 \\
+$CP_{i,t}$ (case-pack) & 10 & 5 \\
+$C^s_{i,t}$ (shortage cost) & 5 & 5 \\
+$C^b_{i,t}$ (backorder cost) & 10 & 10 \\
+$C^o_{i,t}$ (overstock cost) & 1 & 1 \\
+$C^p_{i,t}$ (phạt OA) & 2 & 2 \\
+\end{tabular}
+\end{center}
+
+Dữ liệu PLT: $d_{1,2} = d_{2,1} = 50$km, $TC = 0.1$, $C^p_{i,j,t} = 3$.
+
+\subsection{Ví dụ Khởi tạo và Giải mã}
+
+\subsubsection*{Bước 1: Nhiễm sắc thể khởi tạo}
+
+Giả sử nghiệm MILP cho: $\QOA_{1,t}^* = (60, 55, 50)$, $\QOA_{2,t}^* = (40, 45, 50)$.
+
+Nhiễm sắc thể tương ứng:
+\[
+\mathcal{C} =
+\begin{pmatrix}
+60 & 55 & 50 \\
+40 & 45 & 50
+\end{pmatrix}
+, \quad
+\text{kiểm tra: } 60+40=100, \; 55+45=100, \; 50+50=100 \; \checkmark
+\]
+
+\subsubsection*{Bước 2: Tính case-pack và phần dư OA}
+
+Với $CP_{1,t}=10$ và $CP_{2,t}=5$:
+
+\begin{center}
+\begin{tabular}{ccccccc}
+\toprule
+& \multicolumn{2}{c}{$t=1$} & \multicolumn{2}{c}{$t=2$} & \multicolumn{2}{c}{$t=3$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+& NM1 & NM2 & NM1 & NM2 & NM1 & NM2 \\
+\midrule
+$\QOA_{i,t}$ & 60 & 40 & 55 & 45 & 50 & 50 \\
+$\qOA_{i,t} = \lfloor Q/CP \rfloor$ & 6 & 8 & 5 & 9 & 5 & 10 \\
+$\rOA_{i,t} = Q - CP \cdot q$ & 0 & 0 & 5 & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Tại giai đoạn 2, NM1 có phần dư $\rOA_{1,2} = 5 \neq 0$ $\Rightarrow$ phạt $C^p_{1,2} = 2$.
+
+\subsubsection*{Bước 3: Mô phỏng tồn kho giai đoạn 1}
+
+$LT_i^{OA} = 2$ nên tại $t=1$: $\QOA_{i, 1-2} = \QOA_{i,-1} = 0$ (không có hàng OA nào đến).
+
+\[
+I^{temp}_{1,1} = BI_1 + 0 + \Delta I_{1,1} = 50 + 0 + (-20) = 30
+\]
+\[
+I^{temp}_{2,1} = BI_2 + 0 + \Delta I_{2,1} = 35 + 0 + (-15) = 20
+\]
+
+Xét PLT tại $t=1 \in T_j^{PLT}$:
+\begin{align*}
+  &S^- = \{1, 2\}: \quad \delta_1^- = L_{1,1} - 30 = 40 - 30 = 10, \quad \delta_2^- = 30 - 20 = 10\\
+  &S^+ = \emptyset \quad \text{(không có nhà máy nào dư)}
+\end{align*}
+
+Vì không có nhà máy dư, $\QPLT_{i,j,1} = 0$ cho mọi $i,j$.
+
+\[
+I_{1,1} = 30 \quad I_{2,1} = 20 \quad \text{(sau PLT)}
+\]
+
+Chi phí giai đoạn 1:
+\[
+C^s_{1,1} \pos{L_{1,1} - I_{1,1}} + C^s_{2,1} \pos{L_{2,1} - I_{2,1}} = 5 \cdot 10 + 5 \cdot 10 = 100
+\]
+
+\subsubsection*{Bước 4: Mô phỏng tồn kho giai đoạn 2}
+
+$\QOA_{i,t-LT_i^{OA}} = \QOA_{i,2-2} = \QOA_{i,0}$: hàng đặt tại giai đoạn 0 (trước horizon, giả sử = 0).
+
+\[
+I^{temp}_{1,2} = I_{1,1} + 0 + \Delta I_{1,2} = 30 - 25 = 5
+\]
+\[
+I^{temp}_{2,2} = I_{2,1} + 0 + \Delta I_{2,2} = 20 - 20 = 0
+\]
+
+$t=2 \notin T_j^{PLT}$ nên không có PLT. $I_{1,2} = 5$, $I_{2,2} = 0$.
+
+Chi phí giai đoạn 2:
+\[
+5\cdot\pos{40-5} + 5\cdot\pos{30-0} + 10\cdot\pos{-0} + 2 \cdot \ind{\rOA_{1,2} > 0}
+= 5\cdot35 + 5\cdot30 + 0 + 2 = 327
+\]
+
+\subsubsection*{Bước 5: Mô phỏng tồn kho giai đoạn 3}
+
+Hàng OA đặt tại $t=1$ đến tại $t=3$ ($t-LT = 3-2=1$):
+
+\[
+I^{temp}_{1,3} = I_{1,2} + \QOA_{1,1} + \Delta I_{1,3} = 5 + 60 - 30 = 35
+\]
+\[
+I^{temp}_{2,3} = I_{2,2} + \QOA_{2,1} + \Delta I_{2,3} = 0 + 40 - 25 = 15
+\]
+
+Chi phí giai đoạn 3:
+\[
+5\cdot\pos{40-35} + 5\cdot\pos{30-15} = 5\cdot5 + 5\cdot15 = 25 + 75 = 100
+\]
+
+\subsubsection*{Tổng fitness ban đầu}
+
+\[
+f(\mathcal{C}) = 100 + 327 + 100 = 527
+\]
+
+\subsection{Ví dụ ALNS -- Worst Cost Destroy và Greedy Repair}
+
+\subsubsection*{Destroy (D2)} Giai đoạn có chi phí cao nhất: $t=2$ (chi phí 327). Phá hủy $q=1$ giai đoạn.
+
+\[
+x^- : \quad \QOA_{1,2}^- = 0, \quad \QOA_{2,2}^- = 0
+\]
+
+\subsubsection*{Repair (R1)} Nhu cầu bù tại $t=2$:
+\[
+\delta_{1,2} = \max(0, L_{1,2} - I_{1,1}) = \max(0, 40 - 30) = 10
+\]
+\[
+\delta_{2,2} = \max(0, L_{2,2} - I_{2,1}) = \max(0, 30 - 20) = 10
+\]
+\[
+\rho_{1,2} = 10/(10+10) = 0.5, \quad \rho_{2,2} = 0.5
+\]
+\[
+\QOA_{1,2}' = \lfloor 0.5 \times 100 \rceil = 50, \quad \QOA_{2,2}' = 50
+\]
+
+Nhiễm sắc thể sau repair:
+\[
+\mathcal{C}' =
+\begin{pmatrix}
+60 & 50 & 50 \\
+40 & 50 & 50
+\end{pmatrix}
+\]
+
+\subsubsection*{Đánh giá lại} Với $\QOA_{1,2}' = 50$: $\qOA_{1,2} = \lfloor 50/10 \rfloor = 5$, $\rOA_{1,2} = 0$ $\Rightarrow$ không còn phạt case-pack.
+
+Tồn kho giai đoạn 2 (OA đặt tại $t=0$, không có): $I_{1,2} = 5$, $I_{2,2} = 0$ (không thay đổi).
+
+Chi phí giai đoạn 2 sau repair:
+\[
+5\cdot35 + 5\cdot30 + 0 = 325 \quad \text{(giảm từ 327, tiết kiệm 2 đơn vị phạt case-pack)}
+\]
+
+$f(\mathcal{C}') = 100 + 325 + 100 = 525 < 527 = f(\mathcal{C})$ $\Rightarrow$ chấp nhận $\mathcal{C}'$.
+
+\subsection{Ví dụ cập nhật trọng số ALNS}
+
+Sau vòng lặp này, cặp toán tử (D2, R1) tìm được nghiệm cải thiện:
+\[
+\sigma_{D2} = 2 \quad (\text{nghiệm tốt hơn nghiệm hiện tại})
+\]
+Cập nhật:
+\[
+w_{D2} \gets (1 - 0.15) \cdot 1.0 + 0.15 \cdot 2 = 0.85 + 0.30 = 1.15
+\]
+
+Lần sau, D2 có xác suất được chọn cao hơn D1 và D3 (ban đầu đều $= 1.0$):
+\[
+P(\text{D2}) = \frac{1.15}{1.0 + 1.15 + 1.0} = \frac{1.15}{3.15} \approx 36.5\%
+\]

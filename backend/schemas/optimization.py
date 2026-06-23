@@ -26,7 +26,7 @@ class OptimizationInput(BaseModel):
     Cs: Dict[Tuple[str, str, int], float] = Field(..., description="Shortage cost Cs(i,j,t)")
     Cp: Dict[Tuple[str, str, int], float] = Field(..., description="Penalty cost Cp(i,j,t)")
     
-    HV: float = Field(default=9999, description="High value constant")
+    HV: float = Field(default=9999, description="Hằng số tuyến tính hóa nhị phân")
     
     class Config:
         json_schema_extra = {
@@ -85,9 +85,10 @@ class OptimizationOutput(BaseModel):
 class OptimizationRequest(BaseModel):
     """Request to run optimization"""
     scenario_id: int = Field(..., description="Scenario ID to optimize")
-    solver: Optional[str] = Field(default="cbc", description="Solver to use (cbc, glpk)")
+    solver: Optional[str] = Field(default="ma", description="Solver to use (ma, cbc)")
     time_limit: Optional[int] = Field(default=300, description="Time limit in seconds")
     mip_gap: Optional[float] = Field(default=0.01, description="MIP gap tolerance")
+    product_ids: Optional[List[str]] = Field(default=None, description="Subset of products to solve (None = all)")
 
 
 class OptimizationResponse(BaseModel):

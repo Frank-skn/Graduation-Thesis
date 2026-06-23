@@ -21,6 +21,7 @@ from backend.data_access.models_nds import (
     DssKPI,
     DssRunSummary,
     WhatIfScenario,
+    OptimizationPLT,
 )
 from backend.domain.services import OptimizationService
 
@@ -36,15 +37,20 @@ def _run_optimization_task(
     from backend.data_access.csv_repository import CsvOptimizationDataRepository as Repo
     db = SessionLocalNDS()
     try:
-        csv_repo = Repo(data_dir)
+        csv_repo  = Repo(data_dir)
         opt_input = csv_repo.get_optimization_input()
+        # Pass data_dir so MA adapter can read CSV files directly
 
         opt_service = OptimizationService(
             solver=request_dict["solver"],
             time_limit=request_dict["time_limit"],
             mip_gap=request_dict["mip_gap"],
         )
-        result = opt_service.solve(opt_input)
+        result = opt_service.solve(
+            opt_input,
+            data_dir=data_dir,
+            product_ids=request_dict.get("product_ids"),
+        )
 
         result_repo = ResultRepository(db)
         # Update run record with final status
@@ -58,15 +64,20 @@ def _run_optimization_task(
 
         result_repo.save_results(run_id, result.output)
         result_repo.save_kpis(run_id, result.kpis)
+        if result.plt_rows:
+            result_repo.save_plt_transfers(run_id, result.plt_rows)
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=result.baseline_cost,
-            opt_cost=result.objective_value,
+            opt_cost=result.ma_inv_cost,
             savings=result.savings,
             savings_pct=result.savings_pct,
             n_changes=result.n_changes,
             si_mean=result.si_mean,
             ss_below_count=result.ss_below_count,
+            prop_cost=result.prop_cost,
+            savings_vs_prop=result.savings_vs_prop,
+            savings_pct_prop=result.savings_pct_prop,
         )
 
     except Exception as exc:
@@ -110,9 +121,10 @@ def run_optimization(
         _run_optimization_task,
         run_id=run_id,
         request_dict={
-            "solver": request.solver,
-            "time_limit": request.time_limit,
-            "mip_gap": request.mip_gap,
+            "solver"     : request.solver,
+            "time_limit" : request.time_limit,
+            "mip_gap"    : request.mip_gap,
+            "product_ids": request.product_ids,
         },
         data_dir=str(csv_repo._dir),
     )
@@ -180,17 +192,20 @@ def get_run_status(
 @router.get("/results/{run_id}", response_model=OptimizationOutput)
 def get_results(
     run_id: int,
+    page: int = 1,
+    page_size: int = 500,
     db: Session = Depends(get_db_nds)
 ):
     """
-    Get optimization results by run ID
+    Get optimization results by run ID (paginated).
+    page=1, page_size=500 by default.
     """
     repo = ResultRepository(db)
-    results = repo.get_results(run_id)
-    
+    results = repo.get_results(run_id, page=page, page_size=page_size)
+
     if not results:
         raise HTTPException(status_code=404, detail="Results not found")
-    
+
     return results
 
 
@@ -227,6 +242,7 @@ def delete_run(
     # Cascade-delete child records in correct order
     db_nds.query(DssRunSummary).filter(DssRunSummary.run_id == run_id).delete()
     db_nds.query(DssKPI).filter(DssKPI.run_id == run_id).delete()
+    db_nds.query(OptimizationPLT).filter(OptimizationPLT.run_id == run_id).delete()
     db_nds.query(ResultModel).filter(ResultModel.run_id == run_id).delete()
     # Detach what-if scenarios that reference this run (don't delete the scenario itself)
     db_nds.query(WhatIfScenario).filter(WhatIfScenario.run_id == run_id).update(

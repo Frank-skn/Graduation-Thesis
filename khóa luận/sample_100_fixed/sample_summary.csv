@@ -1,0 +1,4 @@
+﻿difficulty_group,n_products,min_score,max_score,avg_score
+G1_low,14,0.160932,0.238203,0.21666571428571427
+G2_medium_low,61,0.250232,0.449854,0.3518100655737705
+G3_medium_high,25,0.451037,0.624106,0.50531636

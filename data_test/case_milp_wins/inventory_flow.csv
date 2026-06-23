@@ -1,0 +1,5 @@
+product_id,warehouse_id,time_period,inventory_fluctuation,inventory_ceiling,inventory_floor,created_at
+T001,WH01,1,-10,30,8,2024-01-01 00:00:00
+T001,WH02,1,-5,30,8,2024-01-01 00:00:00
+T001,WH01,2,-2,30,8,2024-01-01 00:00:00
+T001,WH02,2,-20,30,8,2024-01-01 00:00:00

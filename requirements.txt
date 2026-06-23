@@ -5,18 +5,17 @@ pydantic==2.5.3
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
-# Database
+# Database (SQLite - no PostgreSQL needed)
 sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
 alembic==1.13.1
 
-# Optimization
+# Optimization (PuLP optional - used for MILP warm-start seed only)
 pulp==2.9.0
 
 # Utilities
 python-dotenv==1.0.0
 pandas==2.2.0
-numpy==1.26.3
+numpy==1.26.4
 openpyxl==3.1.2
 
 # Testing

@@ -65,9 +65,10 @@ class WhatIfCreate(BaseModel):
             "'absolute_value' (set parameter to this exact value)"
         )
     )
-    solver: Optional[str] = Field(default="cbc", description="Solver to use")
+    solver: Optional[str] = Field(default="ma", description="Solver to use")
     time_limit: Optional[int] = Field(default=300, description="Solver time limit (s)")
     mip_gap: Optional[float] = Field(default=0.01, description="MIP gap tolerance")
+    product_ids: Optional[List[str]] = Field(default=None, description="Subset of products to solve (None = all)")
 
     class Config:
         json_schema_extra = {
@@ -118,6 +119,7 @@ class WhatIfResponse(BaseModel):
     )
     # Extended savings metrics (mirrored from DssRunSummary)
     baseline_cost: float = Field(0.0, description="Do-nothing baseline cost")
+    ma_inv_cost: float = Field(0.0, description="Inventory-only cost from MA rows (for fair comparison)")
     savings: float = Field(0.0, description="Absolute savings vs baseline")
     savings_pct: float = Field(0.0, description="Savings as % of baseline")
     n_changes: int = Field(0, description="Rows with reorder action")

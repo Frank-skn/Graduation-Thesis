@@ -1,0 +1,99 @@
+
+\section{Phân tích độ phức tạp}
+
+\subsection{Độ phức tạp không gian}
+
+\subsubsection*{Không gian nghiệm}
+
+Không gian nghiệm cho một sản phẩm được định nghĩa bởi:
+\[
+\mathcal{S} = \left\{ (\QOA_{i,t}) \in \mathbb{Z}_+^{|L| \times |T|} \;\middle|\; \sum_{i \in L} \QOA_{i,t} = CAP_t, \; \forall t \in T \right\}
+\]
+
+Kích thước không gian nghiệm xấp xỉ (số lượng nghiệm nguyên dương thỏa mãn tổng):
+\[
+|\mathcal{S}| \approx \prod_{t \in T} \binom{CAP_t + |L| - 1}{|L| - 1} \sim \mathcal{O}\!\left(\frac{CAP^{|L|-1}}{(|L|-1)!}\right)^{|T|}
+\]
+
+Với $|L|=6$, $|T|=8$, $CAP=1000$: $|\mathcal{S}| \sim \mathcal{O}(10^{40})$, xác nhận sự cần thiết của meta-heuristic.
+
+\subsubsection*{Bộ nhớ quần thể}
+
+Bộ nhớ cần cho quần thể GA: $\mathcal{O}(n_{pop} \cdot |L| \cdot |T|)$.
+
+\subsection{Độ phức tạp thời gian}
+
+\subsubsection*{Mỗi lần giải mã (Decode)}
+
+Giải mã một nhiễm sắc thể bao gồm:
+\begin{itemize}
+  \item Tính $\qOA, \rOA$: $\mathcal{O}(|L| \cdot |T|)$
+  \item Mô phỏng tồn kho theo thời gian: $\mathcal{O}(|L|^2 \cdot |T|)$ (do PLT mỗi giai đoạn xét $|L|^2$ cặp)
+  \item Tính fitness: $\mathcal{O}(|L| \cdot |T|)$
+\end{itemize}
+
+\textbf{Tổng mỗi decode:} $\mathcal{O}(|L|^2 \cdot |T|)$.
+
+\subsubsection*{Mỗi vòng ALNS}
+
+Mỗi vòng ALNS gồm Destroy + Repair + Decode:
+\[
+\mathcal{O}(|L| \cdot |T|) + \mathcal{O}(|L| \cdot |T|) + \mathcal{O}(|L|^2 \cdot |T|) = \mathcal{O}(|L|^2 \cdot |T|)
+\]
+
+Nếu ALNS chạy $n_{ALNS}$ vòng: $\mathcal{O}(n_{ALNS} \cdot |L|^2 \cdot |T|)$.
+
+\subsubsection*{Mỗi thế hệ GA}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Bước} & \textbf{Chi phí} & \textbf{Ghi chú} \\
+\midrule
+Khởi tạo & $\mathcal{O}(n_{pop} \cdot |L|^2 \cdot |T|)$ & Chỉ lần đầu \\
+Selection & $\mathcal{O}(n_{pop} \cdot k_{tour})$ & Tournament \\
+Crossover & $\mathcal{O}(n_{pop} \cdot |L| \cdot |T|)$ & BLX-$\alpha$ \\
+Mutation & $\mathcal{O}(n_{pop} \cdot |T|)$ & Swap per period \\
+Decode & $\mathcal{O}(n_{pop} \cdot |L|^2 \cdot |T|)$ & Dominant term \\
+ALNS & $\mathcal{O}(n_{pop} / \Delta_G \cdot n_{ALNS} \cdot |L|^2 \cdot |T|)$ & Mỗi $\Delta_G$ thế hệ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Tổng độ phức tạp}
+
+\[
+\mathcal{O}\!\left(G_{max} \cdot n_{pop} \cdot \left(1 + \frac{n_{ALNS}}{\Delta_G}\right) \cdot |L|^2 \cdot |T|\right)
+\]
+
+Với tham số điển hình $G_{max}=200$, $n_{pop}=50$, $n_{ALNS}=50$, $\Delta_G=5$, $|L|=6$, $|T|=8$:
+\[
+200 \times 50 \times (1 + 10) \times 36 \times 8 \approx 3.2 \times 10^7 \text{ phép tính cơ bản}
+\]
+
+So với MILP (NP-hard), đây là mức có thể chấp nhận được cho thực thi trong thời gian thực.
+
+\subsection{Phân tích hội tụ}
+
+\subsubsection*{Đảm bảo tìm tối ưu toàn cục}
+
+GA với mutation không bằng 0 và quần thể đủ lớn có thể tìm được tối ưu toàn cục với xác suất tiến tới 1 khi $G_{max} \to \infty$ (theo định lý hội tụ GA -- Holland, 1975). Tuy nhiên, trong thực tế, hội tụ chỉ được đảm bảo về tối ưu địa phương.
+
+\subsubsection*{Vai trò của ALNS}
+
+ALNS giúp mở rộng vùng lân cận được khám phá trong mỗi bước local search, tương đương với việc tăng "bước nhảy" trong không gian nghiệm mà không tăng kích thước quần thể. Kết hợp với GA giúp thoát khỏi cực tiểu địa phương thông qua cơ chế tiến hóa.
+
+\subsection{So sánh các phương pháp}
+
+\begin{center}
+\begin{tabular}{p{0.22\textwidth}cccc}
+\toprule
+\textbf{Phương pháp} & \textbf{Optimal?} & \textbf{Scalable?} & \textbf{Diversity} & \textbf{Local expl.} \\
+\midrule
+MILP (Exact) & $\checkmark$ & $\times$ & N/A & $\checkmark$ \\
+GA thuần & Không đảm bảo & $\checkmark$ & Cao & Thấp \\
+ALNS thuần & Không đảm bảo & $\checkmark$ & Thấp & Cao \\
+\textbf{Hybrid GA-ALNS} & Không đảm bảo & $\checkmark$ & \textbf{Trung bình} & \textbf{Cao} \\
+\bottomrule
+\end{tabular}
+\end{center}

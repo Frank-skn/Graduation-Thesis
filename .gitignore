@@ -62,3 +62,14 @@ htmlcov/
 tmp/
 temp/
 *.tmp
+
+# Claude Code
+.claude/
+
+# Excluded from repo — legacy/standalone folders and documents
+ver2/
+hybrid_ga_alns/
+optimization/
+*.pdf
+data_original/
+mapping_reference.json

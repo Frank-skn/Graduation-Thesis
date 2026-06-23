@@ -1,0 +1,2 @@
+product_id,item_class,product_series,product_style,product_size,created_at,updated_at,product_name
+T001,CLS-A,SER-001,STY-001,SZ-001,2024-01-01 00:00:00,2024-01-01 00:00:00,TestProduct-T001

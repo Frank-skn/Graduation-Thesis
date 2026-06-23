@@ -1,0 +1,219 @@
+
+\section{Genetic Algorithm (GA)}
+
+\subsection{Tổng quan GA trong bài toán MFA-PLT}
+
+Genetic Algorithm là phương pháp tìm kiếm dựa trên quần thể, mô phỏng tiến hóa tự nhiên. Trong bài toán này, mỗi cá thể trong quần thể biểu diễn một phương án phân bổ $\QOA$ cho một sản phẩm. GA thực hiện các toán tử di truyền để khám phá không gian nghiệm rộng và dần hội tụ về vùng nghiệm tốt.
+
+\subsection{Sơ đồ luồng GA}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}]
+
+  \node (start)     [startstop]                          {Bắt đầu};
+  \node (init)      [process, below of=start]            {Khởi tạo quần thể $\mathcal{P}$\\(Algorithm 1)};
+  \node (eval)      [process, below of=init]             {Đánh giá fitness\\$f(\mathcal{C})$ cho mọi $\mathcal{C} \in \mathcal{P}$};
+  \node (term)      [decision, below of=eval, yshift=-0.4cm] {Đạt điều kiện\\dừng?};
+  \node (output)    [startstop, below of=term, yshift=-0.4cm] {Xuất nghiệm tốt nhất};
+  \node (select)    [process, right=3.5cm of eval]       {Selection\\(Tournament)};
+  \node (cross)     [process, below of=select]           {Crossover\\(BLX-$\alpha$, Algorithm 3)};
+  \node (mut)       [process, below of=cross]            {Mutation\\(Swap Alloc., Algorithm 4)};
+  \node (decode)    [process, below of=mut]              {Decode + ALNS\\(Algorithms 5--8)};
+  \node (newpop)    [process, below of=decode]           {Cập nhật quần thể\\($\mu + \lambda$ hoặc $\mu, \lambda$)};
+
+  \draw[arrow] (start) -- (init);
+  \draw[arrow] (init) -- (eval);
+  \draw[arrow] (eval) -- (term);
+  \draw[arrow] (term) -- node[left]{Có} (output);
+  \draw[arrow] (term.east) -- ++(0.6,0) |- (select.west) node[pos=0.1, above]{Không};
+  \draw[arrow] (select) -- (cross);
+  \draw[arrow] (cross) -- (mut);
+  \draw[arrow] (mut) -- (decode);
+  \draw[arrow] (decode) -- (newpop);
+  \draw[arrow] (newpop.west) -- ++(-0.6,0) |- (eval.east);
+
+\end{tikzpicture}
+\caption{Sơ đồ luồng Genetic Algorithm (GA)}
+\label{fig:ga_flowchart}
+\end{figure}
+
+\subsection{Khởi tạo quần thể}
+
+\begin{algorithm}[H]
+\caption{Khởi tạo quần thể đa dạng}
+\label{alg:init}
+\begin{algorithmic}[1]
+\Require $n_{pop}$, $L$, $T$, $CAP_t$, $BI_i$, $L_{i,t}$
+\Ensure $\mathcal{P} = \{\mathcal{C}^{(1)}, \ldots, \mathcal{C}^{(n_{pop})}\}$
+
+\State $\mathcal{P} \gets \emptyset$
+
+\State \textit{-- Cá thể 1: Giải MILP để lấy nghiệm ưu tiên --}
+\State Giải MILP nhỏ để thu $\QOA^*_{i,t}$; \; $\mathcal{C}^{(1)} \gets \QOA^*$
+\State $\mathcal{P} \gets \mathcal{P} \cup \{\mathcal{C}^{(1)}\}$
+
+\State \textit{-- Cá thể 2 đến $\lfloor 0.5 n_{pop} \rfloor$: Nhiễu xung quanh nghiệm MILP --}
+\For{$k = 2$ \textbf{đến} $\lfloor 0.5 n_{pop} \rfloor$}
+  \For{$i \in L$, $t \in T$}
+    \State $\epsilon_{i,t} \sim \mathcal{U}(-\alpha, \alpha)$, với $\alpha = 0.15$
+    \State $\widetilde{\QOA}_{i,t} \gets \max\!\left(0,\; \QOA^*_{i,t} \cdot (1 + \epsilon_{i,t})\right)$
+  \EndFor
+  \State Chuẩn hóa: $\QOA^{(k)}_{i,t} \gets \left\lfloor \dfrac{\widetilde{\QOA}_{i,t}}{\sum_{i'}\widetilde{\QOA}_{i',t}} \cdot CAP_t \right\rceil$, sửa tổng về $CAP_t$
+  \State $\mathcal{P} \gets \mathcal{P} \cup \{\mathcal{C}^{(k)}\}$
+\EndFor
+
+\State \textit{-- Cá thể $\lfloor 0.5 n_{pop} \rfloor + 1$ đến $\lfloor 0.8 n_{pop} \rfloor$: Heuristic nhu cầu --}
+\For{$k$ trong khoảng này}
+  \For{$t \in T$}
+    \State $\delta_{i,t} \gets \max(0,\; L_{i,t} - BI_i)$ \quad \textit{-- nhu cầu bù thiếu hụt --}
+    \State $\rho_{i,t} \gets \delta_{i,t} / \sum_{i'} \delta_{i',t}$ \quad (nếu $\sum = 0$ thì $\rho_{i,t} = 1/|L|$)
+    \State $\QOA^{(k)}_{i,t} \gets \lfloor \rho_{i,t} \cdot CAP_t \rceil$, sửa tổng về $CAP_t$
+  \EndFor
+  \State $\mathcal{P} \gets \mathcal{P} \cup \{\mathcal{C}^{(k)}\}$
+\EndFor
+
+\State \textit{-- Cá thể còn lại: Ngẫu nhiên Dirichlet --}
+\For{$k = \lfloor 0.8n_{pop} \rfloor + 1$ \textbf{đến} $n_{pop}$}
+  \For{$t \in T$}
+    \State $(u_1,\ldots,u_{|L|}) \sim \mathrm{Dirichlet}(\mathbf{1})$
+    \State $\QOA^{(k)}_{i,t} \gets \lfloor u_i \cdot CAP_t \rceil$, sửa tổng về $CAP_t$
+  \EndFor
+  \State $\mathcal{P} \gets \mathcal{P} \cup \{\mathcal{C}^{(k)}\}$
+\EndFor
+
+\State \Return $\mathcal{P}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{Giải thích chi tiết và ví dụ}
+
+\paragraph{Bước chuẩn hóa:} Sau khi làm tròn, tổng $\sum_i \QOA_{i,t}$ có thể lệch khỏi $CAP_t$ do sai số làm tròn. Ta sửa bằng cách điều chỉnh thêm/bớt 1 đơn vị tại nhà máy có phần thập phân lớn nhất (hoặc nhỏ nhất):
+
+\vspace{0.3em}
+\noindent\textbf{Ví dụ:} $|L|=2$, $CAP_t = 100$, $\widetilde{\QOA}_{1,t}=43.7$, $\widetilde{\QOA}_{2,t}=58.1$. Sau làm tròn: $44+58=102 \neq 100$. Giảm 2 đơn vị tại nhà máy có phần dư nhỏ nhất: nhà máy 1 (phần dư $0.7 > 0.1$, giảm nhà máy 2 trước). Kết quả: $44 + 56 = 100$.
+
+\subsection{Cơ chế chọn lọc (Selection)}
+
+\begin{algorithm}[H]
+\caption{Tournament Selection}
+\label{alg:selection}
+\begin{algorithmic}[1]
+\Require $\mathcal{P}$, kích thước tournament $k_{tour}$, số cá thể cần chọn $n_{select}$
+\Ensure $\mathcal{P}^{select}$
+
+\State $\mathcal{P}^{select} \gets \emptyset$
+\While{$|\mathcal{P}^{select}| < n_{select}$}
+  \State Chọn ngẫu nhiên $k_{tour}$ cá thể từ $\mathcal{P}$
+  \State $\mathcal{C}^* \gets \arg\min_{\mathcal{C}} f(\mathcal{C})$ trong tập đã chọn
+  \State $\mathcal{P}^{select} \gets \mathcal{P}^{select} \cup \{\mathcal{C}^*\}$
+\EndWhile
+\State \Return $\mathcal{P}^{select}$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent Tournament selection ưu tiên cá thể tốt hơn nhưng vẫn cho phép cá thể yếu hơn được chọn (khi $k_{tour}$ nhỏ), đảm bảo áp lực chọn lọc cân bằng. Tham số khuyến nghị: $k_{tour} = 3$.
+
+\subsection{Lai ghép (Crossover) -- BLX-$\alpha$ có chuẩn hóa}
+
+\begin{algorithm}[H]
+\caption{BLX-$\alpha$ Crossover cho phân bổ hàng hóa}
+\label{alg:crossover}
+\begin{algorithmic}[1]
+\Require $\mathcal{C}^{(1)}, \mathcal{C}^{(2)}$, xác suất lai ghép $p_c$, $L$, $T$, $CAP_t$
+\Ensure $\mathcal{C}^{(1')}, \mathcal{C}^{(2')}$
+
+\State $\mathcal{C}^{(1')} \gets \mathcal{C}^{(1)}$, \; $\mathcal{C}^{(2')} \gets \mathcal{C}^{(2)}$
+
+\If{$\mathrm{rand}() > p_c$} \Return $\mathcal{C}^{(1')}, \mathcal{C}^{(2')}$
+\EndIf
+
+\State Chọn $\alpha \sim \mathcal{U}(0.3, 0.7)$
+
+\For{$t \in T$}
+  \For{$i \in L$}
+    \State $\widetilde{Q}^{(1')}_{i,t} \gets \alpha \cdot \QOA^{(1)}_{i,t} + (1-\alpha) \cdot \QOA^{(2)}_{i,t}$
+    \State $\widetilde{Q}^{(2')}_{i,t} \gets (1-\alpha) \cdot \QOA^{(1)}_{i,t} + \alpha \cdot \QOA^{(2)}_{i,t}$
+  \EndFor
+  \State \textit{-- Chuẩn hóa để đảm bảo $\sum_i = CAP_t$ --}
+  \For{$s \in \{1', 2'\}$}
+    \State $\widehat{Q}^{(s)}_{i,t} \gets \widetilde{Q}^{(s)}_{i,t} / \sum_{i'} \widetilde{Q}^{(s)}_{i',t} \cdot CAP_t$
+    \State $\QOA^{(s)}_{i,t} \gets \lfloor \widehat{Q}^{(s)}_{i,t} \rceil$
+  \EndFor
+  \State Sửa tổng về chính xác $CAP_t$ cho cả $s = 1', 2'$
+\EndFor
+
+\State \Return $\mathcal{C}^{(1')}, \mathcal{C}^{(2')}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{Ví dụ lai ghép}
+
+$|L|=2$, $CAP_t = 100$, $\alpha = 0.6$:
+\[
+  \mathcal{C}^{(1)}: (40, 60) \quad \mathcal{C}^{(2)}: (70, 30)
+\]
+\[
+  \widetilde{Q}^{(1')} = (0.6\cdot40 + 0.4\cdot70,\; 0.6\cdot60 + 0.4\cdot30) = (52, 48)
+\]
+\[
+  \widetilde{Q}^{(2')} = (0.4\cdot40 + 0.6\cdot70,\; 0.4\cdot60 + 0.6\cdot30) = (58, 42)
+\]
+Cả hai đều có tổng $= 100$ $\checkmark$
+
+\subsection{Đột biến (Mutation) -- Swap Allocation}
+
+\begin{algorithm}[H]
+\caption{Đột biến hoán đổi phân bổ (Swap Allocation Mutation)}
+\label{alg:mutation}
+\begin{algorithmic}[1]
+\Require $\mathcal{C} = (\QOA_{i,t})$, xác suất đột biến $p_m$, $L$, $T$, $CAP_t$
+\Ensure $\mathcal{C}'$
+
+\State $\mathcal{C}' \gets \mathcal{C}$
+
+\For{$t \in T$}
+  \If{$\mathrm{rand}() \leq p_m$}
+    \State Chọn ngẫu nhiên $i_1, i_2 \in L$, $i_1 \neq i_2$
+    \State $\delta \sim \mathcal{U}_{\mathbb{Z}}\!\left(1,\; \min\!\left(\QOA_{i_1,t},\; \left\lfloor 0.2 \cdot CAP_t \right\rfloor\right)\right)$
+    \State $\QOA'_{i_1,t} \gets \QOA_{i_1,t} - \delta$
+    \State $\QOA'_{i_2,t} \gets \QOA_{i_2,t} + \delta$
+    \State \textit{-- Ràng buộc $\sum_i \QOA'_{i,t} = CAP_t$ tự động thỏa mãn --}
+  \EndIf
+\EndFor
+
+\State \Return $\mathcal{C}'$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{Ví dụ đột biến}
+
+$|L|=3$, $CAP_t=100$, $(\QOA_{1,t}, \QOA_{2,t}, \QOA_{3,t}) = (30, 50, 20)$. Chọn $i_1=2$, $i_2=3$, $\delta=10$:
+\[
+  (30,\; 50-10,\; 20+10) = (30, 40, 30), \quad \text{tổng} = 100 \; \checkmark
+\]
+
+\subsection{Điều kiện dừng và cập nhật quần thể}
+
+\begin{itemize}
+  \item \textbf{Điều kiện dừng:} (1) đạt số thế hệ tối đa $G_{max}$; hoặc (2) không cải thiện fitness tốt nhất trong $G_{stag}$ thế hệ liên tiếp.
+  \item \textbf{Cập nhật quần thể ($\mu + \lambda$):} Hợp nhất quần thể cha ($\mu$) và con ($\lambda$), giữ lại $n_{pop}$ cá thể tốt nhất. Đảm bảo elitism: cá thể tốt nhất luôn được giữ lại.
+  \item \textbf{Loại bỏ trùng lặp:} Nếu hai cá thể giống hệt nhau (theo ma trận $\QOA$), thay thế bằng cá thể ngẫu nhiên mới để duy trì đa dạng quần thể.
+\end{itemize}
+
+\subsection{Tham số GA khuyến nghị}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+\textbf{Tham số} & \textbf{Ký hiệu} & \textbf{Giá trị} & \textbf{Ghi chú} \\
+\midrule
+Kích thước quần thể & $n_{pop}$ & $50$--$100$ & Tùy quy mô bài toán \\
+Số thế hệ tối đa & $G_{max}$ & $200$--$500$ & \\
+Xác suất lai ghép & $p_c$ & $0.8$ & \\
+Xác suất đột biến & $p_m$ & $0.1$--$0.2$ & Per-period \\
+Kích thước tournament & $k_{tour}$ & $3$ & \\
+Ngưỡng stagnation & $G_{stag}$ & $50$ & \\
+\bottomrule
+\end{tabular}
+\end{center}

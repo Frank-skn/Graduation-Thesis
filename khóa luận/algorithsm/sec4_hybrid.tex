@@ -1,0 +1,158 @@
+
+\section{Giải thuật kết hợp Hybrid GA--ALNS}
+
+\subsection{Triết lý kết hợp}
+
+Phương pháp kết hợp GA--ALNS trong nghiên cứu này được thiết kế theo mô hình \textbf{Lamarckian Hybrid}: ALNS đóng vai trò tìm kiếm cục bộ (local search / intensification) được nhúng vào vòng lặp GA tại bước giải mã, trước khi đánh giá fitness. Điều này có nghĩa là:
+
+\begin{enumerate}
+  \item GA tạo ra các nhiễm sắc thể thông qua selection, crossover, mutation.
+  \item Mỗi nhiễm sắc thể được giải mã thành nghiệm ($\QOA$, $\QPLT$, $I$).
+  \item ALNS tinh chỉnh (refine) nghiệm đó bằng cách phá hủy--tái tạo.
+  \item Nghiệm sau ALNS được \emph{cập nhật ngược lại} vào nhiễm sắc thể (Lamarckian learning).
+  \item Fitness được tính dựa trên nghiệm đã qua ALNS.
+\end{enumerate}
+
+\subsection{Điều kiện kích hoạt ALNS}
+
+Để tránh tốn kém tính toán không cần thiết, ALNS không được kích hoạt cho mọi cá thể ở mọi thế hệ. Các quy tắc kích hoạt:
+
+\begin{itemize}
+  \item \textbf{Theo thế hệ:} ALNS được kích hoạt mỗi $\Delta_G$ thế hệ (ví dụ $\Delta_G = 5$).
+  \item \textbf{Theo cá thể:} Tại thế hệ ALNS, chỉ áp dụng cho top-$k$ cá thể tốt nhất hoặc toàn bộ nếu quần thể nhỏ.
+  \item \textbf{Theo stagnation:} ALNS luôn được kích hoạt khi phát hiện quần thể không cải thiện trong $G_{stag}^{ALNS}$ thế hệ.
+\end{itemize}
+
+\subsection{Sơ đồ luồng Hybrid GA--ALNS tổng thể}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.4cm, every node/.style={font=\small}]
+
+  %============ CỘT TRÁI: GA ============
+  \node (start)    [startstop]                          {Bắt đầu};
+  \node (init)     [process, below of=start]            {Khởi tạo quần thể\\$\mathcal{P}$ (Alg.~\ref{alg:init})};
+  \node (evalf)    [process, below of=init]             {Đánh giá\\fitness toàn bộ $\mathcal{P}$};
+  \node (term)     [decision, below of=evalf, yshift=-0.3cm] {Điều kiện\\dừng GA?};
+  \node (out)      [startstop, below of=term, yshift=-0.3cm] {Xuất $\mathcal{C}^*$};
+  \node (sel)      [process, below of=out]              {Selection (Alg.~\ref{alg:selection})};
+  \node (xover)    [process, below of=sel]              {Crossover (Alg.~\ref{alg:crossover})};
+  \node (mut)      [process, below of=xover]            {Mutation (Alg.~\ref{alg:mutation})};
+  \node (newpop)   [process, below of=mut]              {Cập nhật $\mathcal{P}$\\($\mu+\lambda$ strategy)};
+
+  %============ CỘT PHẢI: DECODE + ALNS ============
+  \node (dec)      [process, right=4.5cm of evalf]      {Decode $\mathcal{C}$\\$\Rightarrow$ $(\QOA, \QPLT, I)$};
+  \node (actv)     [decision, below of=dec, yshift=-0.3cm] {Kích hoạt\\ALNS?};
+  \node (alns)     [process, below of=actv, yshift=-0.3cm, fill=orange!15] {ALNS Local Search\\(Algs.~\ref{alg:d1}--\ref{alg:r3}, Alg.~\ref{alg:weight_update})};
+  \node (lama)     [process, below of=alns]             {Lamarck update:\\$\mathcal{C} \gets$ encode$(x^*)$};
+  \node (fit)      [process, below of=lama]             {Tính fitness $f(\mathcal{C})$\\(Phương trình~\ref{eq:fitness})};
+
+  %============ ĐƯỜNG NGANG ============
+  \node (gaplt)    [process, right=4.5cm of dec, fill=green!10]  {Mô phỏng PLT\\(Alg.~\ref{alg:plt_heuristic})};
+  \node (inv)      [process, below of=gaplt]            {Cập nhật tồn kho\\$I_{i,t}$ (cân bằng tồn kho)};
+
+  %============ MŨI TÊN CHÍNH ============
+  \draw[arrow] (start) -- (init);
+  \draw[arrow] (init) -- (evalf);
+  \draw[arrow] (evalf) -- (term);
+  \draw[arrow] (term) -- node[left]{Có} (out);
+  \draw[arrow] (term.west) -- ++(-1.2,0) |- (sel.west) node[pos=0.12, above]{Không};
+  \draw[arrow] (sel) -- (xover);
+  \draw[arrow] (xover) -- (mut);
+  \draw[arrow] (mut.east) -- ++(0.5,0) |- (dec.west);
+  \draw[arrow] (dec) -- (gaplt);
+  \draw[arrow] (gaplt) -- (inv);
+  \draw[arrow] (inv.south) -- ++(0,-0.4) -| (actv.east);
+  \draw[arrow] (actv) -- node[right]{Có} (alns);
+  \draw[arrow] (alns) -- (lama);
+  \draw[arrow] (lama) -- (fit);
+  \draw[arrow] (actv.west) -- ++(-0.5,0) |- node[left,pos=0.7]{Không} (fit.west);
+  \draw[arrow] (fit.west) -- ++(-0.5,0) |- (newpop.east);
+  \draw[arrow] (newpop.west) -- ++(-0.5,0) |- (evalf.west);
+
+\end{tikzpicture}
+}%
+\caption{Sơ đồ luồng đầy đủ Hybrid GA--ALNS}
+\label{fig:hybrid_flowchart}
+\end{figure}
+
+\subsection{Cơ chế Lamarckian Learning}
+
+Sau khi ALNS tìm được nghiệm cải thiện $x^* = (\QOA^*_{i,t})$, nhiễm sắc thể được cập nhật ngược bằng cách thay thế trực tiếp:
+
+\begin{equation}
+  \mathcal{C}' \gets x^* = (\QOA^*_{i,t})_{i \in L,\, t \in T}
+\end{equation}
+
+Điều này đảm bảo kiến thức học được từ local search được kế thừa trong các thế hệ tiếp theo.
+
+\subsection{Giải thuật Hybrid GA--ALNS hoàn chỉnh}
+
+\begin{algorithm}[H]
+\caption{Hybrid GA--ALNS}
+\label{alg:hybrid}
+\begin{algorithmic}[1]
+\Require Tham số mô hình, $n_{pop}$, $G_{max}$, $G_{stag}$, $\Delta_G$, $n_{ALNS}$
+\Ensure Nghiệm tốt nhất $\mathcal{C}^*$, chi phí $Z^*$
+
+\State $\mathcal{P} \gets \text{InitPopulation}(n_{pop})$ \quad [Alg.~\ref{alg:init}]
+\For{$\mathcal{C} \in \mathcal{P}$}
+  \State $f(\mathcal{C}) \gets \text{Decode-and-Evaluate}(\mathcal{C})$ \quad [Algs.~\ref{alg:plt_heuristic}, Eq.~\eqref{eq:fitness}]
+\EndFor
+\State $\mathcal{C}^* \gets \arg\min_{\mathcal{C} \in \mathcal{P}} f(\mathcal{C})$; \; $Z^* \gets f(\mathcal{C}^*)$
+\State $g_{no\_improve} \gets 0$; \; $g \gets 0$
+\State Khởi tạo trọng số ALNS: $w_d = w_r = 1.0$
+
+\While{$g < G_{max}$ \textbf{và} $g_{no\_improve} < G_{stag}$}
+  \State $g \gets g + 1$
+  \State $\mathcal{P}^{select} \gets \text{TournamentSelection}(\mathcal{P})$ \quad [Alg.~\ref{alg:selection}]
+  \State $\mathcal{P}^{off} \gets $ Crossover$(\mathcal{P}^{select})$ \quad [Alg.~\ref{alg:crossover}]
+  \State $\mathcal{P}^{off} \gets $ Mutation$(\mathcal{P}^{off})$ \quad [Alg.~\ref{alg:mutation}]
+
+  \For{$\mathcal{C} \in \mathcal{P}^{off}$}
+    \State $x \gets \text{Decode}(\mathcal{C})$ \quad \textit{-- bao gồm mô phỏng PLT --}
+    
+    \If{$g \bmod \Delta_G = 0$ \textbf{hoặc} $g_{no\_improve} \geq G_{stag}/2$}
+      \State $x^*, w_d, w_r \gets \text{ALNS}(x, n_{ALNS}, w_d, w_r)$ \quad [Algs.~\ref{alg:d1}--\ref{alg:weight_update}]
+      \State $\mathcal{C} \gets x^*$ \quad \textit{-- Lamarckian update --}
+      \State $f(\mathcal{C}) \gets \text{EvaluateFitness}(x^*)$
+    \Else
+      \State $f(\mathcal{C}) \gets \text{EvaluateFitness}(x)$
+    \EndIf
+  \EndFor
+
+  \State $\mathcal{P} \gets \text{UpdatePopulation}(\mathcal{P}, \mathcal{P}^{off})$ \quad \textit{-- $(\mu+\lambda)$ + elitism --}
+
+  \If{$\min_{\mathcal{C} \in \mathcal{P}} f(\mathcal{C}) < Z^*$}
+    \State $Z^* \gets \min_{\mathcal{C}} f(\mathcal{C})$; \; $\mathcal{C}^* \gets \arg\min_{\mathcal{C}} f(\mathcal{C})$
+    \State $g_{no\_improve} \gets 0$
+  \Else
+    \State $g_{no\_improve} \gets g_{no\_improve} + 1$
+  \EndIf
+\EndWhile
+
+\State \Return $\mathcal{C}^*$, $Z^*$
+
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Xử lý ràng buộc -- Hard vs. Soft Constraints}
+
+\begin{center}
+\begin{tabular}{p{0.45\textwidth}p{0.15\textwidth}p{0.3\textwidth}}
+\toprule
+\textbf{Ràng buộc} & \textbf{Loại} & \textbf{Cơ chế xử lý} \\
+\midrule
+$\sum_i \QOA_{i,t} = CAP_t$ & Cứng & Encode trực tiếp + repair sau crossover/mutation \\
+$\QOA_{i,t} \geq 0$ & Cứng & Clip khi tạo/đột biến \\
+$\sum_{j \neq i} \QPLT_{i,j,t} \leq I_{i,t} - L_{i,t}$ & Cứng & Đảm bảo trong Alg.~\ref{alg:plt_heuristic} \\
+$I_{i,t} \geq 0$ & Mềm & Đưa vào hàm fitness (chi phí backorder $C^b$) \\
+$I_{i,t} \leq U_{i,t}$ & Mềm & Đưa vào hàm fitness (chi phí overstock $C^o$) \\
+$I_{i,t} \geq L_{i,t}$ & Mềm & Đưa vào hàm fitness (chi phí shortage $C^s$) \\
+Case-pack $\QOA \equiv 0 \pmod{CP}$ & Mềm & Phần dư $r^{OA}$ gây phạt $C^p$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Ràng buộc cứng phải thỏa mãn trong mọi cá thể hợp lệ; ràng buộc mềm được "tha thứ" nhưng gây chi phí trong hàm mục tiêu.

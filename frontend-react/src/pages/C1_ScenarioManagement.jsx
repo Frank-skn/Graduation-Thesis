@@ -235,7 +235,7 @@ const ScenarioManagement = () => {
         scenario_type,
         label: values.label || `${TYPE_LABEL[scenario_type]} ±${Math.abs(adjustPct)}%`,
         overrides,
-        solver: 'glpk',
+        solver: 'ma',
         time_limit: values.time_limit || 300,
         mip_gap: 0.01,
       })
@@ -283,7 +283,7 @@ const ScenarioManagement = () => {
     { title: 'Chi phí tối ưu', dataIndex: 'objective_value', key: 'obj', align: 'right',
       render: (v) => v != null ? <span className="font-semibold text-red-600">{fmt(v, 0)}</span> : '—' },
     { title: 'Solver', dataIndex: 'solver_status', key: 'solver',
-      render: (v) => v ? <Tag color={v === 'Optimal' ? 'green' : v === 'Feasible' ? 'orange' : 'red'}>{v}</Tag> : '—' },
+      render: (v) => v ? <Tag color={/^optimal$/i.test(v) ? 'green' : /^feasible$/i.test(v) ? 'orange' : 'red'}>{v}</Tag> : '—' },
     { title: 'Ngày tạo', dataIndex: 'created_at', key: 'at',
       render: (v) => v ? new Date(v).toLocaleString('vi-VN') : '—' },
     { title: 'Hành động', key: 'action', width: 100,

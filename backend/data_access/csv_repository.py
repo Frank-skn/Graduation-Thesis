@@ -72,7 +72,9 @@ class CsvOptimizationDataRepository(IOptimizationDataRepository):
     # ---------------------------------------------------------------- #
 
     def get_products(self) -> List[str]:
-        return self._products["product_id"].tolist()
+        # Only return products that have actual inventory flow data (active products)
+        active = self._inv_flow["product_id"].str.strip().unique().tolist()
+        return sorted(active)
 
     def get_warehouses(self) -> List[str]:
         return self._warehouses["warehouse_id"].tolist()
