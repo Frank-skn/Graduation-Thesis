@@ -137,5 +137,62 @@ body {
 
 /* Primary color definitions for consistency */
 .text-primary-500 { color: #1a3a52; }
-.text-primary-700 { color: #0f2937; }
+.text-primary-600 { color: #152e41; }
+.text-primary-700 { color: #102331; }
 .text-accent-300 { color: rgba(193, 156, 89, 0.7); }
+
+/* ── Tinh chỉnh giao diện doanh nghiệp (đồng bộ toàn app) ─────────── */
+
+/* Tiêu đề trang: cỡ ổn định, không nhảy khi chuyển tab */
+.page-header h1 {
+  font-size: 1.5rem;      /* 24px — thống nhất mọi trang */
+  line-height: 2rem;
+  letter-spacing: -0.01em;
+}
+
+/* Card: bo góc mềm, viền nhẹ, shadow tinh tế, hover mượt */
+.ant-card {
+  border-radius: 10px !important;
+  border: 1px solid #eef0f3 !important;
+  box-shadow: 0 1px 2px rgba(16, 35, 49, 0.04) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ant-card:hover {
+  box-shadow: 0 4px 14px rgba(16, 35, 49, 0.08) !important;
+  border-color: #e2e6ea !important;
+}
+.ant-card-head {
+  border-bottom: 1px solid #f0f2f5 !important;
+  min-height: 48px !important;
+}
+.ant-card-head-title {
+  font-weight: 600 !important;
+  color: #102331 !important;
+}
+
+/* Bảng: header nhạt, chữ rõ, hàng hover tinh tế */
+.ant-table-thead > tr > th {
+  background: #f7f9fb !important;
+  color: #45535f !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+.ant-table-tbody > tr > td { font-size: 13px !important; }
+
+/* Nút chính: cùng tông primary */
+.ant-btn-primary {
+  background: #1a3a52 !important;
+  border-color: #1a3a52 !important;
+}
+.ant-btn-primary:hover {
+  background: #245073 !important;
+  border-color: #245073 !important;
+}
+
+/* Statistic (KPI) cân đối hơn */
+.ant-statistic-title { color: #6b7785 !important; font-size: 13px !important; }
+.ant-statistic-content { color: #102331 !important; }
+
+/* Tabs: gạch chân theo tông primary */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: #1a3a52 !important; font-weight: 600 !important; }
+.ant-tabs-ink-bar { background: #1a3a52 !important; }

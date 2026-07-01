@@ -17,6 +17,7 @@ import { useAppContext } from '../context/AppContext'
 import optimizationService from '../services/optimizationService'
 import scenarioService from '../services/scenarioService'
 import dataService from '../services/dataService'
+import PageHeader from '../components/PageHeader'
 
 const { Option } = Select
 
@@ -250,7 +251,7 @@ const RunOptimization = () => {
   }
 
   const histColumns = [
-    { title: 'Run #', dataIndex: 'run_id', key: 'run_id', width: 70,
+    { title: 'Lần chạy', dataIndex: 'run_id', key: 'run_id', width: 90,
       render: (v) => <strong>#{v}</strong> },
     { title: 'Thời gian chạy', dataIndex: 'run_time', key: 'run_time', width: 160,
       render: (v) => v ? String(v).slice(0, 16) : '—' },
@@ -297,15 +298,11 @@ const RunOptimization = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-1">
-          <ThunderboltOutlined className="mr-3" />
-          B1. Thực Thi Tối Ưu Hoá
-        </h1>
-        <p className="text-gray-500">
-          Chạy mô hình tối ưu hoá SS-MB-SMI trước khi xem kết quả hoặc phân tích kịch bản.
-        </p>
-      </div>
+      <PageHeader
+        icon={<ThunderboltOutlined />}
+        title="B1. Thực thi tối ưu hoá"
+        subtitle="Chạy mô hình tối ưu hoá SS-MB-SMI trước khi xem kết quả hoặc phân tích kịch bản"
+      />
 
       <Tabs
         activeKey={activeTab}

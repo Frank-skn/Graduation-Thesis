@@ -6,6 +6,7 @@ import {
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts'
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
+import PageHeader from '../components/PageHeader'
 
 // Polling hook with localStorage persistence so an in-flight job keeps
 // being tracked even after the user navigates away and comes back.
@@ -154,10 +155,11 @@ const ParameterStability = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BarChartOutlined className="mr-3" />D2. Độ Bền Vững Nghiệm Tối Ưu</h1>
-        <p className="text-gray-600">Phân tích độ ổn định của nghiệm tối ưu khi các tham số thay đổi</p>
-      </div>
+      <PageHeader
+        icon={<BarChartOutlined />}
+        title="D2. Độ bền vững nghiệm tối ưu"
+        subtitle="Phân tích độ ổn định của nghiệm tối ưu khi các tham số thay đổi"
+      />
 
       <Card>
         <div className="flex items-center gap-4 flex-wrap">

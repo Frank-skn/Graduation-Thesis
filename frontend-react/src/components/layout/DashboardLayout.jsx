@@ -170,6 +170,7 @@ const DashboardLayout = ({ children }) => {
         trigger={null}
         collapsible
         collapsed={collapsed}
+        collapsedWidth={80}
         className="shadow-xl relative"
         style={{
           background: '#1a3a52',
@@ -184,22 +185,24 @@ const DashboardLayout = ({ children }) => {
         width={sidebarWidth}
         ref={siderRef}
       >
-        {/* Drag handle */}
-        <div
-          onMouseDown={handleDragStart}
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: '4px',
-            cursor: 'col-resize',
-            background: isDragging ? '#1890ff' : 'transparent',
-            transition: isDragging ? 'none' : 'background 0.3s',
-            zIndex: 1000,
-          }}
-          title="Kéo để điều chỉnh độ rộng menu"
-        />
+        {/* Drag handle — chỉ hiện khi sidebar mở rộng */}
+        {!collapsed && (
+          <div
+            onMouseDown={handleDragStart}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: '4px',
+              cursor: 'col-resize',
+              background: isDragging ? '#1890ff' : 'transparent',
+              transition: isDragging ? 'none' : 'background 0.3s',
+              zIndex: 1000,
+            }}
+            title="Kéo để điều chỉnh độ rộng menu"
+          />
+        )}
         
         <div className="p-4 text-center">
           <h1 className={`text-white font-bold transition-all ${collapsed ? 'text-lg' : 'text-xl'}`}>
@@ -223,7 +226,7 @@ const DashboardLayout = ({ children }) => {
           className="custom-menu"
         />
       </Sider>
-      <Layout style={{ marginLeft: sidebarWidth }}>
+      <Layout style={{ marginLeft: collapsed ? 80 : sidebarWidth, transition: 'margin-left 0.2s' }}>
         <Header
           className="bg-white shadow-sm px-6 flex items-center justify-between"
           style={{ padding: '0 24px' }}

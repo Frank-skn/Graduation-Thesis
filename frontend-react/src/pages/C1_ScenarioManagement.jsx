@@ -26,6 +26,7 @@ import { useAppContext } from '../context/AppContext'
 import { useApi, useMutation } from '../hooks/useApi'
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
+import PageHeader from '../components/PageHeader'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -328,15 +329,11 @@ const ScenarioManagement = () => {
   // ────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Tiêu đề */}
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-1">
-          <ExperimentOutlined className="mr-3" />C1. Phân tích What-If
-        </h1>
-        <p className="text-gray-500">
-          Chọn một nhóm kịch bản, điều chỉnh tham số, rồi chạy để xem kết quả so với lần chạy cơ sở.
-        </p>
-      </div>
+      <PageHeader
+        icon={<ExperimentOutlined />}
+        title="C1. Phân tích What-If"
+        subtitle="Chọn một nhóm kịch bản, điều chỉnh tham số, rồi chạy để so sánh với lần chạy cơ sở"
+      />
 
       {/* 6 nhóm kịch bản */}
       <Card title={<span className="font-bold">Chọn nhóm kịch bản</span>}>

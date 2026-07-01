@@ -6,6 +6,7 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
+import PageHeader from '../components/PageHeader'
 
 const { Option } = Select
 
@@ -195,10 +196,11 @@ const SensitivityAnalysis = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><LineChartOutlined className="mr-3" />D1. Phân Tích Độ Nhạy Tham Số</h1>
-        <p className="text-gray-600">Phân tích độ nhạy của tham số và biểu đồ tornado</p>
-      </div>
+      <PageHeader
+        icon={<LineChartOutlined />}
+        title="D1. Phân tích độ nhạy tham số"
+        subtitle="Đánh giá mức độ tác động của từng tham số đến chi phí (phân tích OAT và biểu đồ tornado)"
+      />
 
       <Card>
         <div className="flex items-center gap-4 flex-wrap">

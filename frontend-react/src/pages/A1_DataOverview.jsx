@@ -12,6 +12,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import { useApi } from '../hooks/useApi'
 import dataService from '../services/dataService'
+import PageHeader from '../components/PageHeader'
 
 const DataOverview = () => {
   const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview())
@@ -42,7 +43,7 @@ const DataOverview = () => {
     else if (completeness >= 40) status = 'Stale'
     return {
       source: p.name,
-      lastUpdated: `${p.num_entries} entries`,
+      lastUpdated: `${Number(p.num_entries).toLocaleString('vi-VN')} bản ghi`,
       status,
       staleness: completeness,
     }
@@ -137,17 +138,12 @@ const DataOverview = () => {
   return (
     <Spin spinning={loading}>
     <div className="space-y-6">
-      {error && <Alert message="Error loading data" description={error} type="error" showIcon closable />}
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2">
-          <BarChartOutlined className="mr-3" />
-          A1. Tổng Quan Dữ Liệu Đầu Vào
-        </h1>
-        <p className="text-gray-600">
-          Giám sát mức độ đầy đủ dữ liệu, chất lượng và bảo đảm toàn bộ nguồn dữ liệu
-        </p>
-      </div>
+      {error && <Alert message="Lỗi khi tải dữ liệu" description={error} type="error" showIcon closable />}
+      <PageHeader
+        icon={<BarChartOutlined />}
+        title="A1. Tổng quan dữ liệu đầu vào"
+        subtitle="Giám sát mức độ đầy đủ, chất lượng và tính sẵn sàng của toàn bộ nguồn dữ liệu"
+      />
 
       {/* Summary Cards */}
       <Row gutter={16}>

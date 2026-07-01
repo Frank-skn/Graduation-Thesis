@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons'
 import { useApi, useMutation } from '../hooks/useApi'
 import dataService from '../services/dataService'
+import PageHeader from '../components/PageHeader'
 
 const { TabPane } = Tabs
 
@@ -156,15 +157,12 @@ const ParameterManagement = () => {
 
   return (
     <Spin spinning={loading || saving || creating}>
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">
-          <SettingOutlined className="mr-3" />
-          A2. Tham Số Mô Hình
-        </h1>
-        <p className="text-gray-600">Quản lý tham số mô hình và phiên bản dữ liệu</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={<SettingOutlined />}
+        title="A2. Tham số mô hình"
+        subtitle="Quản lý tham số mô hình và phiên bản dữ liệu"
+      />
 
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         <TabPane tab={<><SettingOutlined />Tham Số</>} key="parameters">

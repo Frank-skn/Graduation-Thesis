@@ -4,6 +4,7 @@ import { SwapOutlined, BarChartOutlined, ReloadOutlined, ArrowUpOutlined, ArrowD
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
+import PageHeader from '../components/PageHeader'
 
 const { Option } = Select
 const fmt = (v, d = 0) =>
@@ -81,12 +82,11 @@ const ScenarioComparison = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2">
-          <SwapOutlined className="mr-3" />C2. So Sánh Kịch Bản
-        </h1>
-        <p className="text-gray-600">So sánh KPI giữa hai lần chạy tối ưu</p>
-      </div>
+      <PageHeader
+        icon={<SwapOutlined />}
+        title="C2. So sánh kịch bản"
+        subtitle="So sánh các chỉ số hiệu quả (KPI) giữa hai lần chạy tối ưu"
+      />
 
       {error && <Alert message="Lỗi" description={error} type="error" showIcon closable onClose={() => setError(null)} />}
 

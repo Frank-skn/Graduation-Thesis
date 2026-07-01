@@ -23,6 +23,7 @@ import { useAppContext } from '../context/AppContext'
 import { useApi } from '../hooks/useApi'
 import optimizationService from '../services/optimizationService'
 import dataService from '../services/dataService'
+import PageHeader from '../components/PageHeader'
 
 const { Option } = Select
 
@@ -538,33 +539,28 @@ const AllocationInventoryDashboard = () => {
   const tabItems = [
     {
       key: 'plt',
-      label: <span><SwapOutlined /> PLT Chuyển Hàng Ngang</span>,
+      label: <span><SwapOutlined /> Điều chuyển ngang (PLT)</span>,
       children: <PLTTab runId={activeRunId} products={products} warehouses={warehouses} />,
     },
     {
       key: 'trajectory',
-      label: <span><LineChartOutlined /> Quỹ Đạo Tồn Kho Theo Kho</span>,
+      label: <span><LineChartOutlined /> Quỹ đạo tồn kho theo kho</span>,
       children: <InventoryTrajectoryTab runId={activeRunId} />,
     },
     {
       key: 'allocation',
-      label: <span><AppstoreOutlined /> Phân Bổ Theo Sản Phẩm</span>,
+      label: <span><AppstoreOutlined /> Phân bổ theo sản phẩm</span>,
       children: <AllocationTab runId={activeRunId} products={products} warehouses={warehouses} />,
     },
   ]
 
   return (
-    <div className="space-y-4">
-      {/* Tiêu đề */}
-      <div className="flex items-center gap-2 mb-2">
-        <AppstoreOutlined className="text-2xl text-blue-600" />
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-0">B3. Phân Bổ &amp; Động Thái Tồn Kho</h2>
-          <p className="text-sm text-gray-500 mt-0">
-            PLT chuyển hàng ngang · Quỹ đạo tồn kho theo kho · Chi tiết phân bổ theo sản phẩm
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={<AppstoreOutlined />}
+        title="B3. Phân bổ & Động thái tồn kho"
+        subtitle="Điều chuyển ngang giữa kho · Quỹ đạo tồn kho theo kho · Chi tiết phân bổ theo sản phẩm"
+      />
 
       {/* Chọn run */}
       <Card size="small">

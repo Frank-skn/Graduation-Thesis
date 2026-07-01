@@ -15,6 +15,7 @@ import {
 import { useApi } from '../hooks/useApi'
 import { useAppContext } from '../context/AppContext'
 import optimizationService from '../services/optimizationService'
+import PageHeader from '../components/PageHeader'
 
 const { Text } = Typography
 const { Option } = Select
@@ -94,10 +95,10 @@ const ExecutiveSummary = () => {
     : (baselineCost > 0 ? (savingsAmt / baselineCost * 100) : 0)
   // ── Bảng phân tích chi phí ────────────────────────────
   const costRows = [
-    { key: 'backorder', name: 'Chi phí tồn thiếu (Backlog)',   value: Number(kpis.cost_backorder) || 0 },
-    { key: 'overstock', name: 'Chi phí tồn thừa (Overstock)',  value: Number(kpis.cost_overstock) || 0 },
-    { key: 'shortage',  name: 'Chi phí thiếu hụt (Shortage)',  value: Number(kpis.cost_shortage)  || 0 },
-    { key: 'penalty',   name: 'Chi phí vi phạm (Penalty)',     value: Number(kpis.cost_penalty)   || 0 },
+    { key: 'backorder', name: 'Chi phí nợ đơn',              value: Number(kpis.cost_backorder) || 0 },
+    { key: 'overstock', name: 'Chi phí tồn kho vượt mức',   value: Number(kpis.cost_overstock) || 0 },
+    { key: 'shortage',  name: 'Chi phí thiếu hụt',          value: Number(kpis.cost_shortage)  || 0 },
+    { key: 'penalty',   name: 'Chi phí phạt đóng gói',      value: Number(kpis.cost_penalty)   || 0 },
   ].map((r) => ({ ...r, pct: totalCost > 0 ? (r.value / totalCost * 100) : 0 }))
 
   const costColumns = [
@@ -146,10 +147,10 @@ const ExecutiveSummary = () => {
 
   const whCostChartData = filteredWhCost.map((w) => ({
     name: w.warehouse_id,
-    'Backorder': w.cost_backorder,
-    'Overstock': w.cost_overstock,
-    'Shortage': w.cost_shortage,
-    'Penalty': w.cost_penalty,
+    'Nợ đơn': w.cost_backorder,
+    'Tồn thừa': w.cost_overstock,
+    'Thiếu hụt': w.cost_shortage,
+    'Vi phạm đóng gói': w.cost_penalty,
   }))
 
   // ── B3: State & logic cho chi tiết biến & SI/SS ───────
@@ -266,33 +267,30 @@ const ExecutiveSummary = () => {
         )}
 
         {/* ── Tiêu đề & chọn lần chạy ── */}
-        <div className="flex justify-between items-start flex-wrap gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-primary-700 mb-1">
-              <DashboardOutlined className="mr-3" />B2. Kết Quả &amp; Chi Phí
-            </h1>
-            <p className="text-gray-500">
-              Kịch bản: <strong>{run.scenario_name || run.scenario_id || '—'}</strong>
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select
-              style={{ minWidth: 340 }}
-              options={runOptions}
-              value={activeRunId}
-              onChange={(val) => setActiveRunId(val)}
-              placeholder="Chọn lần chạy"
-              loading={runsLoading}
-            />
-            <Button icon={<ReloadOutlined />} onClick={fetchRuns} title="Làm mới" />
-            <Tag color={
-              /^optimal$/i.test(run.solver_status) ? 'green'
-              : /^feasible$/i.test(run.solver_status) ? 'orange' : 'red'
-            }>
-              {run.solver_status || '—'}
-            </Tag>
-          </div>
-        </div>
+        <PageHeader
+          icon={<DashboardOutlined />}
+          title="B2. Kết quả & Chi phí"
+          subtitle={<>Kịch bản: <strong>{run.scenario_name || run.scenario_id || '—'}</strong></>}
+          extra={
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select
+                style={{ minWidth: 340 }}
+                options={runOptions}
+                value={activeRunId}
+                onChange={(val) => setActiveRunId(val)}
+                placeholder="Chọn lần chạy"
+                loading={runsLoading}
+              />
+              <Button icon={<ReloadOutlined />} onClick={fetchRuns} title="Làm mới" />
+              <Tag color={
+                /^optimal$/i.test(run.solver_status) ? 'green'
+                : /^feasible$/i.test(run.solver_status) ? 'orange' : 'red'
+              }>
+                {run.solver_status || '—'}
+              </Tag>
+            </div>
+          }
+        />
 
         {/* ── KPI Cards ── */}
         <Row gutter={16}>
@@ -465,11 +463,11 @@ const ExecutiveSummary = () => {
                       <Col span={12}>
                         <div className="space-y-0 text-sm">
                           {[
-                            ['Tổng kết quả lưu',    summary.result_count || 0,   ''],
-                            ['Tồn thiếu (Backlog)',  Number(kpis.cost_backorder || 0).toLocaleString('vi-VN'), 'text-red-600'],
-                            ['Tồn thừa (Overstock)', Number(kpis.cost_overstock || 0).toLocaleString('vi-VN'), 'text-orange-600'],
-                            ['Thiếu hụt (Shortage)', Number(kpis.cost_shortage  || 0).toLocaleString('vi-VN'), 'text-yellow-600'],
-                            ['Vi phạm (Penalty)',    Number(kpis.cost_penalty   || 0).toLocaleString('vi-VN'), 'text-blue-600'],
+                            ['Tổng bản ghi kết quả', summary.result_count || 0,   ''],
+                            ['Chi phí nợ đơn',            Number(kpis.cost_backorder || 0).toLocaleString('vi-VN'), 'text-red-600'],
+                            ['Chi phí tồn kho vượt mức',  Number(kpis.cost_overstock || 0).toLocaleString('vi-VN'), 'text-orange-600'],
+                            ['Chi phí thiếu hụt',         Number(kpis.cost_shortage  || 0).toLocaleString('vi-VN'), 'text-yellow-600'],
+                            ['Chi phí phạt đóng gói',     Number(kpis.cost_penalty   || 0).toLocaleString('vi-VN'), 'text-blue-600'],
                           ].map(([label, val, cls]) => (
                             <div key={label} className="flex justify-between py-2 border-b last:border-0">
                               <span className="text-gray-500">{label}:</span>
@@ -686,14 +684,14 @@ const ExecutiveSummary = () => {
                           columns={[
                             { title: 'Kho', dataIndex: 'warehouse_id', key: 'warehouse_id',
                               render: (v) => <Tag color="blue">{v}</Tag> },
-                            { title: 'Backorder', dataIndex: 'cost_backorder', key: 'cost_backorder',
+                            { title: 'Nợ đơn', dataIndex: 'cost_backorder', key: 'cost_backorder',
                               align: 'right', render: (v) => fmt(v, 2),
                               sorter: (a, b) => a.cost_backorder - b.cost_backorder },
-                            { title: 'Overstock', dataIndex: 'cost_overstock', key: 'cost_overstock',
+                            { title: 'Tồn thừa', dataIndex: 'cost_overstock', key: 'cost_overstock',
                               align: 'right', render: (v) => fmt(v, 2) },
-                            { title: 'Shortage', dataIndex: 'cost_shortage', key: 'cost_shortage',
+                            { title: 'Thiếu hụt', dataIndex: 'cost_shortage', key: 'cost_shortage',
                               align: 'right', render: (v) => fmt(v, 2) },
-                            { title: 'Penalty', dataIndex: 'cost_penalty', key: 'cost_penalty',
+                            { title: 'Phạt đóng gói', dataIndex: 'cost_penalty', key: 'cost_penalty',
                               align: 'right', render: (v) => fmt(v, 2) },
                             { title: 'Tổng', dataIndex: 'total_cost', key: 'total_cost',
                               align: 'right', sorter: (a, b) => a.total_cost - b.total_cost,
@@ -736,10 +734,10 @@ const ExecutiveSummary = () => {
                                 <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={80} tick={{ fontSize: 10 }} />
                                 <Tooltip formatter={(v) => [fmt(v, 2), '']} />
                                 <Legend />
-                                <Bar dataKey="Backorder" fill="#f5222d" stackId="a" />
-                                <Bar dataKey="Overstock" fill="#fa8c16" stackId="a" />
-                                <Bar dataKey="Shortage"  fill="#faad14" stackId="a" />
-                                <Bar dataKey="Penalty"   fill="#1890ff" stackId="a" />
+                                <Bar dataKey="Nợ đơn" fill="#f5222d" stackId="a" />
+                                <Bar dataKey="Tồn thừa" fill="#fa8c16" stackId="a" />
+                                <Bar dataKey="Thiếu hụt"  fill="#faad14" stackId="a" />
+                                <Bar dataKey="Vi phạm đóng gói"   fill="#1890ff" stackId="a" />
                               </BarChart>
                             </ResponsiveContainer>
                           )
