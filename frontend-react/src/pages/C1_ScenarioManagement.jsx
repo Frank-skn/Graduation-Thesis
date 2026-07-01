@@ -158,6 +158,14 @@ const ScenarioManagement = () => {
   // History from /whatif/history endpoint
   const scenarios = historyData?.scenarios || []
 
+  // Auto-poll history khi còn job đang chạy (what-if chạy nền)
+  const hasRunningWhatIf = scenarios.some((s) => (s.status || '') === 'running')
+  useEffect(() => {
+    if (!hasRunningWhatIf) return
+    const id = setInterval(() => { refreshScenarios() }, 5000)
+    return () => clearInterval(id)
+  }, [hasRunningWhatIf, refreshScenarios])
+
   // Run list cho base scenario selector
   const [runs, setRuns] = useState([])
   const loadRuns = useCallback(() => {
@@ -240,7 +248,7 @@ const ScenarioManagement = () => {
         mip_gap: 0.01,
       })
 
-      message.success('Kịch bản What-If đã chạy thành công!')
+      message.success('Kịch bản What-If đã được khởi chạy. Kết quả sẽ cập nhật trong lịch sử khi hoàn tất.')
       setShowModal(false)
       refreshScenarios()
     } catch (err) {

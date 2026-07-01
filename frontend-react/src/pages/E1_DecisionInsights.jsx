@@ -80,7 +80,7 @@ const DecisionInsights = () => {
   if (!activeRunId) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BulbOutlined className="mr-3" />F1. Decision Insights</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BulbOutlined className="mr-3" />E1. Thông Tin Hỗ Trợ Ra Quyết Định</h1>
         <Alert message="No Optimization Run Selected" description="Enter a run ID to generate decision insights." type="info" showIcon />
         <Card><div className="flex items-center gap-4"><span>Run ID:</span><InputNumber min={1} value={runIdInput} onChange={setRunIdInput} /><Button type="primary" onClick={() => setActiveRunId(runIdInput)}>Load Insights</Button></div></Card>
       </div>
@@ -94,7 +94,7 @@ const DecisionInsights = () => {
 
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-primary-700 mb-2"><BulbOutlined className="mr-3" />F1. Decision Insights</h1>
+          <h1 className="text-3xl font-bold text-primary-700 mb-2"><BulbOutlined className="mr-3" />E1. Thông Tin Hỗ Trợ Ra Quyết Định</h1>
           <p className="text-gray-600">Run #{activeRunId} | {insightsData?.total_insights || 0} insights generated</p>
         </div>
         <div className="flex items-center gap-2">

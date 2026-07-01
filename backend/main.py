@@ -47,17 +47,22 @@ def startup_event():
     BaseNDS.metadata.create_all(bind=engine)
 
     # --- Safe column migrations (idempotent) ---
+    # Each entry: (column_name, column_type, default_sql)
     _migrations = {
         "dss_kpi": [
-            ("cost_backorder", "NUMERIC"),
-            ("cost_overstock", "NUMERIC"),
-            ("cost_shortage",  "NUMERIC"),
-            ("cost_penalty",   "NUMERIC"),
+            ("cost_backorder", "NUMERIC", "0"),
+            ("cost_overstock", "NUMERIC", "0"),
+            ("cost_shortage",  "NUMERIC", "0"),
+            ("cost_penalty",   "NUMERIC", "0"),
         ],
         "dss_run_summary": [
-            ("prop_cost",        "NUMERIC"),
-            ("savings_vs_prop",  "NUMERIC"),
-            ("savings_pct_prop", "NUMERIC"),
+            ("prop_cost",        "NUMERIC", "0"),
+            ("savings_vs_prop",  "NUMERIC", "0"),
+            ("savings_pct_prop", "NUMERIC", "0"),
+        ],
+        "sensitivity_run": [
+            ("scenario_id",   "INTEGER", "NULL"),
+            ("analysis_type", "TEXT",    "'oat'"),
         ],
     }
     with engine.connect() as conn:
@@ -65,10 +70,10 @@ def startup_event():
             try:
                 rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
                 existing = {r[1] for r in rows}
-                for col_name, col_type in cols:
+                for col_name, col_type, col_default in cols:
                     if col_name not in existing:
                         conn.execute(text(
-                            f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT 0"
+                            f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"
                         ))
                 conn.commit()
             except Exception as exc:

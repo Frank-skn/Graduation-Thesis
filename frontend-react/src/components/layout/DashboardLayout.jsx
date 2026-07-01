@@ -20,7 +20,6 @@ import {
   ThunderboltOutlined,
   SlidersOutlined,
   RadarChartOutlined,
-  AimOutlined,
   WarningOutlined,
   SafetyOutlined,
 } from '@ant-design/icons'
@@ -78,7 +77,7 @@ const DashboardLayout = ({ children }) => {
   }
 
   const noRun = !activeRunId
-  const noRunTitle = 'Chạy B1 trước để mở khoá trang này'
+  const noRunTitle = 'Cần chạy tối ưu hoá (B1) trước để mở khoá trang này'
 
   const menuItems = [
     {
@@ -145,19 +144,14 @@ const DashboardLayout = ({ children }) => {
       label: 'D. Phân tích độ nhạy & Rủi ro',
       children: [
         {
-          key: '/d1-decision-impact-scenarios',
-          icon: <AimOutlined />,
-          label: 'D1. Tác động quyết định phân bổ',
-        },
-        {
           key: '/d2-sensitivity-analysis',
           icon: <RadarChartOutlined />,
-          label: 'D2. Phân tích độ nhạy tham số',
+          label: 'D1. Phân tích độ nhạy tham số',
         },
         {
           key: '/d3-parameter-stability',
           icon: <BarChartOutlined />,
-          label: 'D3. Độ bền vững nghiệm tối ưu',
+          label: 'D2. Độ bền vững nghiệm tối ưu',
         },
       ],
     },

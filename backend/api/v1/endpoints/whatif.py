@@ -6,7 +6,7 @@ and side-by-side run comparison.
 import json
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -149,51 +149,30 @@ def get_whatif_templates():
 #  2. POST / -- Create and execute a what-if scenario                  #
 # ================================================================== #
 
-@router.post("/", response_model=WhatIfResponse, status_code=201)
-def create_whatif(
-    request: WhatIfCreate,
-    db_nds: Session = Depends(get_db_nds),
-    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
-):
+def _run_whatif_task(whatif_id: int, request_dict: dict, data_dir: str):
     """
-    Create and execute a what-if scenario.
+    Background worker for a what-if scenario.
 
-    1. Validates the base scenario.
-    2. Records the what-if in nds.what_if_scenario.
-    3. Fetches the base optimization input from DDS.
-    4. Applies the scenario modification via WhatIfService.
-    5. Runs a new optimization.
-    6. Stores results and KPIs.
-    7. Returns KPIs and solver metadata.
+    Solves the modified problem via the MA solver and persists the run,
+    KPIs, detailed rows and the extended summary. Updates the WhatIfScenario
+    record status to "completed" / "failed".
     """
-    # Verify scenario exists
-    scenario_repo = ScenarioRepository(db_nds)
-    scenario = scenario_repo.get_scenario(request.base_scenario_id)
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Scenario not found")
+    from backend.core.database import SessionLocalNDS
+    from backend.data_access.csv_repository import CsvOptimizationDataRepository as Repo
+    from backend.schemas.whatif import WhatIfCreate as Req
 
-    # Persist what-if record (status=running)
-    # Store label inside overrides JSON for retrieval in history
-    overrides_with_label = dict(request.overrides)
-    if request.label:
-        overrides_with_label["label"] = request.label
-    whatif = WhatIfScenario(
-        scenario_id=request.base_scenario_id,
-        whatif_type=request.scenario_type.value,
-        parameter_overrides=json.dumps(overrides_with_label),
-        status="running",
-    )
-    db_nds.add(whatif)
-    db_nds.commit()
-    db_nds.refresh(whatif)
-
+    db = SessionLocalNDS()
+    whatif = db.query(WhatIfScenario).filter(
+        WhatIfScenario.whatif_id == whatif_id
+    ).first()
     try:
-        # Get base optimisation input from CSV
+        request = Req(**request_dict)
+        csv_repo = Repo(data_dir)
         base_input = csv_repo.get_optimization_input()
 
-        # Also try to fetch base KPIs from the latest run
+        # Fetch base KPIs from the latest run of the base scenario
         latest_run = (
-            db_nds.query(OptimizationRun)
+            db.query(OptimizationRun)
             .filter(OptimizationRun.scenario_id == request.base_scenario_id)
             .order_by(OptimizationRun.run_time.desc())
             .first()
@@ -201,21 +180,18 @@ def create_whatif(
         base_kpis = None
         base_objective = None
         if latest_run:
-            result_repo = ResultRepository(db_nds)
-            base_kpis = result_repo.get_kpis(latest_run.run_id)
+            base_kpis = ResultRepository(db).get_kpis(latest_run.run_id)
             base_objective = float(latest_run.objective_value or 0)
 
-        # Run what-if — pass data_dir so MA solver can read CSV files
         whatif_response, whatif_output, whatif_plt_rows = _whatif_svc.run_whatif(
             base_data=base_input,
             request=request,
             base_kpis=base_kpis,
             base_objective=base_objective,
-            data_dir=str(csv_repo._dir),
+            data_dir=data_dir,
         )
 
-        # Save the optimization run to DB
-        result_repo = ResultRepository(db_nds)
+        result_repo = ResultRepository(db)
         run_id = result_repo.save_optimization_run(
             scenario_id=request.base_scenario_id,
             solver_status=whatif_response.solver_status,
@@ -238,13 +214,10 @@ def create_whatif(
             "capacity_utilization": whatif_response.kpis.capacity_utilization,
         }
         result_repo.save_kpis(run_id, kpi_dict)
-        # Save detailed rows so B2 variables/SI-SS/changes tabs work for what-if runs
         result_repo.save_results(run_id, whatif_output)
         if whatif_plt_rows:
             result_repo.save_plt_transfers(run_id, whatif_plt_rows)
 
-        # Save extended run summary (baseline cost, savings, SI/SS)
-        # Use ma_inv_cost (inventory-only) for fair comparison with baseline/prop
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=whatif_response.baseline_cost,
@@ -256,22 +229,96 @@ def create_whatif(
             ss_below_count=whatif_response.ss_below_count,
         )
 
-        # Update what-if record
-        whatif.run_id = run_id
-        whatif.status = "completed"
-        db_nds.commit()
-
-        # Patch the response with the DB-assigned whatif_id
-        whatif_response.whatif_id = whatif.whatif_id
-        return whatif_response
+        if whatif:
+            whatif.run_id = run_id
+            whatif.status = "completed"
+            db.commit()
 
     except Exception as e:
-        whatif.status = "failed"
-        db_nds.commit()
-        raise HTTPException(
-            status_code=500,
-            detail=f"What-if analysis failed: {str(e)}",
-        )
+        if whatif:
+            whatif.status = f"failed: {str(e)[:200]}"
+            db.commit()
+    finally:
+        db.close()
+
+
+@router.post("/", status_code=202)
+def create_whatif(
+    request: WhatIfCreate,
+    background_tasks: BackgroundTasks,
+    db_nds: Session = Depends(get_db_nds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
+):
+    """
+    Create a what-if scenario and run it in the background.
+
+    Returns immediately with the whatif_id and status "running".
+    Poll GET /whatif/{whatif_id}/status for completion.
+    """
+    # Verify scenario exists
+    scenario_repo = ScenarioRepository(db_nds)
+    scenario = scenario_repo.get_scenario(request.base_scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+
+    # Persist what-if record (status=running); store label inside overrides JSON
+    overrides_with_label = dict(request.overrides)
+    if request.label:
+        overrides_with_label["label"] = request.label
+    whatif = WhatIfScenario(
+        scenario_id=request.base_scenario_id,
+        whatif_type=request.scenario_type.value,
+        parameter_overrides=json.dumps(overrides_with_label),
+        status="running",
+    )
+    db_nds.add(whatif)
+    db_nds.commit()
+    db_nds.refresh(whatif)
+
+    background_tasks.add_task(
+        _run_whatif_task,
+        whatif_id=whatif.whatif_id,
+        request_dict=request.model_dump(mode="json"),
+        data_dir=str(csv_repo._dir),
+    )
+
+    return {
+        "whatif_id": whatif.whatif_id,
+        "status": "running",
+        "message": "What-if analysis started. Poll /whatif/{whatif_id}/status for progress.",
+    }
+
+
+# ================================================================== #
+#  2b. GET /{whatif_id}/status -- Poll a what-if job                   #
+# ================================================================== #
+
+@router.get("/{whatif_id}/status")
+def get_whatif_status(whatif_id: int, db: Session = Depends(get_db_nds)):
+    """Poll a what-if job. Returns status, and run_id + objective when completed."""
+    whatif = db.query(WhatIfScenario).filter(
+        WhatIfScenario.whatif_id == whatif_id
+    ).first()
+    if not whatif:
+        raise HTTPException(status_code=404, detail="What-if scenario not found")
+
+    status = whatif.status or "running"
+    is_done = status not in ("running", "pending")
+
+    payload = {
+        "whatif_id": whatif_id,
+        "status": status,
+        "is_done": is_done,
+        "run_id": whatif.run_id,
+    }
+    if whatif.run_id:
+        run = db.query(OptimizationRun).filter(
+            OptimizationRun.run_id == whatif.run_id
+        ).first()
+        if run:
+            payload["objective_value"] = float(run.objective_value or 0)
+            payload["solver_status"] = run.solver_status
+    return payload
 
 
 # ================================================================== #

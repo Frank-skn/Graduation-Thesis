@@ -18,7 +18,6 @@ import C1_ScenarioManagement from './pages/C1_ScenarioManagement'
 import C3_ScenarioComparison from './pages/C3_ScenarioComparison'
 
 // Group D: Advanced Analysis
-import D1_DecisionImpactScenarios from './pages/D1_DecisionImpactScenarios'
 import D2_SensitivityAnalysis from './pages/D2_SensitivityAnalysis'
 import D3_ParameterStability from './pages/D3_ParameterStability'
 
@@ -43,15 +42,16 @@ function App() {
           <Route path="/b0-run-optimization" element={<B0_RunOptimization />} />
           <Route path="/b1-executive-summary" element={<RequireRun><B1_ExecutiveSummary /></RequireRun>} />
           <Route path="/b2-allocation-inventory-dashboard" element={<RequireRun><B2_AllocationInventoryDashboard /></RequireRun>} />
+          {/* Legacy routes kept as redirects for old bookmarks */}
           <Route path="/b3-variable-details" element={<Navigate to="/b1-executive-summary" replace />} />
-          <Route path="/b4-plt-analysis" element={<Navigate to="/b2-allocation-inventory-dashboard" replace />} />
           
           {/* Group C: Scenario Analysis */}
           <Route path="/c1-scenario-management" element={<C1_ScenarioManagement />} />
           <Route path="/c3-scenario-comparison" element={<C3_ScenarioComparison />} />
           
           {/* Group D: Advanced Analysis */}
-          <Route path="/d1-decision-impact-scenarios" element={<D1_DecisionImpactScenarios />} />
+          {/* D1 (Decision Impact) removed — duplicated C2 Scenario Comparison */}
+          <Route path="/d1-decision-impact-scenarios" element={<Navigate to="/c3-scenario-comparison" replace />} />
           <Route path="/d2-sensitivity-analysis" element={<D2_SensitivityAnalysis />} />
           <Route path="/d3-parameter-stability" element={<D3_ParameterStability />} />
           

@@ -59,18 +59,27 @@ class WhatIfService:
         Returns:
             (WhatIfResponse, OptimizationOutput) — response + raw rows for DB persistence.
         """
-        # 1. Clone & modify
+        # 1. Clone & modify (OptimizationInput — used as fallback/no-data_dir path)
         modified_data = self.apply_whatif(base_data, request.scenario_type, request.overrides)
 
-        # 2. Solve — MA solver reads from CSV so we pass data_dir; overrides affect
-        #    the OptimizationInput used for baseline/prop cost computation only.
+        # 1b. Build MA scenario overrides so the MA solver actually sees the change.
+        #     These factors are applied to the Problem INPUT (delta_I, CAP, costs…),
+        #     not to the GA/ALNS algorithm.
+        ma_overrides = self._build_ma_overrides(request.scenario_type, request.overrides)
+
+        # 2. Solve — MA reads CSV via data_dir, scenario_overrides scale that input.
         svc = OptimizationService(
             solver="ma",
             time_limit=request.time_limit or 300,
             mip_gap=request.mip_gap or 0.01,
         )
         product_ids = getattr(request, 'product_ids', None)
-        result: OptimizationResult = svc.solve(modified_data, data_dir=data_dir, product_ids=product_ids)
+        result: OptimizationResult = svc.solve(
+            modified_data,
+            data_dir=data_dir,
+            product_ids=product_ids,
+            scenario_overrides=ma_overrides,
+        )
 
         # 3. Build response
         kpis = WhatIfKPIs(
@@ -199,6 +208,55 @@ class WhatIfService:
 
         handler(self, data, overrides)
         return data
+
+    # ------------------------------------------------------------------ #
+    #  Build MA-level scenario overrides                                 #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _build_ma_overrides(
+        scenario_type: ScenarioType,
+        overrides: Dict[str, Any],
+    ) -> Dict[str, float]:
+        """
+        Translate a scenario into per-parameter scale factors that the MA
+        solver applies to the Problem input.
+
+        Supported (scale-based) scenarios:
+            demand_surge / demand_drop        → {"DI": factor}
+            capacity_disruption / expansion   → {"CAP": factor}
+            cost_increase / cost_decrease     → {"Cb","Co","Cs","Cp": factor}
+            safety_stock_tighten / loosen     → {"U": factor, "L": 1/factor*?}  (approx)
+
+        Structural scenarios (new_product, warehouse_closure) and custom
+        overrides are not expressible as simple factors → return {} so MA runs
+        on the base data (they are still reflected in the OptimizationInput
+        path used for baseline computation).
+        """
+        st = scenario_type
+        factor = None
+        try:
+            factor = float(overrides.get("factor"))
+        except (TypeError, ValueError):
+            factor = None
+
+        if factor is None:
+            return {}
+
+        if st in (ScenarioType.DEMAND_SURGE, ScenarioType.DEMAND_DROP):
+            return {"DI": factor}
+        if st in (ScenarioType.CAPACITY_DISRUPTION, ScenarioType.CAPACITY_EXPANSION):
+            return {"CAP": factor}
+        if st in (ScenarioType.COST_INCREASE, ScenarioType.COST_DECREASE):
+            return {"Cb": factor, "Co": factor, "Cs": factor, "Cp": factor}
+        if st == ScenarioType.SAFETY_STOCK_LOOSEN:
+            # Widen bounds: raise ceiling, lower floor
+            return {"U": factor, "L": 1.0 / factor if factor else 1.0}
+        if st == ScenarioType.SAFETY_STOCK_TIGHTEN:
+            # Narrow bounds: lower ceiling, raise floor
+            return {"U": factor, "L": 1.0 / factor if factor else 1.0}
+
+        return {}
 
     # ------------------------------------------------------------------ #
     #  Individual scenario handlers                                      #

@@ -239,10 +239,13 @@ class MASolver:
         cfg_path: Path | None = None,
         cases: List[str] | None = None,
         seed: int = 42,
+        time_limit_s: float | None = None,
     ):
         self._cfg_path  = cfg_path or (_MA_DIR / "config.json")
         self._cases     = cases or AVAILABLE_CASES
         self._seed      = seed
+        # Per-product wall-clock limit (seconds). None → use config value.
+        self._time_limit_s = time_limit_s
         self._cfg       = json.loads(Path(self._cfg_path).read_text(encoding="utf-8"))
         # Override seed from config if present
         if "seed" in self._cfg:
@@ -299,16 +302,22 @@ class MASolver:
         self,
         data_dir: str,
         product_ids: List[str] | None = None,
+        scenario_overrides: Dict[str, float] | None = None,
     ) -> Dict[str, Any]:
         """
         Chạy MA trên data thực từ DSS CSV files.
 
         Parameters
         ----------
-        data_dir    : đường dẫn đến folder chứa CSV files
-        product_ids : danh sách product cần chạy (None = tất cả)
+        data_dir           : đường dẫn đến folder chứa CSV files
+        product_ids        : danh sách product cần chạy (None = tất cả)
+        scenario_overrides : dict factor What-if/Sensitivity, ví dụ {"DI": 1.2}.
+                             Áp lên INPUT của Problem (delta_I, CAP, cost...),
+                             KHÔNG đụng thuật toán GA/ALNS.
         """
-        from backend.domain.ma_adapter import CSVDataLoader, build_problem
+        from backend.domain.ma_adapter import (
+            CSVDataLoader, build_problem, apply_overrides_to_problem
+        )
 
         print("[MA] Loading CSV data...", flush=True)
         loader  = CSVDataLoader(data_dir)
@@ -333,8 +342,12 @@ class MASolver:
                     details.append({"product": pid, "status": "skipped"})
                     continue
 
+                # Apply What-if / Sensitivity scaling to the Problem INPUT only
+                if scenario_overrides:
+                    problem = apply_overrides_to_problem(problem, scenario_overrides)
+
                 rng = random.Random(self._seed)
-                ga  = _build_components(problem, self._cfg, rng)
+                ga  = _build_components(problem, self._cfg, rng, time_limit_s=self._time_limit_s)
                 _, sol = ga.run()
                 elapsed = time.perf_counter() - t0
 
@@ -402,7 +415,7 @@ class MASolver:
 
             problem  = Problem.from_json(params_path)
             rng      = random.Random(self._seed)
-            ga       = _build_components(problem, self._cfg, rng)
+            ga       = _build_components(problem, self._cfg, rng, time_limit_s=self._time_limit_s)
             _, sol   = ga.run()
             elapsed  = time.perf_counter() - t0
 

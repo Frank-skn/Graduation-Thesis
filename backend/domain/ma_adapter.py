@@ -100,14 +100,31 @@ class CSVDataLoader:
         return sorted(self.inv_flow["product_id"].str.strip().unique().tolist())
 
 
-def compute_baseline_from_csv(loader: CSVDataLoader) -> float:
+def compute_baseline_from_csv(
+    loader: CSVDataLoader,
+    overrides: Optional[Dict] = None,
+    product_ids: Optional[List[str]] = None,
+) -> float:
     """
     Baseline (do-nothing) cost tính trực tiếp từ ver2 CSV.
     Không giao hàng, tồn kho roll-forward theo delta_I qua từng kỳ.
+
+    overrides:    factor What-if/Sensitivity, áp cho cùng tham số như MA để
+                  baseline so sánh trên cùng kịch bản.
+    product_ids:  giới hạn baseline trên đúng tập sản phẩm MA đã chạy
+                  (test mode / product_limit). None = toàn bộ.
     """
+    overrides = overrides or {}
+    f_di = float(overrides.get("DI", 1.0))
+    f_u  = float(overrides.get("U", 1.0))
+    f_l  = float(overrides.get("L", 1.0))
+    f_co = float(overrides.get("Co", 1.0))
+    f_cs = float(overrides.get("Cs", 1.0))
+    f_cb = float(overrides.get("Cb", 1.0))
+
     warehouses = loader.warehouses
     periods    = sorted(loader.periods)
-    products   = loader.get_active_products()
+    products   = product_ids if product_ids else loader.get_active_products()
 
     total = 0.0
 
@@ -125,9 +142,9 @@ def compute_baseline_from_csv(loader: CSVDataLoader) -> float:
         for _, row in flow_df.iterrows():
             wh = str(row["warehouse_id"])
             t  = int(row["time_period"])
-            delta_I[(wh, t)] = float(row["inventory_fluctuation"])
-            U[(wh, t)]       = float(row["inventory_ceiling"])
-            L[(wh, t)]       = float(row["inventory_floor"])
+            delta_I[(wh, t)] = float(row["inventory_fluctuation"]) * f_di
+            U[(wh, t)]       = float(row["inventory_ceiling"]) * f_u
+            L[(wh, t)]       = float(row["inventory_floor"]) * f_l
 
         Co: Dict = {}
         Cs: Dict = {}
@@ -135,9 +152,9 @@ def compute_baseline_from_csv(loader: CSVDataLoader) -> float:
         for _, row in cost_df.iterrows():
             wh = str(row["warehouse_id"])
             t  = int(row["time_period"])
-            Co[(wh, t)] = float(row["overstock_cost"])
-            Cs[(wh, t)] = float(row["shortage_cost"])
-            Cb[(wh, t)] = float(row["backlog_cost"])
+            Co[(wh, t)] = float(row["overstock_cost"]) * f_co
+            Cs[(wh, t)] = float(row["shortage_cost"]) * f_cs
+            Cb[(wh, t)] = float(row["backlog_cost"]) * f_cb
 
         for wh in warehouses:
             bi_row = bi_df[bi_df["warehouse_id"] == wh]
@@ -158,14 +175,30 @@ def compute_baseline_from_csv(loader: CSVDataLoader) -> float:
     return total
 
 
-def compute_proportional_from_csv(loader: CSVDataLoader) -> float:
+def compute_proportional_from_csv(
+    loader: CSVDataLoader,
+    overrides: Optional[Dict] = None,
+    product_ids: Optional[List[str]] = None,
+) -> float:
     """
     Proportional allocation heuristic tính trực tiếp từ ver2 CSV.
     Phân bổ CAP[i,t] theo tỉ lệ deficit, làm tròn xuống bội số CP.
+
+    overrides:    factor What-if/Sensitivity, áp cho cùng tham số như MA.
+    product_ids:  giới hạn trên đúng tập sản phẩm MA đã chạy. None = toàn bộ.
     """
+    overrides = overrides or {}
+    f_di  = float(overrides.get("DI", 1.0))
+    f_u   = float(overrides.get("U", 1.0))
+    f_l   = float(overrides.get("L", 1.0))
+    f_cap = float(overrides.get("CAP", 1.0))
+    f_co  = float(overrides.get("Co", 1.0))
+    f_cs  = float(overrides.get("Cs", 1.0))
+    f_cb  = float(overrides.get("Cb", 1.0))
+
     warehouses = loader.warehouses
     periods    = sorted(loader.periods)
-    products   = loader.get_active_products()
+    products   = product_ids if product_ids else loader.get_active_products()
 
     total_cost = 0.0
 
@@ -187,13 +220,13 @@ def compute_proportional_from_csv(loader: CSVDataLoader) -> float:
         for _, row in flow_df.iterrows():
             wh = str(row["warehouse_id"])
             t  = int(row["time_period"])
-            delta_I[(wh, t)] = float(row["inventory_fluctuation"])
-            U[(wh, t)]       = float(row["inventory_ceiling"])
-            L[(wh, t)]       = float(row["inventory_floor"])
+            delta_I[(wh, t)] = float(row["inventory_fluctuation"]) * f_di
+            U[(wh, t)]       = float(row["inventory_ceiling"]) * f_u
+            L[(wh, t)]       = float(row["inventory_floor"]) * f_l
 
         CAP: Dict = {}
         for _, row in cap_df.iterrows():
-            CAP[int(row["time_period"])] = float(row["capacity"])
+            CAP[int(row["time_period"])] = float(row["capacity"]) * f_cap
 
         Co: Dict = {}
         Cs: Dict = {}
@@ -201,9 +234,9 @@ def compute_proportional_from_csv(loader: CSVDataLoader) -> float:
         for _, row in cost_df.iterrows():
             wh = str(row["warehouse_id"])
             t  = int(row["time_period"])
-            Co[(wh, t)] = float(row["overstock_cost"])
-            Cs[(wh, t)] = float(row["shortage_cost"])
-            Cb[(wh, t)] = float(row["backlog_cost"])
+            Co[(wh, t)] = float(row["overstock_cost"]) * f_co
+            Cs[(wh, t)] = float(row["shortage_cost"]) * f_cs
+            Cb[(wh, t)] = float(row["backlog_cost"]) * f_cb
 
         # Beginning inventory per warehouse
         current_inv: Dict[str, float] = {}
@@ -265,6 +298,65 @@ def compute_proportional_from_csv(loader: CSVDataLoader) -> float:
                 )
 
     return total_cost
+
+
+# ---------------------------------------------------------------------------
+# Scenario overrides (What-if / Sensitivity)
+# ---------------------------------------------------------------------------
+# Map a scenario parameter name to the Problem attribute(s) it scales.
+# These act on the INPUT of the MA solver (the Problem object), NOT on the
+# GA/ALNS algorithm itself.
+_OVERRIDE_TARGETS = {
+    "DI":  ["delta_I"],
+    "CAP": ["CAP"],
+    "U":   ["U"],
+    "L":   ["L"],
+    "Cb":  ["Cb"],
+    "Co":  ["Co"],
+    "Cs":  ["Cs"],
+    "Cp":  ["Cp"],
+    "BI":  ["BI"],
+    # CP (case-pack) is a scalar int (or dict) and is handled specially below.
+}
+
+
+def apply_overrides_to_problem(problem: "Problem", overrides: Optional[Dict]) -> "Problem":
+    """
+    Scale parameters of a built Problem in-place according to *overrides*.
+
+    overrides format (produced by What-if / Sensitivity):
+        {"<param>": <scale_factor>, ...}
+    e.g. {"DI": 1.2}  → multiply every delta_I entry by 1.2 (demand +20%)
+         {"CAP": 0.5} → halve capacity (disruption)
+
+    Only the listed parameters are touched. The GA/ALNS algorithm, the
+    chromosome representation and the decoder are all left untouched — this
+    function only changes what the solver receives as input data.
+
+    Returns the same Problem object (mutated) for convenience.
+    """
+    if not overrides:
+        return problem
+
+    for param, factor in overrides.items():
+        try:
+            f = float(factor)
+        except (TypeError, ValueError):
+            continue
+        if f == 1.0:
+            continue
+        # CP is a scalar int on a frozen dataclass — cannot be reassigned here.
+        # Scaling case-pack is skipped (sensitivity on CP has no effect on MA).
+        if param == "CP":
+            continue
+        for attr in _OVERRIDE_TARGETS.get(param, []):
+            mapping = getattr(problem, attr, None)
+            if not isinstance(mapping, dict):
+                continue
+            for key, val in list(mapping.items()):
+                mapping[key] = val * f
+
+    return problem
 
 
 # ---------------------------------------------------------------------------

@@ -155,6 +155,8 @@ def run_sensitivity(
 
     row = SensitivityRun(
         base_run_id=latest_run.run_id if latest_run else None,
+        scenario_id=request.scenario_id,
+        analysis_type="oat",
         parameter_name=request.parameter_name,
         variation_points=json.dumps(request.variation_percentages),
         status="running",
@@ -191,8 +193,17 @@ def run_tornado(
     if invalid:
         raise HTTPException(status_code=400, detail=f"Invalid parameter(s): {invalid}")
 
+    latest_run = (
+        db_nds.query(OptimizationRun)
+        .filter(OptimizationRun.scenario_id == request.scenario_id)
+        .order_by(OptimizationRun.run_time.desc())
+        .first()
+    )
+
     row = SensitivityRun(
-        base_run_id=None,
+        base_run_id=latest_run.run_id if latest_run else None,
+        scenario_id=request.scenario_id,
+        analysis_type="tornado",
         parameter_name="TORNADO:" + ",".join(request.parameters),
         variation_points=json.dumps([request.variation_pct, -request.variation_pct]),
         status="running",
@@ -243,7 +254,46 @@ def get_job_status(job_id: int, db: Session = Depends(get_db_nds)):
 
 
 # ================================================================== #
-#  4. GET /{sensitivity_id} — Legacy retrieve                         #
+#  4. GET /history — List past sensitivity jobs (for D2/D3 history)   #
+# ================================================================== #
+
+@router.get("/history")
+def get_sensitivity_history(
+    scenario_id: Optional[int] = None,
+    analysis_type: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db_nds),
+):
+    """
+    List past sensitivity jobs, newest first.
+
+    Optional filters:
+      - scenario_id:   only jobs for this scenario
+      - analysis_type: "oat" | "tornado"
+    """
+    q = db.query(SensitivityRun)
+    if scenario_id is not None:
+        q = q.filter(SensitivityRun.scenario_id == scenario_id)
+    if analysis_type is not None:
+        q = q.filter(SensitivityRun.analysis_type == analysis_type)
+
+    rows = q.order_by(SensitivityRun.sensitivity_id.desc()).limit(limit).all()
+
+    items = []
+    for r in rows:
+        items.append({
+            "job_id": r.sensitivity_id,
+            "scenario_id": r.scenario_id,
+            "analysis_type": r.analysis_type or "oat",
+            "parameter_name": r.parameter_name,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+    return {"jobs": items, "total": len(items)}
+
+
+# ================================================================== #
+#  5. GET /{sensitivity_id} — Legacy retrieve                         #
 # ================================================================== #
 
 @router.get("/{sensitivity_id}")

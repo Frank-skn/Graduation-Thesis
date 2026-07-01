@@ -344,7 +344,7 @@ const ExecutiveSummary = () => {
                 prefix={<ClockCircleOutlined />}
               />
               <div className="text-xs text-gray-400 mt-1">
-                MIP Gap: {Number(run.mip_gap || 0).toFixed(4)}
+                Giải thuật: Memetic (GA-ALNS)
               </div>
             </Card>
           </Col>
@@ -450,7 +450,7 @@ const ExecutiveSummary = () => {
                         <div className="space-y-0 text-sm">
                           {[
                             ['Giá trị mục tiêu', fmt(Number(run.objective_value || 0))],
-                            ['Sai số MIP',       Number(run.mip_gap || 0).toFixed(4)],
+                            ['Giải thuật',       'Memetic (GA-ALNS)'],
                             ['Số sản phẩm',      summary.product_count || 0],
                             ['Số kho',           summary.warehouse_count || 0],
                             ['Số chu kỳ',        summary.period_count || 0],

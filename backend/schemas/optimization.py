@@ -89,6 +89,7 @@ class OptimizationRequest(BaseModel):
     time_limit: Optional[int] = Field(default=300, description="Time limit in seconds")
     mip_gap: Optional[float] = Field(default=0.01, description="MIP gap tolerance")
     product_ids: Optional[List[str]] = Field(default=None, description="Subset of products to solve (None = all)")
+    product_limit: Optional[int] = Field(default=None, description="Solve only the first N products (test mode; None = all)")
 
 
 class OptimizationResponse(BaseModel):

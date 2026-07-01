@@ -93,9 +93,12 @@ class SensitivityService:
                 periods=request.periods,
             )
 
+            # MA-level override so the solver actually sees the perturbation
+            ma_overrides = {request.parameter_name: scale_factor}
+
             try:
                 svc = OptimizationService(**solver_kwargs)
-                res = svc.solve(modified, data_dir=data_dir)
+                res = svc.solve(modified, data_dir=data_dir, scenario_overrides=ma_overrides)
                 points.append(
                     SensitivityPoint(
                         variation_pct=pct,
@@ -233,9 +236,10 @@ class SensitivityService:
         """
         scale_factor = 1.0 + variation_pct / 100.0
         modified = self._scale_parameter(base_data, param_name, scale_factor)
+        ma_overrides = {param_name: scale_factor}
         try:
             svc = OptimizationService(**solver_kwargs)
-            res = svc.solve(modified, data_dir=data_dir)
+            res = svc.solve(modified, data_dir=data_dir, scenario_overrides=ma_overrides)
             return res.ma_inv_cost or res.objective_value
         except RuntimeError:
             return None

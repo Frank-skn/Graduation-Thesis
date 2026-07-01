@@ -27,6 +27,18 @@ const RunOptimization = () => {
   const navigate = useNavigate()
   const { setActiveRunId, setActiveScenarioId } = useAppContext()
 
+  // Watch product_limit to show a live runtime estimate
+  const watchedLimit = Form.useWatch('product_limit', form)
+  const estimateText = (() => {
+    const n = (watchedLimit == null || watchedLimit === '') ? 943 : Number(watchedLimit)
+    // ~10s/product average (from thesis: 943 SP ≈ 154 min)
+    const secs = n * 10
+    if (secs < 90) return `~${Math.max(5, Math.round(secs))} giây`
+    if (secs < 3600) return `~${Math.round(secs / 60)} phút`
+    return `~${(secs / 3600).toFixed(1)} giờ`
+  })()
+  const isFullRun = watchedLimit == null || watchedLimit === ''
+
   // 0 = configure, 1 = running (polling), 2 = done
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -168,6 +180,7 @@ const RunOptimization = () => {
           solver: values.solver,
           time_limit: values.time_limit,
           mip_gap: values.mip_gap,
+          product_limit: values.product_limit ?? null,
         })
         runId = res?.run_id
       } catch (err) {
@@ -528,23 +541,40 @@ const RunOptimization = () => {
               {errorMsg && (
                 <Alert type="error" message={errorMsg} showIcon closable className="mb-4" onClose={() => setErrorMsg(null)} />
               )}
-              <Form form={form} layout="vertical" initialValues={{ solver: 'ma', time_limit: 4, mip_gap: 0.01 }}>
+              <Form form={form} layout="vertical" initialValues={{ solver: 'ma', time_limit: 4, mip_gap: 0.01, product_limit: 20 }}>
+                <Form.Item label="Bộ giải (Solver)">
+                  <div className="flex items-center gap-2">
+                    <Tag color="blue" className="text-sm py-1 px-3">MA · Memetic (Hybrid GA-ALNS)</Tag>
+                  </div>
+                  <div className="text-gray-500 text-xs mt-1">
+                    Giải thuật Memetic kết hợp thuật toán di truyền và tìm kiếm lân cận lớn thích nghi — bộ giải chính của hệ thống SS-MB-SMI.
+                  </div>
+                </Form.Item>
                 <Form.Item
-                  label="Bộ giải (Solver)" name="solver" rules={[{ required: true }]}
-                  extra="MA (Hybrid GA-ALNS) là bộ giải mặc định cho bài toán SS-MB-SMI."
+                  label="Số sản phẩm chạy" name="product_limit"
+                  extra="Để TRỐNG (xóa số) = chạy toàn bộ 943 sản phẩm (~2.5 giờ). Nhập số nhỏ (vd 20) để test nhanh toàn bộ luồng (~vài phút)."
                 >
-                  <Select>
-                    <Option value="ma">MA · Hybrid GA-ALNS (kiến nghị)</Option>
-                    <Option value="cbc">CBC (không kiến nghị)</Option>
-                  </Select>
+                  <InputNumber min={1} max={943} step={1} style={{ width: '100%' }} placeholder="Trống = toàn bộ 943 SP" />
                 </Form.Item>
                 <Form.Item
                   label="Giới hạn thời gian mỗi sản phẩm (giây)" name="time_limit"
-                  rules={[{ required: true, type: 'number', min: 1, max: 300 }]}
+                  rules={[{ required: true, type: 'number', min: 1, max: 3600 }]}
                   extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để có nghiệm tốt hơn, giảm để chạy nhanh hơn."
                 >
-                  <InputNumber min={1} max={300} step={1} style={{ width: '100%' }} />
+                  <InputNumber min={1} max={3600} step={1} style={{ width: '100%' }} />
                 </Form.Item>
+                <Alert
+                  className="mb-4"
+                  type={isFullRun ? 'warning' : 'info'}
+                  showIcon
+                  message={
+                    <span>
+                      {isFullRun
+                        ? <>Chạy <b>toàn bộ 943 sản phẩm</b> — thời gian ước tính <b>{estimateText}</b>. Nên chạy khi không cần dùng máy.</>
+                        : <>Chế độ test: <b>{watchedLimit} sản phẩm</b> — thời gian ước tính <b>{estimateText}</b>.</>}
+                    </span>
+                  }
+                />
                 <Form.Item className="mb-0">
                   <Button
                     type="primary" icon={<ThunderboltOutlined />} size="large" block

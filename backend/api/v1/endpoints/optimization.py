@@ -22,6 +22,7 @@ from backend.data_access.models_nds import (
     DssRunSummary,
     WhatIfScenario,
     OptimizationPLT,
+    SensitivityRun,
 )
 from backend.domain.services import OptimizationService
 
@@ -41,6 +42,17 @@ def _run_optimization_task(
         opt_input = csv_repo.get_optimization_input()
         # Pass data_dir so MA adapter can read CSV files directly
 
+        # Resolve which products to solve.
+        # Explicit product_ids win; otherwise product_limit (test mode) takes
+        # the first N active products; otherwise all products.
+        product_ids = request_dict.get("product_ids")
+        product_limit = request_dict.get("product_limit")
+        if not product_ids and product_limit:
+            from backend.domain.ma_adapter import CSVDataLoader
+            _loader = CSVDataLoader(data_dir)
+            product_ids = _loader.get_active_products()[: int(product_limit)]
+            print(f"[Optimize] Test mode: solving first {len(product_ids)} products", flush=True)
+
         opt_service = OptimizationService(
             solver=request_dict["solver"],
             time_limit=request_dict["time_limit"],
@@ -49,7 +61,7 @@ def _run_optimization_task(
         result = opt_service.solve(
             opt_input,
             data_dir=data_dir,
-            product_ids=request_dict.get("product_ids"),
+            product_ids=product_ids,
         )
 
         result_repo = ResultRepository(db)
@@ -121,10 +133,11 @@ def run_optimization(
         _run_optimization_task,
         run_id=run_id,
         request_dict={
-            "solver"     : request.solver,
-            "time_limit" : request.time_limit,
-            "mip_gap"    : request.mip_gap,
-            "product_ids": request.product_ids,
+            "solver"       : request.solver,
+            "time_limit"   : request.time_limit,
+            "mip_gap"      : request.mip_gap,
+            "product_ids"  : request.product_ids,
+            "product_limit": request.product_limit,
         },
         data_dir=str(csv_repo._dir),
     )
@@ -172,11 +185,24 @@ def get_run_status(
     db_nds: Session = Depends(get_db_nds),
 ):
     """Poll optimization run status. Returns current status + result when done."""
+    from datetime import datetime, timedelta
+
     run = db_nds.query(RunModel).filter(RunModel.run_id == run_id).first()
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
     status = run.solver_status or "running"
+
+    # Detect a background task that died without updating status: if still
+    # "running" long after the configured MA time limit, surface it as a
+    # timeout instead of polling forever.
+    if status == "running" and run.run_time:
+        elapsed = datetime.utcnow() - run.run_time
+        if elapsed > timedelta(hours=2):
+            status = "error: timed out (no update from solver)"
+            run.solver_status = status
+            db_nds.commit()
+
     is_done = status not in ("running",)
 
     return {
@@ -244,6 +270,10 @@ def delete_run(
     db_nds.query(DssKPI).filter(DssKPI.run_id == run_id).delete()
     db_nds.query(OptimizationPLT).filter(OptimizationPLT.run_id == run_id).delete()
     db_nds.query(ResultModel).filter(ResultModel.run_id == run_id).delete()
+    # Detach sensitivity runs that reference this run as their base
+    db_nds.query(SensitivityRun).filter(SensitivityRun.base_run_id == run_id).update(
+        {"base_run_id": None}
+    )
     # Detach what-if scenarios that reference this run (don't delete the scenario itself)
     db_nds.query(WhatIfScenario).filter(WhatIfScenario.run_id == run_id).update(
         {"run_id": None, "status": "deleted"}

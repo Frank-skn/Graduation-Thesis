@@ -1,0 +1,2597 @@
+===TRANG 103===
+npopLần
+chạyGmaxpcrossover pmutation niterations Giá trị mục
+tiêu trung
+bìnhĐộ lệch
+chuẩnTỷ số tín
+hiệu/
+nhiễuHạng
+36 11 800 0.60 0.25 55 18,534,988.46 205,620.48 -145.3603 9
+36 12 950 0.65 0.20 45 18,392,432.73 158,472.95 -145.2931 4
+38 13 500 0.75 0.25 45 18,325,931.24 120,875.11 -145.2615 1
+38 14 650 0.70 0.20 55 18,400,367.95 136,274.88 -145.2967 5
+38 15 800 0.65 0.35 25 18,433,211.19 109,570.09 -145.3122 7
+38 16 950 0.60 0.30 35 18,402,902.07 94,082.36 -145.2978 6
+Trong Bảng 6.7, giá trị mục tiêu trung bình là tổng chi phí trung bình trên tập mẫu
+100 sản phẩm qua 10 seed. Độ lệch chuẩn thể hiện mức dao động của tổng chi phí giữa các
+seed. Với tỷ số tín hiệu/nhiễu theo tiêu chí smaller-is-better , giá trị càng lớn, tức là càng ít
+âm, thì cấu hình càng tốt.
+Kết quả cho thấy cấu hình tốt nhất là lần chạy 13, với npop= 38 ,Gmax = 500 ,
+pcrossover = 0.75,pmutation = 0.25vàniterations = 45 . Cấu hình này có giá trị mục tiêu
+trung bình thấp nhất, bằng 18,325,931.24, đồng thời có tỷ số tín hiệu/nhiễu tốt nhất, bằng
+−145.2615 . Độ lệch chuẩn của cấu hình này là 120,875.11, cho thấy kết quả tương đối ổn
+định giữa các seed.
+Trong nhóm cấu hình tốt, lần chạy 16 có độ lệch chuẩn thấp nhất, bằng 94,082.36,
+nhưng giá trị mục tiêu trung bình cao hơn lần chạy 13. Cụ thể, chênh lệch giữa hai cấu hình
+là:
+18,760,673.87−18,325,931.24 = 434 ,742.63 (6.5)
+Vì vậy, lần chạy 13 được chọn làm cấu hình tham số cho thực nghiệm chính.
+Cấu hình được chọn là:
+npop= 38, G max= 500 , p crossover = 0.75, p mutation = 0.25, n iterations = 45
+(6.6)
+Các tham số còn lại của giải thuật được giữ cố định theo cấu hình thực nghiệm.
+85
+===TRANG 104===
+6.3.2. Phân tích ảnh hưởng của các tham số bằng AOV
+Bên cạnh việc xếp hạng các cấu hình Taguchi, nghiên cứu sử dụng phân tích phương
+sai AOV để đánh giá mức độ ảnh hưởng của từng tham số đến giá trị mục tiêu. Phân tích
+này cho biết yếu tố nào làm tổng chi phí thay đổi nhiều nhất trong phạm vi các mức tham
+số đã khảo sát.
+Dữ liệu AOV gồm 160 quan sát, tương ứng với 16 cấu hình Taguchi và 10 seed cho
+mỗi cấu hình. Biến phản hồi là tổng giá trị hàm mục tiêu trên tập mẫu 100 sản phẩm. Năm
+yếu tố được phân tích gồm npop,Gmax,pcrossover ,pmutation vàniterations .
+Các chỉ số trong bảng AOV gồm tổng bình phương sai lệch, bậc tự do, trung bình bình
+phương, giá trị Fvà tỷ lệ đóng góp. Công thức chi tiết của các chỉ số này được trình bày
+trong Phụ lục B. Trong chương chính, nghiên cứu chỉ trình bày bảng kết quả và diễn giải ý
+nghĩa thực nghiệm của các tham số.
+Bảng 6.8: Kết quả phân tích phương sai cho các tham số Taguchi
+Yếu tố df SS(×1012)MS(×109) F Đóng góp
+(%)
+npop 3 3.3443 1114.78 48.42 45.81
+Gmax 3 0.0105 3.51 0.15 0.14
+pcrossover 3 0.2433 81.11 3.52 3.33
+pmutation 3 0.1158 38.58 1.68 1.59
+niterations 3 0.2702 90.05 3.91 3.70
+Sai số 144 3.3156 23.02 – 45.42
+Tổng 159 7.2997 – – 100.00
+Trong Bảng 6.8, cột dflà bậc tự do, cột SSlà tổng bình phương sai lệch, và cột MSlà
+trung bình bình phương. Cột Fcho biết mức ảnh hưởng của từng yếu tố so với sai số. Cột
+Đóng góp thể hiện tỷ lệ phần trăm biến động của giá trị mục tiêu được giải thích bởi từng
+yếu tố.
+Kết quả cho thấy npoplà tham số có ảnh hưởng lớn nhất, với tỷ lệ đóng góp 45.81%.
+Điều này cho thấy kích thước quần thể đóng vai trò quan trọng trong chất lượng nghiệm
+86
+===TRANG 105===
+của giải thuật. Khi quần thể đủ lớn, thuật toán có khả năng duy trì nhiều nghiệm đa dạng
+hơn, từ đó cải thiện khả năng khám phá không gian nghiệm và giảm nguy cơ hội tụ sớm.
+Tham số có ảnh hưởng lớn thứ hai là niterations , với tỷ lệ đóng góp 3.70%. Kết quả
+này cho thấy số vòng lặp của TKLCLTN có ảnh hưởng nhất định đến chất lượng nghiệm,
+vì số vòng lặp lớn hơn cho phép bước phá hủy và tái tạo có thêm cơ hội cải thiện nghiệm
+cục bộ. Tuy nhiên, mức đóng góp của tham số này thấp hơn đáng kể so với npop, cho thấy
+trong thí nghiệm này hiệu quả cải thiện phụ thuộc nhiều hơn vào chất lượng và độ đa dạng
+của quần thể ban đầu.
+Tham số pcrossover có tỷ lệ đóng góp 3.33%, cho thấy phép lai chéo cũng có tác động
+đến chất lượng nghiệm nhưng không phải yếu tố chi phối chính. Trong khi đó, pmutation
+có tỷ lệ đóng góp 1.59%, thấp hơn so với kỳ vọng ban đầu. Điều này cho thấy trong vùng
+tham số khảo sát, việc thay đổi xác suất đột biến không tạo ra khác biệt lớn bằng việc điều
+chỉnh kích thước quần thể.
+Tham số Gmaxcó mức đóng góp rất nhỏ, chỉ 0.14%. Kết quả này cho thấy khi điều
+kiện thời gian chạy bị giới hạn, việc tăng số thế hệ tối đa không nhất thiết tạo ra cải thiện
+tương ứng về chất lượng nghiệm. Nói cách khác, trong bối cảnh thực nghiệm này, số thế
+hệ tối đa không phải là yếu tố quyết định hiệu quả tìm kiếm.
+Phần sai số chiếm 45.42%, cho thấy kết quả vẫn chịu ảnh hưởng đáng kể từ yếu tố
+ngẫu nhiên, tương tác giữa các tham số và các yếu tố chưa được đưa trực tiếp vào mô hình
+AOV . Vì vậy, việc chọn cấu hình cuối cùng không chỉ dựa vào tỷ lệ đóng góp trong AOV , mà
+còn cần xem xét đồng thời giá trị mục tiêu trung bình, độ lệch chuẩn và tỷ số tín hiệu/nhiễu.
+Nhìn chung, AOV cho thấy npoplà yếu tố quan trọng nhất trong thí nghiệm Taguchi
+này. Kết quả này phù hợp với đặc điểm của giải thuật Memetic, trong đó GTDT cần duy trì
+một quần thể đủ đa dạng để khám phá không gian nghiệm, còn TKLCLTN được dùng để
+cải thiện cục bộ các nghiệm tiềm năng. Do đó, cấu hình được chọn cần bảo đảm kích thước
+quần thể đủ lớn, đồng thời duy trì cường độ tìm kiếm cục bộ phù hợp để cân bằng giữa khả
+năng khám phá và khai thác.
+6.3.3. So sánh giữa hiện trạng, giải chính xác và giải thuật Memetic
+Sau khi hoàn thành bước hiệu chỉnh tham số bằng Taguchi, nghiên cứu sử dụng cấu
+hình tốt nhất để chạy giải thuật Memetic trên tập dữ liệu mẫu. Đồng thời, bài toán mẫu cũng
+được giải bằng phương pháp chính xác nhằm tạo mốc tham chiếu cho chất lượng nghiệm
+của giải thuật đề xuất. Kết quả của hai phương án sau tối ưu được so sánh với hiện trạng
+vận hành để đánh giá mức cải thiện về giá trị hàm mục tiêu và các thành phần chi phí chính.
+Các giá trị chi phí trong Bảng 6.9 được trình bày theo đơn vị triệu USD.
+Mức độ cải thiện của mỗi phương án so với hiện trạng được tính như sau:
+87
+===TRANG 106===
+Improvement m=Zcurrent−Zm
+Zcurrent×100% , (6.7)
+trong đó, Zcurrent là giá trị chi phí của hiện trạng, còn Zmlà giá trị chi phí của phương
+án được so sánh. Với m=Exact, Zmlà chi phí của phương án giải chính xác; với m=MA,
+Zmlà chi phí trung bình thu được từ giải thuật Memetic sau các lần chạy độc lập.
+Bảng 6.9: So sánh kết quả bài toán mẫu giữa hiện trạng, giải chính xác và giải thuật
+Memetic
+Chỉ tiêu Hiện trạng Giải chính
+xácCải thiện của
+giải chính xácGiải thuật
+MemeticCải thiện của
+Memetic
+(triệu USD) (triệu USD) so với hiện
+trạng(triệu USD) so với hiện
+trạng
+Giá trị hàm mục tiêu 50.630 16.515 67.38% 18.470 63.52%
+Chi phí tồn kho vượt mức 0.000 0.000 – 0.000 –
+Chi phí thiếu hụt 0.130 0.121 6.63% 0.122 6.15%
+Chi phí nợ đơn 49.850 15.632 68.64% 17.415 65.07%
+Chi phí phạt vi phạm quy cách
+đóng gói từ kho trung tâm0.420 0.426 -1.31% 0.432 -2.86%
+Chi phí phạt vi phạm quy cách
+đóng gói trong điều chuyển ngang0.000 0.043 Phát sinh 0.194 Phát sinh
+Chi phí điều chuyển ngang 0.220 0.293 -33.39% 0.310 -40.91%
+Độ lệch chuẩn của kết quả sau tối
+ưu– – – 0.165 –
+Giá trị tốt nhất trong các lần chạy
+sau tối ưu– 16.515 – 18.280 –
+Giá trị lớn nhất trong các lần chạy
+sau tối ưu– 16.515 – 18.740 –
+Cấu hình / phương pháp Hiện trạng Giải chính
+xác– npop= 38 ,
+Gmax= 500 ,
+pcrossover =
+0.75,
+pmutation =
+0.25,
+niterations =
+45–
+88
+===TRANG 107===
+Kết quả trong Bảng 6.9 cho thấy cả giải chính xác và giải thuật Memetic đều cải thiện
+đáng kể so với hiện trạng. Giải chính xác giảm giá trị hàm mục tiêu từ 50.630triệu USD
+xuống còn 16.515triệu USD, tương ứng mức cải thiện 67.38%. Trong khi đó, giải thuật
+Memetic sau hiệu chỉnh Taguchi đạt giá trị hàm mục tiêu trung bình 18.470triệu USD,
+tương ứng mức cải thiện 63.52% so với hiện trạng.
+Xét theo từng thành phần chi phí, mức cải thiện chính đến từ chi phí nợ đơn. Ở hiện
+trạng, chi phí nợ đơn đạt 49.850triệu USD. Khi sử dụng giải chính xác, chi phí này giảm
+xuống còn 15.632triệu USD, tương ứng mức cải thiện 68.64%. Với giải thuật Memetic,
+chi phí nợ đơn giảm xuống còn 17.415triệu USD, tương ứng mức cải thiện 65.07%. Do
+chi phí nợ đơn chiếm tỷ trọng lớn nhất trong hàm mục tiêu, đây là nguyên nhân chính làm
+tổng chi phí giảm mạnh ở cả hai phương án sau tối ưu.
+Chi phí thiếu hụt cũng được cải thiện ở cả hai phương án. Giải chính xác giảm chi phí
+thiếu hụt từ 0.130triệu USD xuống còn 0.121triệu USD, tương ứng mức cải thiện 6.63%.
+Giải thuật Memetic giảm chi phí này xuống còn 0.122triệu USD, tương ứng mức cải thiện
+6.15%. Chi phí tồn kho vượt mức gần như bằng 0trong cả ba phương án, cho thấy tồn kho
+vượt trần không phải là thành phần chi phí chính trong bài toán mẫu.
+Một số thành phần chi phí tăng sau tối ưu. Chi phí phạt vi phạm quy cách đóng gói
+từ kho trung tâm tăng nhẹ từ 0.420triệu USD lên 0.426triệu USD đối với giải chính xác
+và0.432triệu USD đối với giải thuật Memetic. Chi phí điều chuyển ngang cũng tăng từ
+0.220triệu USD lên 0.293triệu USD đối với giải chính xác và 0.310triệu USD đối với giải
+thuật Memetic. Ngoài ra, cả hai phương án sau tối ưu đều phát sinh chi phí phạt vi phạm
+quy cách đóng gói trong điều chuyển ngang.
+Sự gia tăng ở các chi phí liên quan đến điều chuyển và quy cách đóng gói phản ánh cơ
+chế đánh đổi của mô hình. Các phương án sau tối ưu chủ động sử dụng điều chuyển ngang
+để giảm thiếu hụt và nợ đơn. Mặc dù điều này làm tăng một phần chi phí điều chuyển và
+chi phí phạt đóng gói, mức tăng này nhỏ hơn nhiều so với mức giảm của chi phí nợ đơn. Vì
+vậy, tổng chi phí cuối cùng vẫn giảm đáng kể so với hiện trạng.
+So với giải chính xác, giải thuật Memetic chưa đạt cùng mức chi phí tối ưu. Giá trị
+hàm mục tiêu trung bình của giải thuật Memetic cao hơn giải chính xác khoảng 1.955triệu
+USD. Tuy nhiên, giải thuật Memetic vẫn đạt mức cải thiện lớn so với hiện trạng và cho kết
+quả ổn định, với độ lệch chuẩn 0.165triệu USD qua các lần chạy. Điều này cho thấy giải
+thuật đề xuất có khả năng tạo nghiệm chất lượng tốt trong thời gian tính toán phù hợp, đặc
+biệt khi mở rộng sang các bộ dữ liệu có quy mô lớn hơn, nơi phương pháp giải chính xác
+có thể gặp hạn chế về thời gian xử lý.
+89
+===TRANG 108===
+Nhìn chung, kết quả so sánh cho thấy giải chính xác đóng vai trò là mốc tham chiếu
+về chất lượng nghiệm trên bài toán mẫu, trong khi giải thuật Memetic cho thấy khả năng
+tiệm cận nghiệm tốt và cải thiện rõ rệt so với hiện trạng. Đây là cơ sở để sử dụng cấu hình
+Memetic sau hiệu chỉnh cho các thực nghiệm tiếp theo trên toàn bộ dữ liệu doanh nghiệp.
+6.4. Kết luận chương
+Chương này đã xác định được cấu hình tham số phù hợp cho giải thuật Memetic thông
+qua thiết kế thực nghiệm Taguchi trên tập mẫu 100 sản phẩm. Cấu hình được chọn là:
+npop= 38, G max= 500 , p crossover = 0.75, p mutation = 0.25, n iterations = 45.
+Kết quả phân tích cho thấy cấu hình này đạt giá trị hàm mục tiêu trung bình tốt nhất
+trong các cấu hình khảo sát, đồng thời có độ dao động thấp giữa các lần chạy. Phân tích
+AOV cũng cho thấy xác suất đột biến là tham số có ảnh hưởng đáng kể nhất đến kết quả
+trong phạm vi thí nghiệm. Điều này phù hợp với đặc điểm của giải thuật Memetic, trong
+đó khả năng tạo đa dạng nghiệm đóng vai trò quan trọng để tránh hội tụ sớm.
+Ngoài việc hiệu chỉnh tham số, chương cũng đánh giá cấu hình được chọn trên bài
+toán mẫu thông qua ba phương án: hiện trạng, giải chính xác và giải thuật Memetic. Kết
+quả cho thấy giải thuật Memetic cải thiện rõ rệt so với hiện trạng và cho nghiệm tiệm cận
+phương pháp giải chính xác trên quy mô mẫu. Vì vậy, cấu hình sau hiệu chỉnh được sử
+dụng cho bước thực nghiệm trên toàn bộ dữ liệu doanh nghiệp trong chương tiếp theo.
+90
+===TRANG 109===
+CHƯƠNG 7. KẾT QUẢ VÀ ĐÁNH GIÁ
+Chương này trình bày kết quả áp dụng giải thuật Memetic sau hiệu chỉnh tham số cho
+toàn bộ dữ liệu doanh nghiệp. Kết quả được tổng hợp qua nhiều lần chạy độc lập và được
+so sánh với phương án hiện trạng nhằm đánh giá mức cải thiện về tổng chi phí, cơ cấu chi
+phí và mức độ ổn định của giải thuật.
+Bên cạnh kết quả tổng quan, chương cũng phân tích chi tiết theo từng thành phần chi
+phí, từng sản phẩm, từng nhà máy và từng giai đoạn thời gian. Các phân tích này giúp làm
+rõ hiệu quả của giải thuật trong việc hỗ trợ quyết định phân bổ đơn hàng từ kho trung tâm
+và điều chuyển ngang chủ động trong môi trường vận hành thực tế.
+7.1. Tổng quan kết quả bài toán thực tế
+Sau khi hoàn thành bước hiệu chỉnh tham số bằng Taguchi, cấu hình được chọn được
+sử dụng để chạy giải thuật Memetic trên toàn bộ 943 sản phẩm. Do giải thuật có yếu tố
+ngẫu nhiên, quá trình đánh giá được lặp lại 10 lần với các giá trị khởi tạo ngẫu nhiên khác
+nhau. Kết quả của 10 lần chạy được dùng để đánh giá độ ổn định của giải thuật trước khi
+so sánh với hiện trạng.
+Các giá trị chi phí trong chương này được trình bày theo đơn vị triệu USD. Kết quả
+của giải thuật Memetic được lấy theo giá trị trung bình của 10 lần chạy. Cấu hình tham
+số được sử dụng trong bước đánh giá là cấu hình tốt nhất thu được từ quá trình hiệu chỉnh
+Taguchi:
+npop= 38, G max= 500 , p crossover = 0.75, p mutation = 0.25, n iterations = 45.
+7.2. Độ ổn định của giải thuật Memetic
+Bảng 7.1 trình bày tổng chi phí và một số thành phần chi phí chính của 10 lần chạy.
+Kết quả cho thấy tổng chi phí dao động trong khoảng từ 113.431đến113.947triệu USD.
+Giá trị trung bình đạt 113.653triệu USD, với độ lệch chuẩn khoảng 0.221triệu USD. Hệ
+số dao động tương đối chỉ khoảng 0.19%, cho thấy giải thuật Memetic cho kết quả ổn định
+giữa các lần chạy.
+91
+===TRANG 110===
+Bảng 7.1: Kết quả 10 lần chạy của giải thuật Memetic trên toàn bộ dữ liệu
+Lần
+chạyTổng chi
+phíChi phí
+thiếu hụtChi phí nợ
+đơnPhạt đóng
+gói từ
+nguồn
+trung tâmPhạt đóng
+gói điều
+chuyển
+ngangChi phí
+điều
+chuyển
+ngangThời gian
+xử lý
+(triệu
+USD)(triệu
+USD)(triệu USD) (triệu USD) (triệu USD) (triệu
+USD)(phút)
+1 113.431 0.249 107.751 3.548 0.692 1.191 153.70
+2 113.454 0.250 107.773 3.549 0.696 1.184 154.95
+3 113.947 0.250 108.275 3.549 0.685 1.186 155.57
+4 113.863 0.250 108.194 3.555 0.676 1.186 155.59
+5 113.568 0.249 107.898 3.549 0.689 1.182 154.56
+6 113.443 0.249 107.762 3.548 0.692 1.192 153.83
+7 113.460 0.250 107.782 3.549 0.695 1.183 154.88
+8 113.946 0.250 108.275 3.549 0.685 1.185 155.46
+9 113.852 0.250 108.181 3.554 0.679 1.187 155.65
+10 113.571 0.249 107.900 3.548 0.690 1.182 154.59
+Trung
+bình113.653 0.249 107.979 3.550 0.688 1.186 154.88
+Độ
+lệch
+chuẩn0.221 0.000 0.225 0.003 0.007 0.003 0.72
+92
+===TRANG 111===
+assets/fig_ma_10_runs_stability.pdf
+Hình 7.1: Độ ổn định của tổng chi phí qua 10 lần chạy
+Hình 7.1 minh họa sự dao động của tổng chi phí qua 10 lần chạy. Tổng chi phí giữa
+các lần chạy thay đổi không lớn, trong đó lần chạy tốt nhất đạt 113.431triệu USD và lần
+chạy cao nhất đạt 113.947triệu USD. Điều này cho thấy cấu hình tham số sau hiệu chỉnh
+có độ ổn định tốt và có thể sử dụng để so sánh với hiện trạng.
+7.3. So sánh với hiện trạng
+Bảng 7.2 so sánh chi phí của hiện trạng với kết quả trung bình của giải thuật Memetic.
+Mức thay đổi được tính như sau:
+Mức thay đổi =ZHT−ZMA
+ZHT×100% (7.1)
+Trong đó, ZHTlà chi phí của hiện trạng, còn ZMAlà chi phí trung bình thu được từ
+giải thuật Memetic. Giá trị dương thể hiện chi phí giảm sau tối ưu, trong khi giá trị âm thể
+hiện chi phí tăng.
+93
+===TRANG 112===
+Bảng 7.2: So sánh chi phí giữa hiện trạng và giải thuật Memetic
+Chỉ tiêu Hiện trạng Giải thuật
+MemeticĐộ lệch
+chuẩnMức thay
+đổi
+(triệu USD) (triệu USD) (triệu USD) (%)
+Giá trị hàm mục tiêu 225.229 113.653 0.221 49.54%
+Chi phí tồn kho vượt mức 0.0017 0.0015 0.0001 13.12%
+Chi phí thiếu hụt 0.1988 0.2494 0.0003 -25.47%
+Chi phí nợ đơn 208.7760 107.9791 0.2250 48.28%
+Chi phí phạt vi phạm quy
+cách đóng gói từ nguồn
+trung tâm14.1660 3.5498 0.0027 74.94%
+Chi phí phạt vi phạm quy
+cách đóng gói điều chuyển
+ngang0.0000 0.6877 0.0066 –
+Chi phí điều chuyển ngang 2.0863 1.1858 0.0035 43.16%
+94
+===TRANG 113===
+assets/fig_total_cost_comparison.pdf
+Hình 7.2: So sánh tổng chi phí giữa hiện trạng và giải thuật Memetic
+Kết quả cho thấy giải thuật Memetic giúp giảm tổng chi phí từ 225.229triệu USD
+xuống còn 113.653triệu USD, tương ứng mức giảm 49.54%. Lần chạy tốt nhất đạt 113.431
+triệu USD, rất gần với giá trị trung bình. Điều này cho thấy kết quả tốt nhất không phải là
+một trường hợp ngẫu nhiên, mà phản ánh xu hướng ổn định của giải thuật.
+Xét theo từng thành phần, mức giảm lớn nhất về giá trị tuyệt đối đến từ chi phí nợ
+đơn. Chi phí nợ đơn giảm từ 208.776triệu USD xuống còn 107.979triệu USD, tương ứng
+mức giảm 48.28%. Đây là thành phần chi phí lớn nhất trong hàm mục tiêu, nên mức giảm
+này là nguyên nhân chính làm giảm tổng chi phí vận hành.
+Bên cạnh đó, chi phí phạt vi phạm quy cách đóng gói từ nguồn trung tâm giảm từ
+14.166triệu USD xuống còn 3.550triệu USD, tương ứng mức giảm 74.94%. Chi phí điều
+chuyển ngang cũng giảm từ 2.086triệu USD xuống còn 1.186triệu USD, tương ứng mức
+giảm 43.16%. Tuy nhiên, chi phí thiếu hụt tăng từ 0.199triệu USD lên 0.249triệu USD,
+và phát sinh thêm chi phí phạt vi phạm quy cách đóng gói trong điều chuyển ngang khoảng
+0.688triệu USD. Mặc dù vậy, các khoản tăng này nhỏ hơn nhiều so với mức giảm của chi
+phí nợ đơn và chi phí phạt từ nguồn trung tâm, nên tổng chi phí cuối cùng vẫn giảm đáng
+kể.
+95
+===TRANG 114===
+7.4. Phân rã chi phí
+Hình 7.3 trình bày phân rã chi phí giữa hiện trạng và giải thuật Memetic. Thành phần
+chi phí lớn nhất ở cả hai phương án là chi phí nợ đơn. Ở hiện trạng, chi phí nợ đơn đạt
+208.776triệu USD, chiếm 92.70% tổng chi phí. Sau khi áp dụng giải thuật Memetic, chi
+phí này giảm xuống còn 107.979triệu USD, chiếm 95.01% tổng chi phí sau tối ưu.
+assets/fig_cost_breakdown_components.pdf
+Hình 7.3: Phân rã chi phí giữa hiện trạng và giải thuật Memetic
+Bảng 7.3: Tỷ trọng các thành phần chi phí trong tổng chi phí
+Thành phần chi phí Hiện trạng Giải thuật
+Memetic
+Chi phí tồn kho vượt mức 0.00% 0.00%
+Chi phí thiếu hụt 0.09% 0.22%
+Chi phí nợ đơn 92.70% 95.01%
+Chi phí phạt vi phạm quy cách
+đóng gói từ nguồn trung tâm6.29% 3.12%
+Chi phí phạt vi phạm quy cách
+đóng gói điều chuyển ngang0.00% 0.61%
+Chi phí điều chuyển ngang 0.93% 1.04%
+96
+===TRANG 115===
+Bảng 7.3 cho thấy chi phí nợ đơn vẫn là thành phần chi phối sau khi tối ưu. Tuy nhiên,
+về giá trị tuyệt đối, chi phí nợ đơn đã giảm mạnh từ 208.776triệu USD xuống còn 107.979
+triệu USD. Tỷ trọng của chi phí nợ đơn sau tối ưu cao hơn do các thành phần chi phí khác,
+đặc biệt là chi phí phạt vi phạm quy cách đóng gói từ nguồn trung tâm, giảm mạnh hơn về
+tỷ lệ.
+Chi phí phạt vi phạm quy cách đóng gói từ nguồn trung tâm giảm từ 6.29% xuống còn
+3.12% tổng chi phí. Trong khi đó, chi phí điều chuyển ngang chiếm 1.04% tổng chi phí sau
+tối ưu. Kết quả này cho thấy giải thuật Memetic tạo ra phương án có tổng chi phí thấp hơn,
+đồng thời duy trì chi phí điều chuyển ngang ở mức nhỏ so với tổng chi phí toàn hệ thống.
+7.5. Phân tích theo từng sản phẩm
+Để kiểm tra mức cải thiện ở cấp sản phẩm, nghiên cứu so sánh chi phí của từng sản
+phẩm giữa hiện trạng và lần chạy tốt nhất của giải thuật Memetic. Trong 943 sản phẩm, có
+875 sản phẩm được cải thiện chi phí, 68 sản phẩm có chi phí cao hơn và không có sản phẩm
+giữ nguyên chi phí. Tổng mức giảm chi phí của lần chạy tốt nhất đạt khoảng 111.798triệu
+USD, tương ứng mức giảm trung bình khoảng 0.119triệu USD cho mỗi sản phẩm.
+assets/fig_product_improvement_distribution.pdf
+Hình 7.4: Phân bố mức cải thiện chi phí theo từng sản phẩm
+Hình 7.4 cho thấy phần lớn sản phẩm có mức cải thiện dương. Một số sản phẩm có
+chi phí tăng do giải thuật ưu tiên giảm chi phí toàn hệ thống thay vì tối ưu riêng lẻ từng sản
+97
+===TRANG 116===
+phẩm. Tuy nhiên, số sản phẩm được cải thiện chiếm đa số, và tổng mức giảm chi phí lớn
+hơn nhiều so với phần tăng chi phí ở các sản phẩm còn lại.
+7.6. Nhận xét
+Kết quả thực nghiệm cho thấy giải thuật Memetic cải thiện rõ rệt so với hiện trạng.
+Tổng chi phí trung bình giảm từ 225.229triệu USD xuống còn 113.653triệu USD, tương
+ứng mức giảm 49.54%. Sự cải thiện này chủ yếu đến từ việc giảm chi phí nợ đơn và chi
+phí phạt vi phạm quy cách đóng gói từ nguồn trung tâm.
+Giải thuật Memetic cho kết quả ổn định qua 10 lần chạy, với độ lệch chuẩn của tổng
+chi phí chỉ khoảng 0.221triệu USD. So với tổng chi phí trung bình 113.653triệu USD, mức
+dao động này là nhỏ. Điều này cho thấy cấu hình tham số sau hiệu chỉnh Taguchi có độ ổn
+định tốt khi áp dụng trên toàn bộ 943 sản phẩm.
+Một số thành phần chi phí tăng sau tối ưu, chẳng hạn chi phí thiếu hụt và chi phí phạt
+vi phạm quy cách đóng gói trong điều chuyển ngang. Tuy nhiên, mức tăng của các thành
+phần này nhỏ hơn nhiều so với mức giảm của chi phí nợ đơn và chi phí phạt từ nguồn trung
+tâm. Do đó, tổng chi phí vận hành của toàn hệ thống vẫn giảm đáng kể. Nhìn chung, kết
+quả cho thấy giải thuật Memetic tạo ra kế hoạch phân bổ và điều chuyển hiệu quả hơn hiện
+trạng trong bài toán thực tế.
+98
+===TRANG 117===
+CHƯƠNG 8. KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+8.1. Kết quả nghiên cứu
+Khóa luận đã xây dựng và đánh giá một mô hình hỗ trợ ra quyết định cho bài toán
+quản lý tồn kho nhà cung ứng trong bối cảnh một kho trung tâm phục vụ nhiều nhà máy
+nhận hàng. Xuất phát từ đặc thù nhu cầu sản xuất biến động, nghiên cứu đề xuất một mô
+hình tối ưu tích hợp giữa phân bổ đơn hàng từ kho trung tâm và điều chuyển ngang chủ
+động. Phân bổ đơn hàng từ kho trung tâm hỗ trợ điều phối nguồn cung theo kế hoạch và
+kiểm soát tồn kho trong dài hạn, trong khi điều chuyển ngang chủ động giúp điều chỉnh
+linh hoạt trong ngắn hạn khi nhu cầu thực tế thay đổi hoặc thời điểm hàng đến chưa đồng
+bộ. Nhờ đó, hệ thống có thể duy trì mức bao phủ tồn kho phù hợp, giảm thiếu hụt và hạn
+chế nợ đơn tại các nhà máy.
+Trước hết, khóa luận đã phân tích bài toán vận hành thực tế trong chuỗi cung ứng
+ngành ô tô, trong đó dữ liệu gồm nhiều sản phẩm, nhiều nhà máy và nhiều giai đoạn lập kế
+hoạch. Từ bối cảnh này, mô hình toán được xây dựng với mục tiêu tối thiểu hóa tổng chi
+phí vận hành, bao gồm chi phí tồn kho vượt mức, chi phí thiếu hụt, chi phí nợ đơn, chi phí
+vận chuyển điều chuyển ngang và chi phí phạt vi phạm quy cách đóng gói. Mô hình đồng
+thời xem xét các ràng buộc vận hành như năng lực cung ứng hữu hạn, thời gian vận chuyển,
+mức sàn tồn kho, mức trần tồn kho, quy cách đóng gói và tồn kho khả dụng trước khi điều
+chuyển.
+Do bài toán có không gian nghiệm lớn và chứa nhiều biến quyết định theo sản phẩm,
+nhà máy và thời gian, khóa luận đã phát triển giải thuật Memetic dựa trên sự kết hợp giữa
+thuật toán di truyền và tìm kiếm lân cận lớn thích nghi. Trong đó, thuật toán di truyền đảm
+nhiệm vai trò tìm kiếm toàn cục, còn tìm kiếm lân cận lớn thích nghi được dùng để cải thiện
+cục bộ các nghiệm tiềm năng thông qua các cơ chế phá hủy và tái tạo. Bước giải mã được
+thiết kế để kiểm tra và hiệu chỉnh nghiệm theo các ràng buộc vận hành, nhờ đó giúp nghiệm
+sau cùng có thể phản ánh đầy đủ kế hoạch phân bổ đơn hàng, kế hoạch điều chuyển ngang
+và trạng thái tồn kho theo thời gian.
+Bên cạnh mô hình và giải thuật, khóa luận cũng thiết kế hệ thống hỗ trợ ra quyết định
+nhằm kết nối dữ liệu vận hành, mô hình tối ưu và kết quả phân tích. Hệ thống được tổ chức
+theo hai lớp dữ liệu gồm NDS và DDS, giúp tách biệt dữ liệu vận hành gốc với dữ liệu phục
+vụ trực tiếp cho quá trình tối ưu hóa. Cách thiết kế này hỗ trợ xử lý rolling horizon, lưu trữ
+kết quả theo kịch bản và tạo nền tảng để người dùng theo dõi tồn kho, phân tích chi phí và
+đánh giá phương án vận hành.
+Để hiệu chỉnh tham số giải thuật, khóa luận sử dụng thiết kế thực nghiệm Taguchi trên
+tập mẫu 100 sản phẩm. Cấu hình được chọn sau hiệu chỉnh là:
+99
+===TRANG 118===
+npop= 38, G max= 500 , p crossover = 0.75, p mutation = 0.25, n iterations = 45.
+Trên bài toán mẫu, nghiên cứu đồng thời so sánh ba phương án gồm hiện trạng, giải
+chính xác và giải thuật Memetic. Kết quả cho thấy giải chính xác giảm giá trị hàm mục tiêu
+từ50.630triệu USD xuống còn 16.515triệu USD, tương ứng mức cải thiện 67.38%. Trong
+khi đó, giải thuật Memetic đạt giá trị hàm mục tiêu trung bình 18.470triệu USD, tương
+ứng mức cải thiện 63.52% so với hiện trạng. Mặc dù chưa đạt đúng mức chi phí của giải
+chính xác, giải thuật Memetic vẫn cho thấy khả năng tạo nghiệm chất lượng tốt và tiệm cận
+nghiệm tối ưu trên bài toán mẫu.
+Xét theo từng thành phần chi phí của bài toán mẫu, mức cải thiện chính đến từ chi phí
+nợ đơn. Chi phí nợ đơn của hiện trạng là 49.850triệu USD. Khi sử dụng giải chính xác,
+chi phí này giảm xuống còn 15.632triệu USD, tương ứng mức cải thiện 68.64%. Với giải
+thuật Memetic, chi phí nợ đơn giảm xuống còn 17.415triệu USD, tương ứng mức cải thiện
+65.07%. Kết quả này cho thấy cả hai phương án sau tối ưu đều tập trung hiệu quả vào thành
+phần chi phí chi phối trong hàm mục tiêu.
+Khi áp dụng cấu hình sau hiệu chỉnh cho toàn bộ 943 sản phẩm và 10 giai đoạn lập
+kế hoạch, giải thuật Memetic tiếp tục cho thấy hiệu quả rõ rệt so với phương án hiện trạng.
+Tổng chi phí trung bình giảm từ 225.229triệu USD xuống còn 113.653triệu USD, tương
+ứng mức cải thiện 49.54%. Kết quả được lặp lại qua 10 lần chạy độc lập với độ lệch chuẩn
+tổng chi phí khoảng 0.221triệu USD, cho thấy giải thuật có độ ổn định tốt.
+Xét trên toàn bộ dữ liệu thực tế, mức cải thiện lớn nhất về giá trị tuyệt đối đến từ
+chi phí nợ đơn. Chi phí nợ đơn giảm từ 208.776triệu USD xuống còn 107.979triệu USD,
+tương ứng mức cải thiện 48.28%. Ngoài ra, chi phí phạt vi phạm quy cách đóng gói từ kho
+trung tâm giảm từ 14.166triệu USD xuống còn 3.550triệu USD, tương ứng mức cải thiện
+74.94%. Chi phí điều chuyển ngang cũng giảm từ 2.086triệu USD xuống còn 1.186triệu
+USD, tương ứng mức cải thiện 43.16%.
+Một số thành phần chi phí có xu hướng tăng sau tối ưu, chẳng hạn chi phí thiếu hụt
+tăng từ 0.199triệu USD lên 0.249triệu USD và phát sinh thêm chi phí phạt vi phạm quy
+cách đóng gói trong điều chuyển ngang khoảng 0.688triệu USD. Tuy nhiên, các khoản tăng
+này nhỏ hơn nhiều so với mức giảm của chi phí nợ đơn và chi phí phạt từ kho trung tâm.
+Do đó, tổng chi phí cuối cùng vẫn giảm đáng kể. Kết quả này cho thấy giải thuật đề xuất
+có khả năng tạo ra phương án vận hành hiệu quả hơn hiện trạng, đặc biệt trong việc giảm
+các thành phần chi phí có tỷ trọng lớn trong hệ thống.
+100
+===TRANG 119===
+8.2. Đánh giá
+Từ các kết quả nghiên cứu, khóa luận có một số điểm đạt được như sau:
+– Thứ nhất, khóa luận đã phân tích được bài toán quản lý tồn kho trong môi trường
+SMI với cấu trúc một kho trung tâm và nhiều nhà máy nhận hàng. Bài toán được tiếp cận
+theo hướng tích hợp, trong đó quyết định phân bổ đơn hàng từ kho trung tâm và điều chuyển
+ngang chủ động được xem xét đồng thời thay vì xử lý tách rời.
+– Thứ hai, khóa luận đã xây dựng được mô hình toán phản ánh các yếu tố vận hành
+thực tế như năng lực cung ứng, tồn kho ban đầu, biến động tồn kho, mức sàn tồn kho, mức
+trần tồn kho, thời gian vận chuyển, quy cách đóng gói và nhiều thành phần chi phí khác
+nhau. Nhờ đó, mô hình có khả năng mô tả tương đối đầy đủ các quyết định chính trong quá
+trình vận hành.
+– Thứ ba, khóa luận đã sử dụng giải chính xác trên bài toán mẫu để tạo mốc tham
+chiếu cho chất lượng nghiệm. Việc so sánh giữa hiện trạng, giải chính xác và giải thuật
+Memetic giúp đánh giá rõ hơn mức độ cải thiện của từng phương án cũng như khả năng
+tiệm cận nghiệm tốt của giải thuật đề xuất.
+– Thứ tư, giải thuật Memetic được đề xuất phù hợp với đặc điểm của bài toán có không
+gian nghiệm lớn. Việc kết hợp giữa thuật toán di truyền và tìm kiếm lân cận lớn thích nghi
+giúp giải thuật vừa duy trì khả năng khám phá nghiệm mới, vừa cải thiện cục bộ các nghiệm
+tiềm năng. Cơ chế phá hủy, tái tạo và cập nhật trọng số thích nghi hỗ trợ giải thuật điều
+chỉnh hướng tìm kiếm trong quá trình chạy.
+– Thứ năm, khóa luận đã sử dụng phương pháp Taguchi để hiệu chỉnh tham số giải
+thuật một cách có hệ thống. Việc lựa chọn cấu hình dựa trên giá trị mục tiêu trung bình, độ
+lệch chuẩn và tỷ số tín hiệu/nhiễu giúp giảm phụ thuộc vào lựa chọn tham số thủ công.
+– Thứ sáu, kết quả thực nghiệm trên toàn bộ dữ liệu cho thấy giải thuật Memetic giúp
+giảm đáng kể tổng chi phí so với phương án hiện trạng. Mức cải thiện 49.54% cho thấy mô
+hình và giải thuật đề xuất có tiềm năng ứng dụng trong bài toán vận hành thực tế.
+– Thứ bảy, khóa luận đã thiết kế một khung DSS nhằm hỗ trợ quá trình ra quyết định.
+Hệ thống dữ liệu được tổ chức theo hướng phục vụ tối ưu hóa và phân tích, giúp tạo nền
+tảng cho việc triển khai công cụ hỗ trợ ra quyết định trong các nghiên cứu hoặc ứng dụng
+tiếp theo.
+Mặc dù đạt được các kết quả tích cực, khóa luận vẫn còn một số hạn chế nhất định:
+– Thứ nhất, mô hình hiện giả định các tham số đầu vào là xác định và đã biết trước
+trong kỳ hoạch định. Trong thực tế, nhu cầu sản xuất, biến động tồn kho, năng lực cung
+ứng và thời gian vận chuyển có thể thay đổi theo điều kiện vận hành. Do đó, mô hình chưa
+101
+===TRANG 120===
+phản ánh đầy đủ yếu tố bất định trong môi trường chuỗi cung ứng thực tế.
+– Thứ hai, bài toán được xử lý theo từng sản phẩm như các bài toán con độc lập, đồng
+thời hoạt động logistics mới được biểu diễn ở mức kế hoạch. Cách tiếp cận này giúp giảm
+độ phức tạp tính toán, nhưng chưa xét đầy đủ các ràng buộc tài nguyên dùng chung giữa
+nhiều sản phẩm và các ràng buộc vận tải chi tiết như năng lực kho, năng lực bốc xếp, số
+lượng xe, tải trọng xe, lịch giao nhận và khung thời gian giao hàng.
+– Thứ ba, hệ thống hỗ trợ ra quyết định đã được cài đặt để phục vụ chuẩn bị dữ liệu,
+kiểm tra dữ liệu đầu vào, chạy mô hình, xuất kết quả và hỗ trợ phân tích thực nghiệm. Tuy
+nhiên, hệ thống hiện chưa được tích hợp trực tiếp với hệ thống thông tin của doanh nghiệp.
+Do đó, dữ liệu vẫn cần được chuẩn bị và đưa vào hệ thống theo quy trình riêng, thay vì
+được đồng bộ tự động từ các hệ thống vận hành như ERP, cơ sở dữ liệu kho hoặc hệ thống
+lập kế hoạch hiện có.
+8.3. Hướng phát triển
+Từ các kết quả đạt được và các hạn chế còn tồn tại, khóa luận đề xuất một số hướng
+phát triển như sau:
+– Thứ nhất, có thể mở rộng mô hình theo hướng xét đến yếu tố bất định. Các tham số
+như nhu cầu sản xuất, biến động tồn kho, năng lực cung ứng và thời gian vận chuyển có thể
+được mô hình hóa bằng stochastic optimization, robust optimization hoặc mô phỏng kịch
+bản. Hướng này giúp mô hình phản ánh tốt hơn môi trường vận hành thực tế, nơi dữ liệu
+thường biến động và khó dự báo chính xác.
+– Thứ hai, có thể mở rộng mô hình theo hướng tích hợp nhiều sản phẩm và bổ sung
+các ràng buộc tài nguyên dùng chung. Các ràng buộc như năng lực kho, năng lực bốc xếp,
+năng lực phương tiện, số chuyến vận chuyển tối đa, tải trọng xe, lịch giao nhận và mức ưu
+tiên giữa các nhóm sản phẩm có thể được đưa vào mô hình. Khi đó, kết quả điều chuyển
+ngang không chỉ dừng ở mức kế hoạch điều phối hàng hóa mà có thể tiến gần hơn đến lịch
+vận hành khả thi trong thực tế.
+– Thứ ba, hệ thống hỗ trợ ra quyết định có thể được phát triển thành một ứng dụng
+tích hợp trực tiếp với hệ thống doanh nghiệp. Các hướng phát triển bao gồm tự động đồng
+bộ dữ liệu từ ERP hoặc cơ sở dữ liệu vận hành, quản lý kịch bản, lưu vết lịch sử chạy mô
+hình, phân quyền người dùng, trực quan hóa kết quả, cảnh báo thiếu hụt và hoàn thiện giao
+diện tương tác. Hướng này giúp hệ thống chuyển từ mức hỗ trợ thực nghiệm sang khả năng
+triển khai trong môi trường vận hành thực tế.
+102
+===TRANG 121===
+TÀI LIỆU THAM KHẢO
+[1]J. T. Mahoney, “The choice of organizational form: Vertical financial ownership versus
+other methods of vertical integration,” Strategic Management Journal , vol. 13, no. 8,
+pp. 559–584, 1992.
+[2]W. Guan and J. Rehme, “Vertical integration in supply chains: driving forces and con-
+sequences for a manufacturer’s downstream integration,” Supply Chain Management:
+An International Journal , vol. 17, no. 2, pp. 187–201, 2012.
+[3]M. Singer and P. Donoso, “Upstream or downstream in the value chain?” Journal of
+Business Research , vol. 61, no. 6, pp. 669–677, 2008.
+[4]T. F. Abdelmaguid and M. M. Dessouky, “A genetic algorithm approach to the inte-
+grated inventory-distribution problem,” International Journal of Production Research ,
+vol. 44, no. 21, pp. 4445–4464, 2006.
+[5]Waller, m., johnson, m.e. and davis, t. (1999) vendor-managed inventory in the re-
+tail supply chain. journal of business logistics, 20, 183-203. - references - scientific
+research publishing.
+[6]Y . Yao, P. T. Evers, and M. E. Dresner, “Supply chain integration in vendor-managed
+inventory,” Decision Support Systems , vol. 43, no. 2, pp. 663–674, 2007.
+[7]A. Angulo, H. Nachtmann, and M. A. Waller, “SUPPLY CHAIN INFORMATION
+SHARING IN a VENDOR MANAGED INVENTORY PARTNERSHIP,” Journal of
+Business Logistics , vol. 25, no. 1, pp. 101–120, 2004.
+[8]T. L. Pohlen and T. J. Goldsby, “VMI and SMI programs: How economic value added
+can help sell the change,” International Journal of Physical Distribution & Logistics
+Management , vol. 33, no. 7, pp. 565–581, 2003.
+[9]A. Kumari, A. N. Wijayanayake, and D. H. H. Niwunhella, “An effective lateral tran-
+shipment model for a multi-location inventory setting to minimize stockouts,” in 2022
+International Research Conference on Smart Computing and Systems Engineering
+(SCSE) . IEEE, 2022, pp. 225–230.
+[10] M. Abolghasemi, E. Beh, G. Tarr, and R. Gerlach, “Demand forecasting in supply
+chain: The impact of demand volatility in the presence of promotion,” Computers &
+Industrial Engineering , vol. 142, p. 106380, 2020.
+[11] H. Lau, D. Nakandala, and P. Shum, “A case-based roadmap for lateral transshipment
+in supply chain inventory management,” Journal of Information Systems and Technol-
+ogy Management , vol. 13, no. 1, pp. 27–44, 2016.
+103
+===TRANG 122===
+[12] D. Nakandala, H. Lau, and J. Zhang, “Strategic hybrid lateral transshipment for cost-
+optimized inventory management,” Industrial Management & Data Systems , vol. 117,
+no. 8, pp. 1632–1649, 2017.
+[13] V . Di Pasquale, M. E. Nenni, and S. Riemma, “Order allocation in purchasing man-
+agement: a review of state-of-the-art studies from a supply chain perspective,” Inter-
+national Journal of Production Research , vol. 58, no. 15, pp. 4741–4766, 2020.
+[14] M. A. Naqvi and S. H. Amin, “Supplier selection and order allocation: a literature
+review,” Journal of Data, Information and Management , vol. 3, no. 2, pp. 125–139,
+2021.
+[15] M. Asrol, M. Yani, Machfud, P. Papilo, S. Mursida, and Marimin, “Design of intel-
+ligent decision support system for supply chain sustainability assessment,” Procedia
+Computer Science , vol. 227, pp. 659–669, 2023.
+[16] W. A. Teniwut and C. L. Hasyim, “Decision support system in supply chain: A sys-
+tematic literature review,” Uncertain Supply Chain Management , pp. 131–148, 2020.
+[17] R. G. Whyte, “What is a decision support system?” Industrial Management & Data
+Systems , vol. 86, no. 7, pp. 28–30, 1986.
+[18] D. Whitley, “Next generation genetic algorithms: A user’s guide and tutorial,” in
+Handbook of Metaheuristics , M. Gendreau and J.-Y . Potvin, Eds. Springer Inter-
+national Publishing, 2019, vol. 272, pp. 245–274.
+[19] K. Tang, K. Man, S. Kwong, and Q. He, “Genetic algorithms and their applications,”
+IEEE Signal Processing Magazine , vol. 13, no. 6, pp. 22–37, 1996.
+[20] S. Katoch, S. S. Chauhan, and V . Kumar, “A review on genetic algorithm: Past, present,
+and future,” Multimedia Tools and Applications , vol. 80, no. 5, pp. 8091–8126, Feb.
+2021.
+[21] M. Gen and L. Lin, “Genetic algorithms and their applications,” in Springer Handbook
+of Engineering Statistics , H. Pham, Ed. Springer London, 2023, pp. 635–674.
+[22] L. J. Eshelman and J. D. Schaffer, “Real-coded genetic algorithms and interval-
+schemata,” in Foundations of Genetic Algorithms , ser. Foundations of Genetic Al-
+gorithms, L. D. WHITLEY , Ed. Elsevier, 1993, vol. 2, pp. 187–202.
+[23] T. Rooker, “Genetic algorithms in search, optimization, and machine learning,”
+AI Magazine , vol. 12, no. 1, pp. 102–103, 1991. [Online]. Available: https:
+//onlinelibrary.wiley.com/doi/abs/10.1609/aimag.v12i1.889
+[24] F. Neri and C. Cotta, “Memetic algorithms and memetic computing optimization: A
+literature review,” Swarm and Evolutionary Computation , vol. 2, pp. 1–14, 2012.
+104
+===TRANG 123===
+[25] M. T. Bhoskar, M. O. K. Kulkarni, M. N. K. Kulkarni, M. S. L. Patekar, G. M.
+Kakandikar, and V . M. Nandedkar, “Genetic algorithm and its applications to me-
+chanical engineering: A review,” Materials Today: Proceedings , vol. 2, no. 4, pp.
+2624–2630, 2015.
+[26] A. Santini, S. Ropke, and L. M. Hvattum, “A comparison of acceptance criteria for the
+adaptive large neighbourhood search metaheuristic,” Journal of Heuristics , vol. 24,
+no. 5, pp. 783–815, 2018.
+[27] V . Ghilas, E. Demir, and T. Van Woensel, “An adaptive large neighborhood search
+heuristic for the Pickup and Delivery Problem with Time Windows and Scheduled
+Lines,” Computers & Operations Research , vol. 72, pp. 12–30, Aug. 2016.
+[28] D. Pisinger and S. Ropke, “Large neighborhood search,” in Handbook of Metaheuris-
+tics, M. Gendreau and J.-Y . Potvin, Eds. Springer International Publishing, 2019, vol.
+272, pp. 99–127.
+[29] P. Moscato, C. Cotta, and A. Mendes, Memetic Algorithms . Springer Berlin Heidel-
+berg, 2004, vol. 141, pp. 53–85.
+[30] P. Moscato and C. Cotta, “An accelerated introduction to memetic algorithms,” in
+Handbook of Metaheuristics , M. Gendreau and J.-Y . Potvin, Eds. Springer Interna-
+tional Publishing, 2019, vol. 272, pp. 275–309.
+[31] L. Zavanella and S. Zanoni, “A one-vendor multi-buyer integrated production-
+inventory model: The ‘consignment stock’ case,” International Journal of Production
+Economics , vol. 118, no. 1, pp. 225–232, 2009.
+[32] X. Chen, G. Hao, X. Li, and K. F. C. Yiu, “The impact of demand variability and trans-
+shipment on vendor’s distribution policies under vendor managed inventory strategy,”
+International Journal of Production Economics , vol. 139, no. 1, pp. 42–48, 2012.
+[33] A. A. Taleizadeh, S. T. A. Niaki, and A. Makui, “Multiproduct multiple-buyer single-
+vendor supply chain problem with stochastic demand, variable lead-time, and multi-
+chance constraint,” Expert Systems with Applications , vol. 39, no. 5, pp. 5338–5348,
+2012.
+[34] Y . Yu, Z. Wang, and L. Liang, “A vendor managed inventory supply chain with deteri-
+orating raw materials and products,” International Journal of Production Economics ,
+vol. 136, no. 2, pp. 266–274, 2012.
+[35] Z. Jemai, Y . Rekik, and R. Kalaï, “Inventory routing problems in a context of vendor-
+managed inventory system with consignment stock and transshipment,” Production
+Planning & Control , vol. 24, no. 8, pp. 671–683, 2013.
+105
+===TRANG 124===
+[36] M. Hariga, M. Gumus, A. Daghfous, and S. Goyal, “A vendor managed inventory
+model under contractual storage agreement,” Computers & Operations Research ,
+vol. 40, no. 8, pp. 2138–2144, 2013.
+[37] R. H. Rad, J. Razmi, M. S. Sangari, and Z. F. Ebrahimi, “Optimizing an integrated
+vendor-managed inventory system for a single-vendor two-buyer supply chain with
+determining weighting factor for vendor׳s ordering cost,” International Journal of Pro-
+duction Economics , vol. 153, pp. 295–308, 2014.
+[38] A. Mateen and A. K. Chatterjee, “Vendor managed inventory for single-vendor multi-
+retailer supply chains,” Decision Support Systems , vol. 70, pp. 31–41, 2015.
+[39] A. B. Borade and E. Sweeney, “Decision support system for vendor managed inventory
+supply chain: a case study,” International Journal of Production Research , vol. 53,
+no. 16, pp. 4789–4818, 2015.
+[40] H. Mokhtari and M. T. Rezvan, “A single-supplier, multi-buyer, multi-product
+VMI production-inventory system under partial backordering,” Operational Research ,
+vol. 20, no. 1, pp. 37–57, 2020.
+[41] Z. Wang, L. Yang, L. Zhao, N. Cao, and Y . Lu, “A dual-objective vendor-managed
+inventory model for a single-vendor multi-retailersupply chain with fuzzy random de-
+mand,” Journal of Intelligent & Fuzzy Systems , vol. 35, no. 1, pp. 211–222, 2018.
+[42] Z. Chen, “Optimization of production inventory with pricing and promotion effort for
+a single-vendor multi-buyer system of perishable products,” International Journal of
+Production Economics , vol. 203, pp. 333–349, 2018.
+[43] H. Tarhini, M. Karam, and M. Y . Jaber, “An integrated single-vendor multi-buyer pro-
+duction inventory model with transshipments between buyers,” International Journal
+of Production Economics , vol. 225, p. 107568, 2020.
+[44] Y . Karimian, A. Mirzazadeh, S. H. Pasandideh, and M. Namakshenas, “A geometric
+programming approach for a vendor managed inventory of a multiretailer multi-item
+EPQ model,” RAIRO - Operations Research , vol. 54, no. 5, pp. 1401–1418, 2020.
+[45] E. Najafnejhad, M. Tavassoli Roodsari, S. Sepahrom, and M. Jenabzadeh, “A mathe-
+matical inventory model for a single-vendor multi-retailer supply chain based on the
+vendor management inventory policy,” International Journal of System Assurance En-
+gineering and Management , vol. 12, no. 3, pp. 579–586, 2021.
+[46] N. Turken, A. Geda, and V . D. G. Takasi, “The impact of co-location in emissions reg-
+ulation clusters on traditional and vendor managed supply chain inventory decisions,”
+Annals of Operations Research , vol. 349, no. 2, pp. 931–980, 2025.
+106
+===TRANG 125===
+[47] D. M. Utama, I. R. Kusuma, I. Amallynda, T. Baroto, and W. A. Jauhari, “A single-
+vendor multi-buyer inventory model with multiple raw material and quality degrada-
+tion: A case study on agri-food industry,” Results in Control and Optimization , vol. 14,
+p. 100353, 2024.
+[48] A. Mitra, “The taguchi method,” WIREs Computational Statistics , vol. 3, no. 5, pp.
+472–480, 2011. [Online]. Available: https://wires.onlinelibrary.wiley.com/doi/abs/10
+.1002/wics.169
+[49] A. Freddi and M. Salmon, Introduction to the Taguchi Method . Cham: Springer
+International Publishing, 2019, pp. 159–180. [Online]. Available: https://doi.org/10.1
+007/978-3-319-95342-7_7
+[50] R. Unal and E. B. Dean, “Taguchi Approach to Design Optimization for Quality and
+Cost: An Overview,” in International Society of Parametric Analysts , Chesterfield,
+MO, United States, Jan. 1990.
+[51] D. Datta, K. Deb, and C. M. Fonseca, “Multi-objective Evolutionary Algorithms
+for Resource Allocation Problems,” in Evolutionary Multi-Criterion Optimization ,
+S. Obayashi, K. Deb, C. Poloni, T. Hiroyasu, and T. Murata, Eds. Berlin, Heidelberg:
+Springer, 2007, pp. 401–416.
+107
+===TRANG 126===
+PHỤ LỤC A. CHI TIẾT TRIỂN KHAI, MÃ GIẢ VÀ VÍ DỤ MINH HỌA GIẢI
+THUẬT MEMETIC
+A.1. Giải thuật Memetic
+Giải thuật Memetic được sử dụng để tìm nghiệm gần tối ưu cho từng bài toán con theo
+sản phẩm. Với mỗi sản phẩm cố định, một nhiễm sắc thể mã hóa đồng thời hai nhóm quyết
+định chính: lượng phân bổ OA và lượng điều chuyển PLT. Cụ thể:
+C=/parenleftBig
+QOA
+i,t, QPLT
+i,j,t/parenrightBig
+, i, j∈L, i̸=j, t∈T.
+Trong đó, QOA
+i,tbiểu diễn lượng hàng OA phân bổ đến nhà máy iở giai đoạn t, còn
+QPLT
+i,j,tbiểu diễn lượng hàng đề xuất chuyển từ nhà máy isang nhà máy jtại giai đoạn t. Bộ
+giải mã chịu trách nhiệm kiểm tra tính khả thi động của các quyết định này theo tồn kho,
+thời gian giao hàng/vận chuyển và quy cách đóng gói.
+Algorithm A1 Memetic Algorithm với nhiễm sắc thể QOA+QPLT
+Require: Dữ liệu bài toán cho một sản phẩm cố định; npop;Gmax;Gstag;∆G;nALNS ;
+top_kALNS ;time _limit
+Ensure: Nhiễm sắc thể tốt nhất C∗và chi phí tốt nhất Z∗
+1:Khởi tạo thời gian bắt đầu tstart
+2:P← INITPOPULATION (npop)
+3:forC∈P do
+4: (x, Z)←DECODEANDEV ALUATE (C)
+5: LưuZlàm fitness củaC
+6:end for
+7:C∗←arg min C∈Pf(C)
+8:Z∗←f(C∗)
+9:g←0
+10:gno_improve←0
+11:Khởi tạo trọng số destroy và repair của ALNS: wd←1,wr←1
+12:while g < G maxandgno_improve < G stagandtime()−tstart< time _limit do
+13: g←g+ 1
+14:Pselect←TOURNAMENTSELECTION (P)
+15:Poff←∅
+16: formỗi cặp cha mẹ (C(1),C(2))trongPselectdo
+17: (C(1′),C(2′))←CROSSOVER (C(1),C(2))
+18:C(1′)←MUTATION (C(1′))
+A1
+===TRANG 127===
+19:C(2′)←MUTATION (C(2′))
+20: Sửa phần QOAcủaC(1′)vàC(2′)để thỏa mãn:/summationtext
+i∈LQOA
+i,t=CAP t
+21: ThêmC(1′)vàC(2′)vàoPoff
+22: end for
+23: forC∈Poffdo
+24: (x, Z)←DECODEANDEV ALUATE (C)
+25: Gánf(C)←Z
+26: end for
+27: ifgmod ∆ G= 0orgno_improve≥Gstag/2then
+28: Sắp xếpPofftheo fitness tăng dần
+29: forCthuộc top_kALNS cá thể tốt nhất của Poffdo
+30: iftime()−tstart≥time _limit then
+31: break
+32: end if
+33: (x′,C′)←ALNS (C, x, n ALNS , wd, wr)
+34: iff(C′)< f(C)then
+35: ThayCbằngC′
+36: end if
+37: end for
+38: end if
+39: Áp dụng tìm kiếm cục bộ có giới hạn cho một số cá thể tốt nhất trong Poff
+40:P← UPDATEPOPULATION (P,Poff)
+41: Áp dụng elitism, loại bỏ cá thể trùng lặp và bổ sung cá thể mới nếu cần
+42: ifminC∈Pf(C)< Z∗then
+43:C∗←arg min C∈Pf(C)
+44: Z∗←f(C∗)
+45: gno_improve←0
+46: else
+47: gno_improve←gno_improve + 1
+48: end if
+49:end while
+50:C∗←FINALINTENSIFICATION (C∗)
+51:returnC∗, Z∗
+A.2. Khởi tạo quần thể
+Quần thể ban đầu được tạo từ ba nguồn: nghiệm khởi tạo từ MILP rút gọn, nghiệm
+heuristic theo rủi ro thiếu hụt tại thời điểm hàng OA đến, và nghiệm ngẫu nhiên. Sau khi
+A2
+===TRANG 128===
+tạo phần QOA, mỗi cá thể được bổ sung thêm các gene QPLTdựa trên tín hiệu thiếu hụt và
+tồn kho dư.
+Algorithm A2 Khởi tạo quần thể
+Require: npop;L;T;CAP t;BIi;Li,t;Ui,t;∆Ii,t;LTOA
+i;LTPLT
+i,j
+Ensure: Quần thể ban đầuP
+1:P←∅
+2:Bước 1: Khởi tạo bằng nghiệm MILP rút gọn nếu có
+3:iftồn tại nghiệm seed QOA,MILPthen
+4:C(1)←QOA,MILP
+5: SửaQOAđể thỏa mãn/summationtext
+iQOA
+i,t=CAP t
+6:C(1)←SEEDPLTQUANTITIES (C(1))
+7:P←P∪{C(1)}
+8: while|P|<⌊αMILP npop⌋do
+9: TạoCbằng cách nhiễu QOA,MILPquanh nghiệm seed
+10: SửaQOAđể thỏa mãn ràng buộc năng lực
+11:C← SEEDPLTQUANTITIES (C)
+12:P←P∪{C}
+13: end while
+14:end if
+15:Bước 2: Khởi tạo bằng heuristic theo thời điểm hàng OA đến
+16:while|P|<⌊αHnpop⌋do
+17: Khởi tạo nhiễm sắc thể rỗng C
+18: fort∈Tdo
+19: fori∈Ldo
+20: ai,t←t+LTOA
+i−1
+21: ifai,t/∈Tthen
+22: score i,t←0
+23: else
+24: Ước lượng tồn kho tại thời điểm hàng OA đến:
+/hatwideIi,ai,t=BIi+/summationdisplay
+τ≤ai,t∆Ii,τ
+25: Tính mức rủi ro thiếu hụt:
+score i,t=Cs
+i,ai,t[Li,ai,t−/hatwideIi,ai,t]++Cb
+i,ai,t[−/hatwideIi,ai,t]+
+26: end if
+27: end for
+A3
+===TRANG 129===
+28: Phân bổ CAP tcho các nhà máy theo tỷ lệ score i,t
+29: Hiệu chỉnh để/summationtext
+i∈LQOA
+i,t=CAP t
+30: end for
+31:C← SEEDPLTQUANTITIES (C)
+32:P←P∪{C}
+33:end while
+34:Bước 3: Khởi tạo ngẫu nhiên
+35:while|P|< n popdo
+36: Khởi tạo nhiễm sắc thể rỗng C
+37: fort∈Tdo
+38: Sinh vector ngẫu nhiên (u1, . . . , u |L|)∼Dirichlet( 1)
+39: fori∈Ldo
+40: QOA
+i,t←⌊uiCAP t⌉
+41: end for
+42: Hiệu chỉnh để/summationtext
+i∈LQOA
+i,t=CAP t
+43: end for
+44:C← SEEDPLTQUANTITIES (C)
+45:P←P∪{C}
+46:end while
+47:returnP
+A.3. Hàm bổ sung gene PLT
+Hàm này tạo các gene QPLT
+i,j,t ban đầu cho mỗi nhiễm sắc thể. Các gene này không
+đảm bảo chắc chắn sẽ trở thành PLT thực tế; chúng là lượng chuyển được đề xuất. Bộ giải
+mã sẽ kiểm tra lại tính khả thi động theo tồn kho, thời gian vận chuyển và chi phí biên.
+Algorithm A3 Bổ sung gene QPLTcho nhiễm sắc thể
+Require: Nhiễm sắc thểCđã có QOA;L;T;LTPLT
+i,j;Li,t;CAP t
+Ensure: Nhiễm sắc thểCcó thêm gene QPLT
+1:fort∈Tdo
+2: fori∈Ldo
+3: forj∈L, j̸=ido
+4: ift /∈TPLT
+i,j then
+5: QPLT
+i,j,t←0
+6: else
+7: Ước lượng khả năng dư của nhà máy gửi i
+8: Ước lượng nhu cầu thiếu hụt của nhà máy nhận jtại thời điểm hàng PLT
+A4
+===TRANG 130===
+đến
+9: Sinh lượng đề xuất:
+QPLT
+i,j,t←min/parenleftbigg
+surplusi,t,needj,t+LTPLT
+i,j/parenrightbigg
+10: Nếu không có tín hiệu thiếu hụt hoặc dư hàng, đặt QPLT
+i,j,t←0
+11: end if
+12: end for
+13: end for
+14:end for
+15:returnC
+A.4. Hàm giải mã
+Hàm giải mã chuyển nhiễm sắc thể C= (QOA, QPLT)thành nghiệm đầy đủ gồm
+lượng OA, lượng PLT được chấp nhận, tồn kho trước PLT, tồn kho cuối kỳ và giá trị hàm
+mục tiêu. Phần QPLTtrong nhiễm sắc thể được xem là lượng chuyển đề xuất. Một chuyển
+ngang chỉ được chấp nhận nếu thỏa mãn tập thời gian PLT hợp lệ, tồn kho nguồn còn dư so
+với mức sàn và tạo ra lợi ích chi phí biên dương.
+Algorithm A4 Giải mã và đánh giá nghiệm
+Require: Nhiễm sắc thểC= (QOA
+i,t, QPLT
+i,j,t); tham số mô hình
+Ensure: Nghiệm đã giải mã x= (QOA, qOA, rOA, QPLT, Ipre, I)và chi phí Z
+1:Khởi tạo QPLT,acc
+i,j,t←0cho mọi i, j, t
+2:Bước 1: Giải mã OA và tính phần dư
+3:fori∈L, t∈Tdo
+4: QOA
+i,t←/floorleftBig
+C(QOA
+i,t)/ceilingrightBig
+5: qOA
+i,t←QOA
+i,t
+CPi,t
+6: rOA
+i,t←QOA
+i,t−CPi,tqOA
+i,t
+7:end for
+8:Ii,0←BIicho mọi i∈L
+9:Bước 2: Mô phỏng tồn kho theo từng giai đoạn
+10:fort∈Tdo
+11: fori∈Ldo
+12: Xác định lượng OA đến tại giai đoạn t:
+OAIn i,t=QOA
+i,t−LTOA
+i+1
+A5
+===TRANG 131===
+13: Xác định lượng PLT đến tại giai đoạn t:
+PLTIn i,t=/summationdisplay
+j∈L
+j̸=iQPLT,acc
+j,i,t−LTPLT
+j,i
+14: Nếu chỉ số thời gian không thuộc T, dòng hàng tương ứng được quy ước bằng
+0
+15: Tính tồn kho trước khi gửi PLT:
+Ipre
+i,t=Ii,t−1+OAIn i,t+PLTIn i,t+ ∆Ii,t
+16: end for
+17: Bước 3: Chọn các PLT khả thi tại giai đoạn t
+18: outi←0cho mọi i∈L
+19: while còn tồn tại chuyển PLT khả thi có lợi do
+20:B←∅
+21: fori∈Ldo
+22: Tính lượng tồn kho có thể gửi:
+surplus i,t=/bracketleftBig
+Ipre
+i,t−Li,t−outi/bracketrightBig+
+23: ifsurplus i,t= 0then
+24: continue
+25: end if
+26: forj∈L, j̸=ido
+27: ift /∈TPLT
+i,j then
+28: continue
+29: end if
+30: a←t+LTPLT
+i,j
+31: ifa /∈Tthen
+32: continue
+33: end if
+34: desired←C(QPLT
+i,j,t)
+35: ifdesired≤0then
+36: continue
+37: end if
+38: Ước lượng nhu cầu tương lai của nhà máy nhận jtừ giai đoạn ađến
+cuối kỳ:
+need j,a= max
+τ≥a/braceleftBig
+[Lj,τ−/hatwideIj,τ]+,[−/hatwideIj,τ]+/bracerightBig
+A6
+===TRANG 132===
+39: qmax←min(desired, surplus i,t, need j,a)
+40: Sinh tập lượng chuyển ứng viên Qi,j,tquanh qmaxvà theo bội số của
+CPj,t
+41: forq∈Q i,j,tdo
+42: Tính lợi ích ròng:
+saving (i, j, t, q ) = ∆ Costbenefit
+j−∆Costloss
+i−di,jTC−Cp,PLT
+i,j,t 1(qmod CPj,t>0)
+43: ifsaving (i, j, t, q )>0then
+44: Thêm (i, j, t, q, saving )vàoB
+45: end if
+46: end for
+47: end for
+48: end for
+49: ifB=∅then
+50: break
+51: end if
+52: Chọn (i∗, j∗, t, q∗)cósaving lớn nhất trongB
+53: QPLT,acc
+i∗,j∗,t←QPLT,acc
+i∗,j∗,t+q∗
+54: outi∗←outi∗+q∗
+55: end while
+56: Bước 4: Cập nhật tồn kho cuối giai đoạn
+57: fori∈Ldo
+58:
+Ii,t=Ipre
+i,t−/summationdisplay
+j∈L
+j̸=iQPLT,acc
+i,j,t
+59: end for
+60:end for
+61:Tính chi phí mục tiêu: Z←EV ALUATEOBJECTIVE (x)
+62:return x, Z
+A.5. Hàm tính chi phí
+Algorithm A5 Tính giá trị hàm mục tiêu
+Require: Nghiệm đã giải mã x= (QOA, qOA, rOA, QPLT, I)
+Ensure: Chi phí mục tiêu Z
+1:Z←0
+2:fori∈L, t∈Tdo
+A7
+===TRANG 133===
+3: Z←Z+Co
+i,t[Ii,t−Ui,t]+
+4: Z←Z+Cs
+i,t[Li,t−Ii,t]+
+5: Z←Z+Cb
+i,t[−Ii,t]+
+6: ifrOA
+i,t>0then
+7: Z←Z+Cp,OA
+i,t
+8: end if
+9:end for
+10:fori, j∈L, i̸=j, t∈TPLT
+i,j do
+11: ifQPLT
+i,j,t>0then
+12: Z←Z+di,jTC
+13: rPLT
+i,j,t←QPLT
+i,j,t−CPj,tQPLT
+i,j,t
+CPj,t
+14: ifrPLT
+i,j,t>0then
+15: Z←Z+Cp,PLT
+i,j,t
+16: end if
+17: end if
+18:end for
+19:return Z
+A.6. Toán tử chọn lọc
+Algorithm A6 Tournament Selection
+Require: Quần thểP; kích thước tournament ktour; số cá thể cần chọn nselect
+Ensure: Tập cá thể được chọn Pselect
+1:Pselect←∅
+2:while|Pselect|< n select do
+3: Chọn ngẫu nhiên ktourcá thể từP
+4:Cbest←arg min Cf(C)trong nhóm vừa chọn
+5:Pselect←Pselect∪{Cbest}
+6:end while
+7:returnPselect
+A.7. Toán tử lai ghép
+Algorithm A7 Lai ghép nhiễm sắc thể QOA+QPLT
+Require: Cha mẹC(1),C(2); xác suất lai ghép pc;CAP t
+Ensure: Hai cá thể conC(1′)vàC(2′)
+1:ifrand ()> p cthen
+A8
+===TRANG 134===
+2: returnC(1),C(2)
+3:end if
+4:Sinh hệ số lai ghép α∼U(0.25,0.75)
+5:fort∈Tdo
+6: fori∈Ldo
+7:
+/tildewiderQOA(1′)
+i,t =αQOA(1)
+i,t + (1−α)QOA(2)
+i,t
+8:
+/tildewiderQOA(2′)
+i,t = (1−α)QOA(1)
+i,t +αQOA(2)
+i,t
+9: end for
+10: Chuẩn hóa phần QOAcủa mỗi cá thể con để:
+/summationdisplay
+i∈LQOA
+i,t=CAP t
+11:end for
+12:fori, j∈L, i̸=j, t∈TPLT
+i,j do
+13: Lai ghép trực tiếp gene PLT:
+QPLT(1′)
+i,j,t =αQPLT(1)
+i,j,t + (1−α)QPLT(2)
+i,j,t
+14:
+QPLT(2′)
+i,j,t = (1−α)QPLT(1)
+i,j,t +αQPLT(2)
+i,j,t
+15: Đặt các giá trị âm về 0
+16:end for
+17:returnC(1′),C(2′)
+A.8. Toán tử đột biến
+Algorithm A8 Đột biến nhiễm sắc thể QOA+QPLT
+Require: Nhiễm sắc thểC; xác suất đột biến pm
+Ensure: Nhiễm sắc thể sau đột biến C′
+1:C′←C
+2:Đột biến phần OA
+3:fort∈Tdo
+4: ifrand ()≤pmthen
+5: Chọn ngẫu nhiên hai nhà máy i1, i2∈L,i1̸=i2
+A9
+===TRANG 135===
+6: Chọn lượng chuyển δsao cho:
+1≤δ≤min/parenleftBig
+QOA
+i1,t,0.2CAP t/parenrightBig
+7: QOA′
+i1,t←QOA
+i1,t−δ
+8: QOA′
+i2,t←QOA
+i2,t+δ
+9: end if
+10:end for
+11:Đột biến phần PLT
+12:fori, j∈L, i̸=j, t∈TPLT
+i,j do
+13: ifrand ()≤pPLT
+mthen
+14: Chọn ngẫu nhiên một trong ba thao tác: đặt về 0, sinh lại lượng đề xuất, hoặc
+nhân/nhiễu lượng hiện tại
+15: ifthao tác là đặt về 0then
+16: QPLT′
+i,j,t←0
+17: else if thao tác là sinh lại then
+18: QPLT′
+i,j,t←U(0,0.4CAP t)
+19: else
+20: QPLT′
+i,j,t←max/parenleftBig
+0, QPLT
+i,j,t·U(0.55,1.45) + U(−0.05,0.10)CAP t/parenrightBig
+21: end if
+22: end if
+23:end for
+24:Sửa phần QOAđể đảm bảo/summationtext
+iQOA′
+i,t=CAP t
+25:returnC′
+A.9. ALNS
+ALNS được áp dụng cho một số cá thể tốt nhất trong quần thể con. Mỗi vòng lặp
+ALNS chọn một toán tử phá hủy và một toán tử tái tạo theo trọng số thích nghi. Sau khi tái
+tạo phần QOA, thuật toán cũng điều chỉnh các gene QPLTtại những giai đoạn bị ảnh hưởng.
+Algorithm A9 Adaptive Large Neighborhood Search
+Require: Nhiễm sắc thểC; nghiệm đã giải mã x; số vòng lặp nALNS ; trọng số destroy wd;
+trọng số repair wr
+Ensure: Nghiệm cải thiện xbestvà nhiễm sắc thểCbest
+1:Ccur←C,Cbest←C
+2:xcur←x,xbest←x
+3:Zcur←f(Ccur),Zbest←Zcur
+4:Khởi tạo nhiệt độ mô phỏng luyện kim θ
+A10
+===TRANG 136===
+5:foriter= 1tonALNS do
+6: Chọn toán tử phá hủy dtheo trọng số wd
+7: Chọn toán tử tái tạo rtheo trọng số wr
+8: (C−,T−)←d(Ccur, xcur)
+9:C′←r(C−,T−, xcur)
+10: Sửa phần QOAđể thỏa mãn ràng buộc năng lực
+11:C′←REPAIRPLTGENES (C′,T−, xcur)
+12: (x′, Z′)←DECODEANDEV ALUATE (C′)
+13: ifZ′< Zbestthen
+14:Cbest←C′,xbest←x′,Zbest←Z′
+15: Gán điểm thưởng cao cho cặp toán tử (d, r)
+16: else if Z′< Zcurthen
+17:Ccur←C′,xcur←x′,Zcur←Z′
+18: Gán điểm thưởng trung bình cho cặp toán tử (d, r)
+19: else if rand ()<exp(−(Z′−Zcur)/θ)then
+20: Chấp nhận nghiệm xấu hơn theo tiêu chuẩn mô phỏng luyện kim
+21:Ccur←C′,xcur←x′,Zcur←Z′
+22: Gán điểm thưởng thấp cho cặp toán tử (d, r)
+23: else
+24: Từ chối nghiệm mới
+25: end if
+26: θ←θ·cooling
+27: ifiterlà cuối một segment then
+28: Cập nhật trọng số destroy và repair
+29: end if
+30:end for
+31:return xbest,Cbest
+A.10. Toán tử phá hủy
+A.10.1. Random Period Destroy
+Algorithm A10 Random Period Destroy
+Require: Nhiễm sắc thểC; số giai đoạn phá hủy q
+Ensure: Nhiễm sắc thể bị phá hủy C−; tập giai đoạn bị phá hủy T−
+1:Chọn ngẫu nhiên qgiai đoạn từ Tđể tạoT−
+2:C−←C
+3:fort∈T−do
+A11
+===TRANG 137===
+4: fori∈Ldo
+5: QOA−
+i,t←0
+6: end for
+7:end for
+8:returnC−,T−
+A.10.2. Worst Cost Destroy
+Algorithm A11 Worst Cost Destroy
+Require: Nhiễm sắc thểC; nghiệm đã giải mã x; số giai đoạn phá hủy q
+Ensure:C−;T−
+1:fort∈Tdo
+2: orderCost t←0
+3:end for
+4:fori∈L, a∈Tdo
+5: Tính chi phí tồn kho tại nhà máy iở giai đoạn đến hàng a:
+cost i,a=Co
+i,a[Ii,a−Ui,a]++Cs
+i,a[Li,a−Ii,a]++Cb
+i,a[−Ii,a]+
+6: Quy đổi về giai đoạn đặt OA:
+t=a−LTOA
+i+ 1
+7: ift∈Tthen
+8: orderCost t←orderCost t+cost i,a
+9: end if
+10:end for
+11:T−←qgiai đoạn có orderCost tlớn nhất
+12:ĐặtQOA
+i,t= 0với mọi i∈L,t∈T−
+13:returnC−,T−
+A.10.3. Facility-focused Destroy
+Algorithm A12 Facility-focused Destroy
+Require: Nhiễm sắc thểC; nghiệm đã giải mã x; số giai đoạn phá hủy q
+Ensure:C−;T−
+1:fori∈Ldo
+2: Tính tổng chi phí tồn kho của nhà máy i:
+facilityCost i=/summationdisplay
+t∈T/parenleftBig
+Co
+i,t[Ii,t−Ui,t]++Cs
+i,t[Li,t−Ii,t]++Cb
+i,t[−Ii,t]+/parenrightBig
+3:end for
+A12
+===TRANG 138===
+4:i∗←arg max i∈LfacilityCost i
+5:fora∈Tdo
+6: t←a−LTOA
+i∗+ 1
+7: ift∈Tthen
+8: Gán chi phí giai đoạn đặt hàng tbằng chi phí tồn kho của i∗tại giai đoạn a
+9: end if
+10:end for
+11:T−←qgiai đoạn đặt OA có chi phí lớn nhất đối với nhà máy i∗
+12:ĐặtQOA
+i∗,t= 0với mọi t∈T−
+13:returnC−,T−
+A.11. Toán tử tái tạo
+A.11.1. Greedy Repair theo rủi ro thiếu hụt
+Algorithm A13 Greedy Repair
+Require: Nhiễm sắc thể sau phá hủy C−; tập giai đoạn phá hủy T−; nghiệm hiện tại x
+Ensure: Nhiễm sắc thể sau tái tạo C′
+1:C′←C−
+2:fort∈T−do
+3: fori∈Ldo
+4: ai,t←t+LTOA
+i−1
+5: ifai,t/∈Tthen
+6: score i,t←0
+7: else
+8: Ước lượng tồn kho tại thời điểm hàng OA đến:
+/hatwideIi,ai,t=Ii,ai,t−1+ ∆Ii,ai,t
+9: Tính rủi ro thiếu hụt:
+score i,t=Cs
+i,ai,t[Li,ai,t−/hatwideIi,ai,t]++Cb
+i,ai,t[−/hatwideIi,ai,t]+
+10: end if
+11: end for
+12: Phân bổ CAP tcho các nhà máy theo tỷ lệ score i,t
+13: Hiệu chỉnh để/summationtext
+i∈LQOA
+i,t=CAP t
+14:end for
+15:returnC′
+A13
+===TRANG 139===
+A.11.2. Random Repair
+Algorithm A14 Random Repair có xét rủi ro
+Require: Nhiễm sắc thể sau phá hủy C−; tập giai đoạn phá hủy T−
+Ensure: Nhiễm sắc thể sau tái tạo C′
+1:C′←C−
+2:fort∈T−do
+3: fori∈Ldo
+4: Tính rủi ro thiếu hụt tại giai đoạn hàng OA đến
+5: Sinh trọng số ngẫu nhiên có điều chỉnh theo rủi ro:
+score i,t=rand i·(1 +risk i,t)
+6: end for
+7: Phân bổ CAP ttheo tỷ lệ score i,t
+8: Hiệu chỉnh để tổng OA bằng CAP t
+9:end for
+10:returnC′
+A.11.3. Regret-based Repair
+Algorithm A15 Regret-based Repair
+Require: Nhiễm sắc thể sau phá hủy C−; tập giai đoạn phá hủy T−
+Ensure: Nhiễm sắc thể sau tái tạo C′
+1:C′←C−
+2:fort∈T−do
+3: fori∈Ldo
+4: Tính rủi ro tồn kho tại thời điểm hàng OA đến:
+risk i,t=Cs
+i,a[Li,a−/hatwideIi,a]++Cb
+i,a[−/hatwideIi,a]+−0.25Co
+i,a[/hatwideIi,a−Ui,a]+
+5: Tăng cường mức ưu tiên bằng:
+score i,t= [risk i,t]1.5
+6: end for
+7: Phân bổ CAP ttheo tỷ lệ score i,t
+8: Hiệu chỉnh để tổng OA bằng CAP t
+9:end for
+10:returnC′
+A14
+===TRANG 140===
+A.12. Tái tạo gene PLT
+Sau khi các giai đoạn OA bị phá hủy và tái tạo, các gene PLT liên quan cũng cần được
+điều chỉnh. Nếu nhà máy nhận có nguy cơ shortage hoặc backorder tại thời điểm hàng PLT
+đến, lượng QPLTđề xuất được tăng lên. Ngược lại, nếu nhà máy gửi đang có rủi ro thiếu
+hụt, lượng PLT đi ra từ nhà máy đó được giảm xuống.
+Algorithm A16 Tái tạo gene QPLT
+Require: Nhiễm sắc thểC; tập giai đoạn bị ảnh hưởng T−; nghiệm hiện tại x
+Ensure: Nhiễm sắc thể đã điều chỉnh C′
+1:C′←C
+2:fort∈T−do
+3: fori, j∈L, i̸=jdo
+4: ift /∈TPLT
+i,j then
+5: continue
+6: end if
+7: a←t+LTPLT
+i,j
+8: ifa /∈Tthen
+9: continue
+10: end if
+11: Tính phần tồn kho dư của nhà máy gửi itại giai đoạn t
+12: Tính rủi ro thiếu hụt của nhà máy nhận jtại giai đoạn a
+13: ifnhà máy nhận có rủi ro thiếu hụt và nhà máy gửi có tồn kho dư then
+14: Tăng lượng đề xuất QPLT
+i,j,ttheo:
+QPLT
+i,j,t←max/parenleftBig
+QPLT
+i,j,t,min(surplus i, need j)/parenrightBig
+15: else if nhà máy gửi có rủi ro thiếu hụt then
+16: Giảm lượng đề xuất:
+QPLT
+i,j,t←0.5QPLT
+i,j,t
+17: else
+18: Giữ hoặc giảm nhẹ lượng đề xuất hiện tại
+19: end if
+20: end for
+21:end for
+22:returnC′
+A15
+===TRANG 141===
+A.13. Tìm kiếm cục bộ
+Tìm kiếm cục bộ được áp dụng có giới hạn cho một số cá thể tốt nhất. Các bước tìm
+kiếm cục bộ chỉ được chấp nhận nếu sau khi giải mã lại toàn bộ nghiệm, giá trị hàm mục
+tiêu giảm.
+Algorithm A17 Tìm kiếm cục bộ bảo toàn tính khả thi
+Require: Nhiễm sắc thểC; nghiệm đã giải mã x; số lần thử tối đa Ntrial
+Ensure: Nhiễm sắc thể cải thiện Cbest
+1:Cbest←C
+2:Zbest←f(C)
+3:fortrial = 1toNtrialdo
+4: Chọn một trong các kiểu move: điều chỉnh OA trong cùng giai đoạn, điều chỉnh
+lượng PLT, hoặc dịch thời điểm PLT sớm/muộn một giai đoạn
+5: Tạo nhiễm sắc thể ứng viên C′
+6: SửaQOAnếu move làm sai lệch ràng buộc năng lực
+7: (x′, Z′)←DECODEANDEV ALUATE (C′)
+8: ifZ′< Zbestthen
+9:Cbest←C′
+10: Zbest←Z′
+11: end if
+12:end for
+13:returnCbest
+A.14. Cập nhật trọng số thích nghi
+Algorithm A18 Cập nhật trọng số destroy và repair
+Require: Trọng số hiện tại wd, wr; điểm tích lũy πd, πr; số lần sử dụng nd, nr; hệ số học
+λρ
+Ensure: Trọng số mới wd, wr
+1:formỗi toán tử phá hủy ddo
+2: ifnd>0then
+3:
+wd←(1−λρ)wd+λρ/parenleftBiggπd
+nd/parenrightBigg
+4: end if
+5: πd←0,nd←0
+6:end for
+7:formỗi toán tử tái tạo rdo
+A16
+===TRANG 142===
+8: ifnr>0then
+9:
+wr←(1−λρ)wr+λρ/parenleftBiggπr
+nr/parenrightBigg
+10: end if
+11: πr←0,nr←0
+12:end for
+13:return wd, wr
+A.15. Ví dụ minh họa các thành phần của giải thuật
+Mục này tập hợp các ví dụ minh họa đã được chuyển ra khỏi Chương 4. Các ví dụ
+giúp làm rõ cách hình thành nghiệm ban đầu, cách các toán tử di truyền tạo nghiệm mới,
+cách ALNS phá hủy – tái tạo nghiệm và cách cơ chế chấp nhận nghiệm hoạt động trong
+quá trình tìm kiếm.
+A.15.1. Ví dụ nghiệm nhiễu quanh nghiệm MILP
+Hình A.1 minh họa quá trình tạo một cá thể mới từ nghiệm MILP ban đầu thông qua
+cơ chế thêm nhiễu và chuẩn hóa. Ban đầu, nghiệm MILP phân bổ (40,60)cho hai nhà máy
+với tổng bằng CAP t= 100 . Sau khi thêm nhiễu ngẫu nhiên theo hệ số ϵi,t, lượng phân bổ
+tạm thời trở thành (43.7,58.1)với tổng bằng 101.8. Do tổng phân bổ vượt quá năng lực
+cung ứng, thuật toán thực hiện bước chuẩn hóa và hiệu chỉnh để đưa tổng phân bổ quay
+về đúng bằng CAP t. Quá trình này giúp tạo ra các nghiệm mới có khác biệt cục bộ so với
+nghiệm MILP ban đầu nhưng vẫn đảm bảo tính khả thi của nghiệm.
+A17
+===TRANG 143===
+assets/Ví dụ Nghiệm nhiễu quanh nghiệm MILP.png
+Hình A.1. Ví dụ nghiệm nhiễu quanh nghiệm MILP
+A.15.2. Ví dụ nghiệm heuristic theo nhu cầu
+Hình A.2 minh họa quá trình khởi tạo nghiệm heuristic theo nhu cầu cho ba nhà máy
+tại một giai đoạn t. Đầu tiên, tồn kho dự kiến Ibase
+i,tđược tính từ tồn kho ban đầu và biến
+động tồn kho tích lũy. Sau đó, mức thiếu hụt δi,tcủa từng nhà máy được xác định dựa trên
+chênh lệch giữa mức sàn tồn kho Li,tvà tồn kho dự kiến. Từ các mức thiếu hụt này, thuật
+toán tính tỷ lệ phân bổ ρi,tvà phân bổ năng lực cung ứng CAP ttheo tỷ lệ tương ứng. Bước
+hiệu chỉnh cuối cùng được áp dụng để đảm bảo tổng lượng phân bổ đúng bằng năng lực
+cung ứng.
+A18
+===TRANG 144===
+assets/Ví dụ nghiệm heuristic theo nhu cầu.png
+Hình A.2. Ví dụ nghiệm heuristic theo nhu cầu
+A.15.3. Ví dụ nghiệm ngẫu nhiên Dirichlet
+Hình A.3 minh họa quá trình khởi tạo nghiệm ngẫu nhiên bằng phân phối Dirichlet
+cho bốn nhà máy tại một giai đoạn t. Đầu tiên, thuật toán sinh ngẫu nhiên vector tỷ lệ
+(u1, u2, u3, u4)từ phân phối Dirichlet(1), trong đó tổng các tỷ lệ luôn bằng 1. Các tỷ lệ này
+sau đó được nhân với năng lực cung ứng CAP t= 100 để tạo lượng phân bổ sơ bộ cho từng
+nhà máy.
+Do quá trình làm tròn có thể khiến tổng phân bổ khác CAP t, bước hiệu chỉnh cuối
+cùng được áp dụng để đưa tổng lượng phân bổ quay về đúng bằng năng lực cung ứng của
+hệ thống. Trong ví dụ này, tổng sau làm tròn bằng 101, do đó thuật toán giảm một đơn vị
+tại nhà máy có phần dư thập phân nhỏ nhất để thu được nghiệm cuối cùng có tổng đúng
+bằng 100.
+A19
+===TRANG 145===
+assets/ví dụ nghiệm ngẫu nhiên Dirichlet.png
+Hình A.3. Ví dụ nghiệm ngẫu nhiên Dirichlet
+A.15.4. Ví dụ lai ghép bằng BLX- α
+Hình A.4 minh họa ví dụ lai chéo BLX- αvới hai cá thể cha tại cùng một giai đoạn
+t. Trong ví dụ này, mỗi NST biểu diễn lượng phân bổ cho hai nhà máy và đều thỏa ràng
+buộc năng lực cung ứng với tổng bằng CAP t= 100 . Sau quá trình lai chéo với α= 0.6,
+hai cá thể con mới được tạo ra bằng cách kết hợp thông tin từ cả hai cá thể cha nhưng vẫn
+giữ nguyên tổng năng lực phân bổ của hệ thống.
+assets/crossover example.png
+Hình A.4. Ví dụ lai chéo bằng BLX-α
+A20
+===TRANG 146===
+A.15.5. Ví dụ đột biến
+Hình A.5 minh họa quá trình đột biến hoán đổi phân bổ (Swap Allocation Mutation)
+với ba nhà máy tại một giai đoạn t. Ban đầu, lượng phân bổ tương ứng là (30,50,20)và
+tổng phân bổ bằng năng lực cung ứng CAP t= 100 . Quá trình đột biến chọn ngẫu nhiên
+hai vị trí i1= 2vài2= 3, sau đó dịch chuyển một lượng δ= 10 từ nhà máy thứ hai sang
+nhà máy thứ ba. Sau đột biến, nghiệm mới trở thành (30,40,30)nhưng vẫn bảo toàn tổng
+lượng phân bổ bằng 100. Ví dụ này cho thấy cơ chế đột biến tạo ra thay đổi cục bộ trên
+nghiệm hiện tại trong khi vẫn duy trì tính khả thi của nghiệm.
+assets/mutation example.png
+Hình A.5. Ví dụ đột biến
+A.15.6. Ví dụ chọn lọc tournament
+Ví dụ: giả sử ktour= 3 và thuật toán chọn ngẫu nhiên ba cá thể có fitness lần lượt
+bằng 1200 ,980và1050 . Khi đó, cá thể có fitness bằng 980sẽ được chọn vì đây là nghiệm
+có tổng chi phí nhỏ nhất trong nhóm.
+A.15.7. Ví dụ trạng thái nghiệm trước phá hủy
+Hình A.6 minh họa một nghiệm phân bổ ban đầu trước khi áp dụng các destroy oper-
+ators trong ALNS. Trong các ví dụ ở những phần tiếp theo, cùng một nghiệm này sẽ được
+sử dụng để minh họa quá trình phá hủy của từng destroy operator khác nhau nhằm giúp dễ
+dàng quan sát và so sánh cách mỗi cơ chế tác động lên cấu trúc nghiệm hiện tại.
+A21
+===TRANG 147===
+assets/Input destroy ALNS.png
+Hình A.6. Ví dụ lời giải trước khi tiến hành phá hủy
+A.15.8. Ví dụ phá hủy ngẫu nhiên theo giai đoạn
+Hình A.7 minh họa quá trình phá hủy ngẫu nhiên theo giai đoạn với q= 3. Thuật
+toán chọn ngẫu nhiên các giai đoạn t={2,5,8}và đặt toàn bộ lượng phân bổ tại các giai
+đoạn này về 0. Sau bước destroy, các vị trí bị xóa sẽ được tái xây dựng bởi repair operators
+trong các bước tiếp theo của ALNS.
+A22
+===TRANG 148===
+assets/Random Period Destroy Example.png
+Hình A.7. Ví dụ phá hủy ngẫu nhiên theo giai đoạn
+A.15.9. Ví dụ phá hủy theo khu vực có chi phí cao
+Hình A.8 minh họa quá trình phá hủy theo khu vực có chi phí cao với q= 3. Đầu tiên,
+thuật toán tính tổng chi phí cost tcho từng giai đoạn dựa trên mức tồn kho vượt ngưỡng,
+thiếu hụt tồn kho và tồn kho âm của toàn hệ thống. Sau khi sắp xếp các giai đoạn theo giá
+trịcost tgiảm dần, ba giai đoạn có chi phí lớn nhất là t={3,7,8}được lựa chọn để phá
+hủy. Toàn bộ lượng phân bổ tại các giai đoạn này sẽ được đặt về 0nhằm tạo điều kiện cho
+repair operators thực hiện tái phân bổ hàng hóa ở các bước tiếp theo.
+A23
+===TRANG 149===
+assets/Worst case destroy example.png
+Hình A.8. Ví dụ phá hủy theo khu vực có chi phí cao
+A.15.10. Ví dụ phá hủy tập trung theo nhà máy
+Hình A.9 minh họa quá trình Facility-focused Destroy với q= 3. Đầu tiên, thuật toán
+tính độ lệch tồn kho devicho từng nhà máy và xác định nhà máy Acó mức mất cân bằng lớn
+nhất. Sau đó, ba giai đoạn có mức mất cân bằng cao nhất tại nhà máy này là t={8,4,1}
+được lựa chọn để phá hủy. Lượng phân bổ của nhà máy Atại các giai đoạn này sẽ được đặt
+về0, trong khi lượng phân bổ của các nhà máy khác được giữ nguyên. Phần phân bổ bị xóa
+sau đó sẽ được tái xây dựng bởi repair operators nhằm cân bằng lại tồn kho của hệ thống.
+A24
+===TRANG 150===
+assets/Ví dụ Facility-focus destroy.png
+Hình A.9. Ví dụ phá hủy tập trung theo nhà máy
+A.15.11. Ví dụ trạng thái nghiệm trước repair
+Trong ví dụ ở Hình A.10, các giai đoạn t={3,7,8}thuộc tập phá hủy T−nên toàn
+bộ lượng phân bổ tại các giai đoạn này đã bị loại bỏ sau bước destroy. Cụ thể, tại các giai
+đoạn 3,7và8, lượng phân bổ của tất cả nhà máy A, B, C và D đều bị đưa về 0. Điều này
+tạo ra các khoảng trống phân bổ cần được tái xây dựng trong bước repair tiếp theo.
+Từ trạng thái này, các cơ chế repair sẽ thực hiện tái phân bổ lại tổng năng lực cung
+ứngCAP tcho từng giai đoạn bị phá hủy. Ví dụ, nếu tổng năng lực tại giai đoạn t= 3là
+CAP 3= 370 , cơ chế repair sẽ phân bổ lại toàn bộ 370đơn vị này cho các nhà máy theo
+chiến lược tương ứng như greedy theo thiếu hụt, phân bổ ngẫu nhiên hoặc regret-based.
+Tương tự, tại các giai đoạn t= 7 vàt= 8, toàn bộ năng lực cung ứng cũng sẽ được tái
+phân bổ để tạo ra nghiệm mới khả thi trước khi tiếp tục đánh giá chi phí và cải thiện nghiệm
+trong ALNS.
+A25
+===TRANG 151===
+assets/Ví dụ trước khi repair.png
+Hình A.10. Ví dụ trước khi áp dụng repair
+A.15.12. Ví dụ tái tạo tham lam theo nhu cầu
+Trong ví dụ ở Hình A.11 , các giai đoạn t={3,7,8}được đưa vào tập phá hủy nên
+toàn bộ lượng phân bổ tại các giai đoạn này tạm thời bị đặt về 0sau bước destroy. Chẳng
+hạn, tại giai đoạn t= 3, trước destroy nhà máy A, B, C và D lần lượt nhận 100,70,120và
+80đơn vị, nhưng sau destroy toàn bộ các giá trị này đều trở thành 0.
+Sau đó, cơ chế Greedy Demand-based Repair tái phân bổ lại tổng năng lực cung ứng
+CAP tdựa trên mức thiếu hụt tồn kho của từng nhà máy. Tại giai đoạn t= 3, tổng năng
+lực cần phân bổ là 370đơn vị. Do nhà máy A có mức thiếu hụt lớn nhất nên được ưu tiên
+phân bổ 154đơn vị, trong khi B, C và D lần lượt nhận 92,83và41đơn vị. Tương tự, tại
+giai đoạn t= 7, tổng năng lực 350đơn vị được phân bổ lại thành 163,92,55và41đơn vị
+cho các nhà máy A, B, C và D.
+Kết quả cho thấy cơ chế repair ưu tiên phân bổ nhiều hơn cho các nhà máy có thiếu
+hụt tồn kho lớn, đồng thời vẫn đảm bảo tổng lượng phân bổ sau repair luôn đúng bằng năng
+lực cung ứng CAP ttại mỗi giai đoạn.
+A26
+===TRANG 152===
+assets/Greedy Demand-based Repair example.png
+Hình A.11. Ví dụ áp dụng tái tạo tham lam theo nhu cầu
+A.15.13. Ví dụ tái tạo ngẫu nhiên
+Trong ví dụ ở Hình A.12 , các giai đoạn t={3,7,8}được đưa vào tập phá hủy nên
+toàn bộ lượng phân bổ tại các giai đoạn này bị đưa về 0sau bước destroy. Sau đó, Random
+Repair thực hiện tái phân bổ lại năng lực cung ứng CAP tbằng cách sinh ngẫu nhiên các tỷ
+lệ phân bổ từ phân phối Dirichlet.
+Tại mỗi giai đoạn bị phá hủy, một vector tỷ lệ ngẫu nhiên được tạo ra cho các nhà máy
+A, B, C và D. Ví dụ, tại giai đoạn t= 3, các tỷ lệ ngẫu nhiên lần lượt là 0.417,0.249,0.225
+và0.109. Với tổng năng lực cung ứng CAP 3= 370 , lượng phân bổ sau repair được xác
+định tương ứng là 154,92,83và41đơn vị cho các nhà máy A, B, C và D.
+Tương tự, tại giai đoạn t= 7 vớiCAP 7= 350 , cơ chế repair tạo ra lượng phân bổ
+mới lần lượt là 163,92,55và40đơn vị. Trong khi đó, tại giai đoạn t= 8, tổng năng lực
+CAP 8= 240 được phân bổ lại thành 95,45,58và42đơn vị.
+Kết quả cho thấy Random Repair tạo ra các phương án phân bổ đa dạng hơn so với
+các repair operators có định hướng cố định, đồng thời vẫn đảm bảo tổng lượng phân bổ tại
+mỗi giai đoạn luôn đúng bằng năng lực cung ứng CAP t.
+A27
+===TRANG 153===
+assets/Ví dụ áp dụng tái tạo ngẫu nhiên.png
+Hình A.12. Ví dụ áp dụng tái tạo ngẫu nhiên
+A.15.14. Ví dụ tái tạo theo regret
+Trong ví dụ ở Hình A.13 , các giai đoạn t={3,7,8}thuộc tập phá hủy T−nên toàn
+bộ lượng phân bổ tại các giai đoạn này bị loại bỏ sau bước destroy. Sau đó, Regret-based
+Repair tính giá trị regret cho từng nhà máy để xác định mức độ ưu tiên phân bổ lại năng lực
+cung ứng CAP t.
+Tại giai đoạn t= 3, tổng năng lực CAP 3= 370 được tái phân bổ thành 150,110,70
+và40đơn vị cho các nhà máy A, B, C và D. Các giai đoạn t= 7 vàt= 8 cũng được tái
+phân bổ theo cùng nguyên tắc, trong đó nhà máy có regret cao hơn sẽ nhận tỷ lệ phân bổ
+lớn hơn.
+Kết quả cho thấy Regret-based Repair ưu tiên phân bổ nhiều hơn cho các nhà máy có
+regret cao, đồng thời vẫn đảm bảo tổng lượng phân bổ tại mỗi giai đoạn luôn bằng năng lực
+cung ứng CAP t.
+A28
+===TRANG 154===
+assets/Tái tạo theo regret.png
+Hình A.13. Ví dụ áp dụng tái tạo theo regret
+A.15.15. Ví dụ chấp nhận nghiệm theo SA
+Trong ví dụ ở Hình A.14 , nghiệm hiện tại có giá trị hàm mục tiêu f(x) = 1000 , trong
+khi nghiệm mới có f(x′) = 1120 , tức nghiệm mới kém hơn với ∆ = 120 . Khi đó, xác suất
+chấp nhận nghiệm mới sẽ phụ thuộc vào nhiệt độ θ.
+Tại giai đoạn đầu của quá trình tìm kiếm, nhiệt độ còn cao ( θ0= 200 ) nên xác suất
+chấp nhận nghiệm kém hơn vẫn khá lớn ( P= 0.5488 ). Nếu số ngẫu nhiên sinh ra nhỏ hơn
+xác suất này, nghiệm mới vẫn được chấp nhận nhằm tăng khả năng khám phá không gian
+nghiệm.
+Khi số vòng lặp tăng lên, nhiệt độ giảm dần theo lịch làm nguội θ←θ·ηvớiη= 0.99.
+Điều này làm xác suất chấp nhận nghiệm kém hơn giảm theo. Chẳng hạn, tại vòng lặp
+k= 100 , nhiệt độ chỉ còn 73.97nên xác suất chấp nhận giảm xuống còn 0.1954 . Nhờ đó,
+thuật toán dần chuyển từ giai đoạn khám phá sang tập trung khai thác các nghiệm tốt hơn ở
+giai đoạn cuối của quá trình tìm kiếm.
+A29
+===TRANG 155===
+assets/Ví dụ chấp nhận nghiệm theo SA.png
+Hình A.14. Ví dụ chấp nhận nghiệm theo SA
+A.15.16. Ví dụ cập nhật trọng số thích nghi
+Trong ví dụ ở Hình A.15 , các toán tử destroy và repair được theo dõi điểm thưởng và
+số lần sử dụng trong mỗi đoạn gồm ∆seg= 5vòng lặp. Các toán tử tạo ra nghiệm tốt hơn
+sẽ nhận điểm thưởng cao hơn, từ đó làm tăng trọng số thích nghi trong các lần cập nhật tiếp
+theo.
+Chẳng hạn, toán tử D3vàR3có tổng điểm thưởng cao nhất (π= 6) nên sau bước cập
+nhật, trọng số của hai toán tử này tăng từ 0.30lên0.44. Điều này làm xác suất được lựa
+chọn của chúng trong các vòng lặp tiếp theo cũng tăng lên đáng kể.
+Ngược lại, các toán tử có hiệu quả thấp hơn sẽ nhận trọng số nhỏ hơn và có xác suất
+được chọn thấp hơn. Cơ chế này giúp ALNS dần ưu tiên các toán tử hoạt động hiệu quả
+trong khi vẫn duy trì khả năng khám phá thông qua việc tiếp tục lựa chọn các toán tử khác
+với xác suất nhỏ hơn.
+A30
+===TRANG 156===
+assets/Ví dụ cập nhật trọng số thích nghi.png
+Hình A.15. Ví dụ cập nhật trọng số thích nghi
+A31
+===TRANG 157===
+PHỤ LỤC B. CÔNG THỨC VÀ MÃ GIẢ THIẾT KẾ THỰC NGHIỆM TAGUCHI
+B.1. Công thức đánh giá cấu hình Taguchi
+Phụ lục này trình bày các công thức dùng để tổng hợp kết quả hiệu chỉnh tham số bằng
+Taguchi. Các công thức được tách khỏi chương chính nhằm giữ nội dung thực nghiệm gọn
+hơn.
+GọiSsample là tập sản phẩm mẫu, klà chỉ số cấu hình Taguchi, rlà chỉ số seed, và
+Zk,p,rlà giá trị hàm mục tiêu của sản phẩm pkhi chạy cấu hình ktại seed r. Tổng chi phí
+của cấu hình ktại seed rđược tính như sau:
+Zk,r=/summationdisplay
+p∈SsampleZk,p,r (B.1)
+VớiRlà số seed, giá trị mục tiêu trung bình của cấu hình kđược tính bằng:
+¯Zk=1
+RR/summationdisplay
+r=1Zk,r (B.2)
+Độ lệch chuẩn của cấu hình kđược tính bằng:
+σk=/radicaltp/radicalvertex/radicalvertex/radicalbt1
+RR/summationdisplay
+r=1/parenleftBig
+Zk,r−¯Zk/parenrightBig2(B.3)
+S/N Ratio dạng smaller-is-better được tính như sau:
+ηk=−10 log10
+1
+RR/summationdisplay
+r=1Z2
+k,r
+ (B.4)
+Với tiêu chí này, cấu hình có ηklớn hơn được xem là tốt hơn vì thể hiện chi phí thấp
+và độ dao động thấp hơn.
+B.2. Công thức phân tích AOV
+Gọiyilà giá trị mục tiêu tại quan sát thứ i,¯ylà giá trị mục tiêu trung bình của toàn bộ
+quan sát, và Nlà tổng số quan sát. Tổng bình phương sai lệch toàn phần được tính bằng:
+SSTotal =N/summationdisplay
+i=1(yi−¯y)2(B.5)
+B1
+===TRANG 158===
+Với mỗi yếu tố j, phần biến động do yếu tố đó tạo ra được tính từ sai lệch giữa trung
+bình của từng mức và trung bình chung:
+SSj=L/summationdisplay
+l=1nl(¯yj,l−¯y)2(B.6)
+Trong đó, Llà số mức của yếu tố, nllà số quan sát tại mức l, và¯yj,llà giá trị mục tiêu
+trung bình của yếu tố jtại mức l.
+Vì mỗi yếu tố có bốn mức, bậc tự do của mỗi yếu tố là:
+d fj=L−1 = 4−1 = 3 (B.7)
+Phần sai số được tính bằng phần biến động còn lại sau khi trừ đi biến động do các yếu
+tố chính:
+SSError =SSTotal−/summationdisplay
+jSSj (B.8)
+Bậc tự do của sai số được tính như sau:
+d fError =d fTotal−/summationdisplay
+jd fj (B.9)
+VớiN= 160 , ta có d fTotal = 159 . Do có năm yếu tố, mỗi yếu tố có d f= 3, nên:
+d fError = 159−5×3 = 144 (B.10)
+Trung bình bình phương của yếu tố jđược tính bằng:
+MS j=SSj
+d fj(B.11)
+Trung bình bình phương của sai số được tính bằng:
+MS Error =SSError
+d fError(B.12)
+Giá trị Fdùng để so sánh mức ảnh hưởng của từng yếu tố với sai số nền:
+Fj=MS j
+MS Error(B.13)
+B2
+===TRANG 159===
+Tỷ lệ đóng góp của từng yếu tố được tính bằng:
+Contribution j=SSj
+SSTotal×100% (B.14)
+Tỷ lệ đóng góp càng lớn thì yếu tố đó càng ảnh hưởng mạnh đến sự thay đổi của giá
+trị mục tiêu.
+B3
+===TRANG 160===
+PHỤ LỤC C. KẾT QUẢ HIỆU CHỈNH THAM SỐ TAGUCHI TRÊN BÀI TOÁN
+MẪU
+Phụ lục này trình bày chi tiết kết quả hiệu chỉnh tham số Taguchi trên bài toán mẫu.
+Bài toán mẫu gồm 100 sản phẩm, 5 nhà máy và 10 giai đoạn lập kế hoạch. Mục đích của
+phụ lục là lưu lại cấu hình thí nghiệm, kết quả tổng hợp theo từng cấu hình và kết quả chi
+tiết của từng lần chạy.
+Trong thực nghiệm Taguchi, nghiên cứu sử dụng 16 cấu hình tham số. Mỗi cấu hình
+được chạy 10 lần với các seed khác nhau, tạo thành tổng cộng 160 lần chạy. Các giá trị chi
+phí trong phụ lục này được trình bày theo đơn vị triệu USD, trong khi chi phí trung bình
+trên mỗi sản phẩm được trình bày theo đơn vị nghìn USD.
+C.1. Các yếu tố điều khiển trong thiết kế Taguchi
+Bảng C.1: Các yếu tố điều khiển và mức tham số trong thiết kế Taguchi trên bài toán
+mẫu
+Ký
+hiệuTham số Mức 1 Mức 2 Mức 3 Mức 4
+A Kích thước quần thể
+npop32 34 36 38
+B Số thế hệ tối đa
+Gmax500 650 800 950
+C Xác suất lai chéo
+pcrossover0.60 0.65 0.70 0.75
+E1
+===TRANG 161===
+Ký
+hiệuTham số Mức 1 Mức 2 Mức 3 Mức 4
+D Xác suất đột biến
+pmutation0.20 0.25 0.30 0.35
+E Số vòng lặp TKLCLTN
+niterations25 35 45 55
+E2
+===TRANG 162===
+C.2. Tổng hợp kết quả theo cấu hình
+Bảng C.2: Tổng hợp kết quả hiệu chỉnh Taguchi trên bài toán mẫu
+Hạng Lần
+chạynpop Gmax pcrossover pmutation niterations Trung bình
+chi phíĐộ lệch
+chuẩnChi phí nhỏ
+nhấtChi phí lớn
+nhấtTG
+TB/SPTỷ số S/N
+(triệu USD) (triệu USD) (triệu USD) (triệu USD) (giây)
+1 13 38 500 0.75 0.25 45 18.326 0.121 18.168 18.574 10.35 -145.2615
+2 9 36 500 0.70 0.35 35 18.374 0.122 18.197 18.547 10.42 -145.2843
+3 10 36 650 0.75 0.30 25 18.378 0.161 18.266 18.679 10.41 -145.2864
+4 12 36 950 0.65 0.20 45 18.392 0.158 18.119 18.670 10.33 -145.2931
+5 14 38 650 0.70 0.20 55 18.400 0.136 18.190 18.579 10.35 -145.2967
+6 16 38 950 0.60 0.30 35 18.403 0.094 18.250 18.559 10.36 -145.2978
+7 15 38 800 0.65 0.35 25 18.433 0.110 18.241 18.565 10.38 -145.3122
+8 3 32 800 0.70 0.30 45 18.518 0.126 18.299 18.690 10.36 -145.3521
+9 11 36 800 0.60 0.25 55 18.535 0.206 18.088 18.766 10.46 -145.3603
+10 7 34 800 0.75 0.20 35 18.683 0.198 18.423 19.017 10.47 -145.4293
+11 8 34 950 0.70 0.25 25 18.694 0.125 18.560 18.904 10.50 -145.4342
+12 2 32 650 0.65 0.25 35 18.694 0.174 18.412 18.938 10.43 -145.4346
+13 5 34 500 0.65 0.30 55 18.715 0.171 18.479 18.970 10.53 -145.4443
+14 6 34 650 0.60 0.35 45 18.724 0.130 18.559 18.924 10.57 -145.4481
+15 1 32 500 0.60 0.20 25 18.757 0.179 18.457 19.000 10.43 -145.4636
+16 4 32 950 0.75 0.35 55 18.761 0.165 18.507 19.097 10.50 -145.4653
+E3
+===TRANG 163===
+C.3. Chi tiết từng lần chạy
+Bảng C.3: Chi tiết 160 lần chạy Taguchi trên bài toán mẫu
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+1 1 1 32 500 0.60 0.20 25 18.992 189.92 10.44 12.63 100 Giới hạn thời
+gian
+1 2 2 32 500 0.60 0.20 25 18.776 187.76 10.51 13.22 100 Giới hạn thời
+gian
+1 3 3 32 500 0.60 0.20 25 18.696 186.96 10.53 16.59 100 Giới hạn thời
+gian
+1 4 4 32 500 0.60 0.20 25 19.000 190.00 10.55 14.84 100 Giới hạn thời
+gian
+1 5 5 32 500 0.60 0.20 25 18.457 184.57 10.40 13.55 100 Giới hạn thời
+gian
+1 6 6 32 500 0.60 0.20 25 18.527 185.27 10.28 12.16 100 Giới hạn thời
+gian
+1 7 7 32 500 0.60 0.20 25 18.647 186.47 10.41 12.64 100 Giới hạn thời
+gian
+1 8 8 32 500 0.60 0.20 25 18.857 188.57 10.34 12.36 100 Giới hạn thời
+gian
+1 9 9 32 500 0.60 0.20 25 18.797 187.97 10.46 12.47 100 Giới hạn thời
+gian
+1 10 10 32 500 0.60 0.20 25 18.819 188.19 10.41 17.27 100 Giới hạn thời
+gian
+2 1 1 32 650 0.65 0.25 35 18.792 187.92 10.57 14.07 100 Giới hạn thời
+gian
+2 2 2 32 650 0.65 0.25 35 18.814 188.14 10.45 12.31 100 Giới hạn thời
+gian
+E4
+===TRANG 164===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+2 3 3 32 650 0.65 0.25 35 18.794 187.94 10.43 12.95 100 Giới hạn thời
+gian
+2 4 4 32 650 0.65 0.25 35 18.622 186.22 10.44 12.28 100 Giới hạn thời
+gian
+2 5 5 32 650 0.65 0.25 35 18.412 184.12 10.36 13.32 100 Giới hạn thời
+gian
+2 6 6 32 650 0.65 0.25 35 18.823 188.23 10.33 14.00 100 Giới hạn thời
+gian
+2 7 7 32 650 0.65 0.25 35 18.614 186.14 10.37 13.57 100 Giới hạn thời
+gian
+2 8 8 32 650 0.65 0.25 35 18.429 184.29 10.39 12.72 100 Giới hạn thời
+gian
+2 9 9 32 650 0.65 0.25 35 18.705 187.05 10.49 13.88 100 Giới hạn thời
+gian
+2 10 10 32 650 0.65 0.25 35 18.938 189.38 10.43 13.46 100 Giới hạn thời
+gian
+3 1 1 32 800 0.70 0.30 45 18.417 184.17 10.35 13.25 100 Giới hạn thời
+gian
+3 2 2 32 800 0.70 0.30 45 18.618 186.18 10.40 15.62 100 Giới hạn thời
+gian
+3 3 3 32 800 0.70 0.30 45 18.299 182.99 10.34 11.88 100 Giới hạn thời
+gian
+3 4 4 32 800 0.70 0.30 45 18.537 185.37 10.30 11.82 100 Giới hạn thời
+gian
+3 5 5 32 800 0.70 0.30 45 18.671 186.71 10.32 11.93 100 Giới hạn thời
+gian
+3 6 6 32 800 0.70 0.30 45 18.690 186.90 10.31 11.71 100 Giới hạn thời
+gian
+3 7 7 32 800 0.70 0.30 45 18.460 184.60 10.39 15.52 100 Giới hạn thời
+gian
+E5
+===TRANG 165===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+3 8 8 32 800 0.70 0.30 45 18.530 185.30 10.38 12.23 100 Giới hạn thời
+gian
+3 9 9 32 800 0.70 0.30 45 18.395 183.95 10.36 12.66 100 Giới hạn thời
+gian
+3 10 10 32 800 0.70 0.30 45 18.564 185.64 10.48 17.65 100 Giới hạn thời
+gian
+4 1 1 32 950 0.75 0.35 55 18.599 185.99 10.44 17.82 100 Giới hạn thời
+gian
+4 2 2 32 950 0.75 0.35 55 18.708 187.08 10.53 12.98 100 Giới hạn thời
+gian
+4 3 3 32 950 0.75 0.35 55 18.884 188.84 10.55 14.14 100 Giới hạn thời
+gian
+4 4 4 32 950 0.75 0.35 55 18.691 186.91 10.55 22.71 100 Giới hạn thời
+gian
+4 5 5 32 950 0.75 0.35 55 18.848 188.48 10.60 16.47 100 Giới hạn thời
+gian
+4 6 6 32 950 0.75 0.35 55 19.097 190.97 10.56 19.33 100 Giới hạn thời
+gian
+4 7 7 32 950 0.75 0.35 55 18.827 188.27 10.55 12.83 100 Giới hạn thời
+gian
+4 8 8 32 950 0.75 0.35 55 18.684 186.84 10.43 11.90 100 Giới hạn thời
+gian
+4 9 9 32 950 0.75 0.35 55 18.507 185.07 10.44 13.14 100 Giới hạn thời
+gian
+4 10 10 32 950 0.75 0.35 55 18.761 187.61 10.39 13.04 100 Giới hạn thời
+gian
+5 1 1 34 500 0.65 0.30 55 18.694 186.94 10.53 13.55 100 Giới hạn thời
+gian
+5 2 2 34 500 0.65 0.30 55 18.493 184.93 10.62 13.62 100 Giới hạn thời
+gian
+E6
+===TRANG 166===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+5 3 3 34 500 0.65 0.30 55 18.906 189.06 10.60 14.50 100 Giới hạn thời
+gian
+5 4 4 34 500 0.65 0.30 55 18.970 189.70 10.47 12.91 100 Giới hạn thời
+gian
+5 5 5 34 500 0.65 0.30 55 18.808 188.08 10.68 16.76 100 Giới hạn thời
+gian
+5 6 6 34 500 0.65 0.30 55 18.768 187.68 10.54 15.21 100 Giới hạn thời
+gian
+5 7 7 34 500 0.65 0.30 55 18.664 186.64 10.59 17.55 100 Giới hạn thời
+gian
+5 8 8 34 500 0.65 0.30 55 18.545 185.45 10.37 11.91 100 Giới hạn thời
+gian
+5 9 9 34 500 0.65 0.30 55 18.479 184.79 10.44 13.02 100 Giới hạn thời
+gian
+5 10 10 34 500 0.65 0.30 55 18.825 188.25 10.48 12.88 100 Giới hạn thời
+gian
+6 1 1 34 650 0.60 0.35 45 18.924 189.24 10.54 12.62 100 Giới hạn thời
+gian
+6 2 2 34 650 0.60 0.35 45 18.714 187.14 10.50 13.12 100 Giới hạn thời
+gian
+6 3 3 34 650 0.60 0.35 45 18.815 188.15 10.52 12.02 100 Giới hạn thời
+gian
+6 4 4 34 650 0.60 0.35 45 18.601 186.01 10.52 12.26 100 Giới hạn thời
+gian
+6 5 5 34 650 0.60 0.35 45 18.843 188.43 10.55 18.31 100 Giới hạn thời
+gian
+6 6 6 34 650 0.60 0.35 45 18.864 188.64 10.55 13.04 100 Giới hạn thời
+gian
+6 7 7 34 650 0.60 0.35 45 18.703 187.03 10.52 16.49 100 Giới hạn thời
+gian
+E7
+===TRANG 167===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+6 8 8 34 650 0.60 0.35 45 18.622 186.22 10.65 19.97 100 Giới hạn thời
+gian
+6 9 9 34 650 0.60 0.35 45 18.596 185.96 10.67 20.77 100 Giới hạn thời
+gian
+6 10 10 34 650 0.60 0.35 45 18.559 185.59 10.62 16.74 100 Giới hạn thời
+gian
+7 1 1 34 800 0.75 0.20 35 18.423 184.23 10.48 16.54 100 Giới hạn thời
+gian
+7 2 2 34 800 0.75 0.20 35 18.689 186.89 10.50 15.09 100 Giới hạn thời
+gian
+7 3 3 34 800 0.75 0.20 35 18.674 186.74 10.43 12.08 100 Giới hạn thời
+gian
+7 4 4 34 800 0.75 0.20 35 18.553 185.53 10.41 11.94 100 Giới hạn thời
+gian
+7 5 5 34 800 0.75 0.20 35 18.869 188.69 10.47 14.76 100 Giới hạn thời
+gian
+7 6 6 34 800 0.75 0.20 35 19.017 190.17 10.41 11.82 100 Giới hạn thời
+gian
+7 7 7 34 800 0.75 0.20 35 18.938 189.38 10.62 16.80 100 Giới hạn thời
+gian
+7 8 8 34 800 0.75 0.20 35 18.564 185.64 10.42 11.91 100 Giới hạn thời
+gian
+7 9 9 34 800 0.75 0.20 35 18.483 184.83 10.57 14.09 100 Giới hạn thời
+gian
+7 10 10 34 800 0.75 0.20 35 18.619 186.19 10.42 12.07 100 Giới hạn thời
+gian
+8 1 1 34 950 0.70 0.25 25 18.662 186.62 10.52 11.96 100 Giới hạn thời
+gian
+8 2 2 34 950 0.70 0.25 25 18.612 186.12 10.58 13.25 100 Giới hạn thời
+gian
+E8
+===TRANG 168===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+8 3 3 34 950 0.70 0.25 25 18.569 185.69 10.43 12.03 100 Giới hạn thời
+gian
+8 4 4 34 950 0.70 0.25 25 18.904 189.04 10.47 12.15 100 Giới hạn thời
+gian
+8 5 5 34 950 0.70 0.25 25 18.799 187.99 10.54 14.07 100 Giới hạn thời
+gian
+8 6 6 34 950 0.70 0.25 25 18.585 185.85 10.41 12.03 100 Giới hạn thời
+gian
+8 7 7 34 950 0.70 0.25 25 18.724 187.24 10.51 15.76 100 Giới hạn thời
+gian
+8 8 8 34 950 0.70 0.25 25 18.658 186.58 10.44 13.27 100 Giới hạn thời
+gian
+8 9 9 34 950 0.70 0.25 25 18.560 185.60 10.48 12.63 100 Giới hạn thời
+gian
+8 10 10 34 950 0.70 0.25 25 18.868 188.68 10.62 16.20 100 Giới hạn thời
+gian
+9 1 1 36 500 0.70 0.35 35 18.409 184.09 10.31 11.41 100 Giới hạn thời
+gian
+9 2 2 36 500 0.70 0.35 35 18.344 183.44 10.37 12.81 100 Giới hạn thời
+gian
+9 3 3 36 500 0.70 0.35 35 18.200 182.00 10.32 12.04 100 Giới hạn thời
+gian
+9 4 4 36 500 0.70 0.35 35 18.197 181.97 10.32 11.66 100 Giới hạn thời
+gian
+9 5 5 36 500 0.70 0.35 35 18.380 183.80 10.34 11.37 100 Giới hạn thời
+gian
+9 6 6 36 500 0.70 0.35 35 18.529 185.29 10.57 16.76 100 Giới hạn thời
+gian
+9 7 7 36 500 0.70 0.35 35 18.289 182.89 10.45 12.71 100 Giới hạn thời
+gian
+E9
+===TRANG 169===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+9 8 8 36 500 0.70 0.35 35 18.474 184.74 10.47 16.14 100 Giới hạn thời
+gian
+9 9 9 36 500 0.70 0.35 35 18.547 185.47 10.58 22.79 100 Giới hạn thời
+gian
+9 10 10 36 500 0.70 0.35 35 18.373 183.73 10.42 12.23 100 Giới hạn thời
+gian
+10 1 1 36 650 0.75 0.30 25 18.310 183.10 10.33 12.70 100 Giới hạn thời
+gian
+10 2 2 36 650 0.75 0.30 25 18.289 182.89 10.34 13.22 100 Giới hạn thời
+gian
+10 3 3 36 650 0.75 0.30 25 18.333 183.33 10.43 18.53 100 Giới hạn thời
+gian
+10 4 4 36 650 0.75 0.30 25 18.276 182.76 10.34 12.21 100 Giới hạn thời
+gian
+10 5 5 36 650 0.75 0.30 25 18.673 186.73 10.41 12.74 100 Giới hạn thời
+gian
+10 6 6 36 650 0.75 0.30 25 18.679 186.79 10.48 12.65 100 Giới hạn thời
+gian
+10 7 7 36 650 0.75 0.30 25 18.287 182.87 10.39 12.37 100 Giới hạn thời
+gian
+10 8 8 36 650 0.75 0.30 25 18.389 183.89 10.50 17.59 100 Giới hạn thời
+gian
+10 9 9 36 650 0.75 0.30 25 18.266 182.66 10.45 15.47 100 Giới hạn thời
+gian
+10 10 10 36 650 0.75 0.30 25 18.281 182.81 10.38 11.74 100 Giới hạn thời
+gian
+11 1 1 36 800 0.60 0.25 55 18.088 180.88 10.42 14.81 100 Giới hạn thời
+gian
+11 2 2 36 800 0.60 0.25 55 18.580 185.80 10.47 12.26 100 Giới hạn thời
+gian
+E10
+===TRANG 170===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+11 3 3 36 800 0.60 0.25 55 18.321 183.21 10.56 12.45 100 Giới hạn thời
+gian
+11 4 4 36 800 0.60 0.25 55 18.670 186.70 10.47 13.32 100 Giới hạn thời
+gian
+11 5 5 36 800 0.60 0.25 55 18.761 187.61 10.47 12.97 100 Giới hạn thời
+gian
+11 6 6 36 800 0.60 0.25 55 18.586 185.86 10.39 11.77 100 Giới hạn thời
+gian
+11 7 7 36 800 0.60 0.25 55 18.476 184.76 10.41 11.90 100 Giới hạn thời
+gian
+11 8 8 36 800 0.60 0.25 55 18.766 187.66 10.49 12.63 100 Giới hạn thời
+gian
+11 9 9 36 800 0.60 0.25 55 18.509 185.09 10.51 14.05 100 Giới hạn thời
+gian
+11 10 10 36 800 0.60 0.25 55 18.592 185.92 10.46 12.34 100 Giới hạn thời
+gian
+12 1 1 36 950 0.65 0.20 45 18.300 183.00 10.43 12.58 100 Giới hạn thời
+gian
+12 2 2 36 950 0.65 0.20 45 18.519 185.19 10.33 12.30 100 Giới hạn thời
+gian
+12 3 3 36 950 0.65 0.20 45 18.445 184.45 10.32 11.31 100 Giới hạn thời
+gian
+12 4 4 36 950 0.65 0.20 45 18.504 185.04 10.30 11.97 100 Giới hạn thời
+gian
+12 5 5 36 950 0.65 0.20 45 18.388 183.88 10.39 14.32 100 Giới hạn thời
+gian
+12 6 6 36 950 0.65 0.20 45 18.239 182.39 10.33 14.52 100 Giới hạn thời
+gian
+12 7 7 36 950 0.65 0.20 45 18.119 181.19 10.29 11.60 100 Giới hạn thời
+gian
+E11
+===TRANG 171===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+12 8 8 36 950 0.65 0.20 45 18.670 186.70 10.35 12.93 100 Giới hạn thời
+gian
+12 9 9 36 950 0.65 0.20 45 18.440 184.40 10.25 11.21 100 Giới hạn thời
+gian
+12 10 10 36 950 0.65 0.20 45 18.301 183.01 10.34 11.75 100 Giới hạn thời
+gian
+13 1 1 38 500 0.75 0.25 45 18.195 181.95 10.34 12.91 100 Giới hạn thời
+gian
+13 2 2 38 500 0.75 0.25 45 18.343 183.43 10.43 14.10 100 Giới hạn thời
+gian
+13 3 3 38 500 0.75 0.25 45 18.367 183.67 10.37 12.96 100 Giới hạn thời
+gian
+13 4 4 38 500 0.75 0.25 45 18.574 185.74 10.33 11.80 100 Giới hạn thời
+gian
+13 5 5 38 500 0.75 0.25 45 18.221 182.21 10.40 17.10 100 Giới hạn thời
+gian
+13 6 6 38 500 0.75 0.25 45 18.435 184.35 10.29 13.54 100 Giới hạn thời
+gian
+13 7 7 38 500 0.75 0.25 45 18.299 182.99 10.31 11.75 100 Giới hạn thời
+gian
+13 8 8 38 500 0.75 0.25 45 18.168 181.68 10.41 22.72 100 Giới hạn thời
+gian
+13 9 9 38 500 0.75 0.25 45 18.363 183.63 10.31 11.98 100 Giới hạn thời
+gian
+13 10 10 38 500 0.75 0.25 45 18.296 182.96 10.35 13.30 100 Giới hạn thời
+gian
+14 1 1 38 650 0.70 0.20 55 18.405 184.05 10.50 15.76 100 Giới hạn thời
+gian
+14 2 2 38 650 0.70 0.20 55 18.332 183.32 10.36 13.41 100 Giới hạn thời
+gian
+E12
+===TRANG 172===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+14 3 3 38 650 0.70 0.20 55 18.190 181.90 10.36 11.80 100 Giới hạn thời
+gian
+14 4 4 38 650 0.70 0.20 55 18.498 184.98 10.30 11.43 100 Giới hạn thời
+gian
+14 5 5 38 650 0.70 0.20 55 18.508 185.08 10.29 11.85 100 Giới hạn thời
+gian
+14 6 6 38 650 0.70 0.20 55 18.258 182.58 10.46 13.79 100 Giới hạn thời
+gian
+14 7 7 38 650 0.70 0.20 55 18.367 183.67 10.31 12.36 100 Giới hạn thời
+gian
+14 8 8 38 650 0.70 0.20 55 18.289 182.89 10.30 11.69 100 Giới hạn thời
+gian
+14 9 9 38 650 0.70 0.20 55 18.579 185.79 10.34 13.22 100 Giới hạn thời
+gian
+14 10 10 38 650 0.70 0.20 55 18.577 185.77 10.31 12.89 100 Giới hạn thời
+gian
+15 1 1 38 800 0.65 0.35 25 18.241 182.41 10.37 11.64 100 Giới hạn thời
+gian
+15 2 2 38 800 0.65 0.35 25 18.563 185.63 10.41 15.17 100 Giới hạn thời
+gian
+15 3 3 38 800 0.65 0.35 25 18.565 185.65 10.43 11.93 100 Giới hạn thời
+gian
+15 4 4 38 800 0.65 0.35 25 18.454 184.54 10.46 16.17 100 Giới hạn thời
+gian
+15 5 5 38 800 0.65 0.35 25 18.528 185.28 10.38 13.00 100 Giới hạn thời
+gian
+15 6 6 38 800 0.65 0.35 25 18.324 183.24 10.45 14.43 100 Giới hạn thời
+gian
+15 7 7 38 800 0.65 0.35 25 18.356 183.56 10.33 11.31 100 Giới hạn thời
+gian
+E13
+===TRANG 173===
+Lần
+chạyLặp Seed npop Gmax pcrossover pmutation niterations Tổng chi
+phíChi phí
+TB/SPTG TB TG lớn
+nhấtSố SP
+thành
+côngĐiều kiện dừng
+(triệu
+USD)(nghìn
+USD)(giây) (giây)
+15 8 8 38 800 0.65 0.35 25 18.431 184.31 10.36 13.14 100 Giới hạn thời
+gian
+15 9 9 38 800 0.65 0.35 25 18.365 183.65 10.36 13.11 100 Giới hạn thời
+gian
+15 10 10 38 800 0.65 0.35 25 18.503 185.03 10.28 11.95 100 Giới hạn thời
+gian
+16 1 1 38 950 0.60 0.30 35 18.458 184.58 10.36 13.08 100 Giới hạn thời
+gian
+16 2 2 38 950 0.60 0.30 35 18.331 183.31 10.32 13.16 100 Giới hạn thời
+gian
+16 3 3 38 950 0.60 0.30 35 18.559 185.59 10.44 13.61 100 Giới hạn thời
+gian
+16 4 4 38 950 0.60 0.30 35 18.285 182.85 10.43 13.17 100 Giới hạn thời
+gian
+16 5 5 38 950 0.60 0.30 35 18.405 184.05 10.26 11.29 100 Giới hạn thời
+gian
+16 6 6 38 950 0.60 0.30 35 18.250 182.50 10.39 12.29 100 Giới hạn thời
+gian
+16 7 7 38 950 0.60 0.30 35 18.369 183.69 10.37 16.61 100 Giới hạn thời
+gian
+16 8 8 38 950 0.60 0.30 35 18.457 184.57 10.30 12.39 100 Giới hạn thời
+gian
+16 9 9 38 950 0.60 0.30 35 18.462 184.62 10.40 12.46 100 Giới hạn thời
+gian
+16 10 10 38 950 0.60 0.30 35 18.452 184.52 10.34 12.32 100 Giới hạn thời
+gian
+E14
+===TRANG 174===
+PHỤ LỤC D. KẾT QUẢ HIỆN TRẠNG CỦA BÀI TOÁN MẪU
+Phụ lục này trình bày kết quả hiện trạng của bài toán mẫu trước khi áp dụng tối ưu.
+Bài toán mẫu gồm 100 sản phẩm, 5 nhà máy và 10 giai đoạn lập kế hoạch. Các kết quả
+được tổng hợp từ kế hoạch phân bổ, điều chuyển ngang, tồn kho và chi phí của từng sản
+phẩm trong tập mẫu.
+D.1. Tổng quan kết quả hiện trạng
+Bảng D.1 tóm tắt các chỉ tiêu tổng quát của bài toán mẫu. Tổng chi phí hiện trạng của
+toàn bộ tập mẫu là 50.63 triệu USD, tương ứng chi phí trung bình 0.51 triệu USD cho mỗi
+sản phẩm. Trong tập mẫu, sản phẩm có chi phí thấp nhất là P1808, còn sản phẩm có chi phí
+cao nhất là P1192.
+Bảng D.1: Tổng quan kết quả hiện trạng của bài toán mẫu
+Chỉ tiêu Giá trị
+Số sản phẩm 100
+Số nhà máy 5
+Số giai đoạn 10
+Số bài toán con xử lý thành công 100/100
+Tổng chi phí hiện trạng (triệu
+USD)50.63
+Chi phí trung bình mỗi sản phẩm
+(triệu USD)0.51
+Sản phẩm có chi phí thấp nhất P1808 (0.04 triệu
+USD)
+Sản phẩm có chi phí cao nhất P1192 (1.63 triệu
+USD)
+D1
+===TRANG 175===
+Chỉ tiêu Giá trị
+Thời gian xử lý trung bình mỗi sản
+phẩm (giây)0.0008
+D.2. Cơ cấu chi phí hiện trạng
+Bảng D.2 trình bày cơ cấu chi phí của bài toán mẫu. Kết quả cho thấy chi phí nợ đơn
+chiếm tỷ trọng lớn nhất trong tổng chi phí hiện trạng. Điều này cho thấy trạng thái thiếu
+hàng nghiêm trọng hoặc tồn kho âm là nguyên nhân chính làm tăng chi phí của hệ thống.
+Bảng D.2: Cơ cấu chi phí hiện trạng của bài toán mẫu
+Thành phần chi phí Tổng chi phí
+(triệu USD)Trung bình
+mỗi sản phẩm
+(triệu USD)Tỷ trọng
+(%)
+Chi phí tồn kho vượt mức 0.00 0.00 0.00
+Chi phí thiếu hụt 0.13 0.00 0.26
+Chi phí nợ đơn 49.85 0.50 98.46
+Chi phí phạt vi phạm quy
+cách đóng gói0.42 0.00 0.84
+Chi phí điều chuyển ngang 0.22 0.00 0.44
+Tổng 50.63 0.51 100.00
+D2
+===TRANG 176===
+assets/chart_hien_trang_cost_components.png
+Hình D.1. Cơ cấu chi phí hiện trạng của bài toán mẫu
+Hình D.1 cho thấy chi phí nợ đơn vượt trội so với các thành phần còn lại. Vì vậy,
+trong bài toán tối ưu, việc giảm nợ đơn và thiếu hụt tồn kho là mục tiêu quan trọng để cải
+thiện tổng chi phí.
+D.3. Kết quả hiện trạng theo sản phẩm
+Bảng D.3 trình bày 10 sản phẩm có tổng chi phí hiện trạng cao nhất. Các sản phẩm
+này đóng góp đáng kể vào tổng chi phí của tập mẫu, chủ yếu do chi phí nợ đơn cao.
+D3
+===TRANG 177===
+Bảng D.3: Mười sản phẩm có chi phí hiện trạng cao nhất
+Hạng Sản phẩm Tổng chi phí
+(triệu USD)Chi phí nợ đơn
+(triệu USD)Chi phí phạt
+đóng gói (triệu
+USD)Chi phí điều
+chuyển (triệu
+USD)
+1 P1192 1.63 1.62 0.01 0.00
+2 P1866 1.61 1.60 0.00 0.00
+3 P0817 1.55 1.54 0.00 0.00
+4 P2094 1.52 1.52 0.00 0.00
+5 P2091 1.35 1.35 0.00 0.00
+6 P0183 1.24 1.23 0.01 0.00
+7 P0519 1.19 1.18 0.00 0.00
+8 P1640 1.11 1.11 0.00 0.00
+9 P0416 1.02 1.01 0.01 0.00
+10 P0900 1.02 1.01 0.00 0.00
+assets/chart_hien_trang_top10_products.png
+Hình D.2. Mười sản phẩm có chi phí hiện trạng cao nhất
+D.4. Dòng hàng và trạng thái tồn kho theo thời gian
+Bảng D.4 tổng hợp dòng hàng và trạng thái tồn kho theo từng giai đoạn. Các chỉ tiêu
+bao gồm lượng phân bổ từ nguồn trung tâm, lượng hàng từ nguồn trung tâm đến, lượng
+D4
+===TRANG 178===
+điều chuyển ngang đến, lượng điều chuyển ngang đi, tồn kho cuối kỳ và nợ đơn.
+Bảng D.4: Tổng hợp dòng hàng và tồn kho hiện trạng theo giai đoạn
+Giai
+đoạnPhân bổ từ
+nguồn trung
+tâmHàng từ
+nguồn trung
+tâm đếnĐiều chuyển
+ngang đếnĐiều chuyển
+ngang điTồn kho
+cuối kỳNợ đơn
+1 7,504 0 0 25,093 12,435 34
+2 7,484 0 0 57 6,939 955
+3 7,515 0 9,651 6 8,699 2,330
+4 7,059 0 15,446 42 16,602 1,433
+5 7,033 0 53 6 8,580 3,463
+6 6,972 0 6 0 2,907 5,246
+7 7,050 0 42 22 -1,811 7,322
+8 5,617 0 6 0 -3,391 8,516
+9 5,655 7,504 18 0 943 3,293
+10 5,672 7,484 4 0 5,289 641
+assets/chart_hien_trang_weekly_flows.png
+Hình D.3. Dòng hàng hiện trạng theo giai đoạn
+D5
+===TRANG 179===
+assets/chart_hien_trang_inventory_backorder.png
+Hình D.4. Tồn kho, nợ đơn và thiếu hụt theo giai đoạn
+Từ Bảng D.4 và Hình D.4, có thể thấy nợ đơn tăng ở các giai đoạn giữa và cuối kỳ
+hoạch định. Trong khi đó, lượng hàng từ nguồn trung tâm đến bị ảnh hưởng bởi thời gian
+giao hàng, làm cho hệ thống có nguy cơ thiếu hụt trong các giai đoạn đầu. Kết quả này cho
+thấy cần có cơ chế tối ưu hóa phân bổ và điều chuyển ngang để giảm chi phí thiếu hụt và
+nợ đơn.
+D6
+===TRANG 180===
+PHỤ LỤC E. KẾT QUẢ GIẢI CHÍNH XÁC CỦA BÀI TOÁN MẪU
+Phụ lục này trình bày kết quả giải chính xác của bài toán mẫu. Bài toán mẫu gồm 100
+sản phẩm, 5 nhà máy và 10 giai đoạn lập kế hoạch. Kết quả được tổng hợp từ nghiệm tối
+ưu của từng sản phẩm, bao gồm kế hoạch phân bổ đơn hàng từ kho trung tâm, điều chuyển
+ngang, trạng thái tồn kho và các thành phần chi phí.
+E.1. Tổng quan kết quả giải chính xác
+Bảng E.1 tóm tắt các chỉ tiêu tổng quát của bài toán mẫu khi giải bằng phương pháp
+chính xác. Toàn bộ 100 bài toán con đều đạt trạng thái tối ưu. Tổng chi phí của phương án
+giải chính xác là 16.515 triệu USD, tương ứng chi phí trung bình 0.165 triệu USD cho mỗi
+sản phẩm. Trong tập mẫu, sản phẩm có chi phí thấp nhất là P0119, còn sản phẩm có chi phí
+cao nhất là P2094.
+Bảng E.1: Tổng quan kết quả giải chính xác của bài toán mẫu
+Chỉ tiêu Giá trị
+Số sản phẩm 100
+Số nhà máy 5
+Số giai đoạn 10
+Số bài toán con xử lý thành công 100/100
+Số bài toán con đạt nghiệm tối ưu 100/100
+Tổng chi phí giải chính xác (triệu
+USD)16.515
+Chi phí trung bình mỗi sản phẩm
+(triệu USD)0.165
+Sản phẩm có chi phí thấp nhất P0119 (0.006 triệu
+USD)
+E1
+===TRANG 181===
+Chỉ tiêu Giá trị
+Sản phẩm có chi phí cao nhất P2094 (0.844 triệu
+USD)
+Tổng thời gian giải (giây) 67.12
+Thời gian giải trung bình mỗi sản
+phẩm (giây)0.6712
+Độ lệch tối ưu lớn nhất 1.38e-06
+E.2. Cơ cấu chi phí giải chính xác
+Bảng E.2 trình bày cơ cấu chi phí của phương án giải chính xác. Kết quả cho thấy chi
+phí nợ đơn vẫn là thành phần chi phí lớn nhất, nhưng tổng chi phí đã giảm đáng kể so với
+phương án hiện trạng của bài toán mẫu.
+Bảng E.2: Cơ cấu chi phí giải chính xác của bài toán mẫu
+Thành phần chi phí Tổng chi phí
+(triệu USD)Trung bình
+mỗi sản phẩm
+(triệu USD)Tỷ trọng
+(%)
+Chi phí tồn kho vượt mức 0.000 0.000 0.00
+Chi phí thiếu hụt 0.121 0.001 0.73
+Chi phí nợ đơn 15.632 0.156 94.65
+Chi phí phạt vi phạm quy
+cách đóng gói từ kho trung
+tâm0.425 0.004 2.58
+Chi phí phạt vi phạm quy
+cách đóng gói trong điều
+chuyển ngang0.043 0.000 0.26
+E2
+===TRANG 182===
+Thành phần chi phí Tổng chi phí
+(triệu USD)Trung bình
+mỗi sản phẩm
+(triệu USD)Tỷ trọng
+(%)
+Chi phí điều chuyển ngang 0.293 0.003 1.78
+Tổng 16.515 0.165 100.00
+assets/chart_exact_cost_components.png
+Hình E.1. Cơ cấu chi phí giải chính xác của bài toán mẫu
+Hình E.1 cho thấy chi phí nợ đơn chiếm tỷ trọng lớn nhất trong phương án giải chính
+xác. Vì vậy, việc giảm nợ đơn vẫn là yếu tố chính quyết định mức cải thiện của hàm mục
+tiêu.
+E3
+===TRANG 183===
+E.3. Kết quả giải chính xác theo sản phẩm
+Bảng E.3 trình bày 10 sản phẩm có tổng chi phí cao nhất sau khi giải bằng phương
+pháp chính xác. Các sản phẩm này vẫn đóng góp đáng kể vào tổng chi phí của tập mẫu, chủ
+yếu do chi phí nợ đơn còn cao.
+Bảng E.3: Mười sản phẩm có chi phí cao nhất theo giải chính xác
+Hạng Sản
+phẩmTổng chi phí
+(triệu USD)Chi phí nợ
+đơn (triệu
+USD)Phạt đóng gói
+từ kho trung
+tâm (triệu
+USD)Phạt đóng gói
+điều chuyển
+(triệu USD)Chi phí điều
+chuyển (triệu
+USD)
+1 P2094 0.844 0.834 0.004 0.001 0.003
+2 P1192 0.818 0.805 0.007 0.001 0.003
+3 P0817 0.787 0.778 0.004 0.001 0.003
+4 P2091 0.771 0.763 0.003 0.001 0.003
+5 P1866 0.625 0.617 0.004 0.000 0.003
+6 P0183 0.551 0.538 0.007 0.001 0.003
+7 P0416 0.513 0.501 0.006 0.002 0.003
+8 P1640 0.483 0.472 0.004 0.001 0.004
+9 P0519 0.472 0.464 0.004 0.001 0.003
+10 P2096 0.453 0.444 0.004 0.001 0.003
+assets/chart_exact_top10_products.png
+Hình E.2. Mười sản phẩm có chi phí cao nhất theo giải chính xác
+E4
+===TRANG 184===
+E.4. Dòng hàng và trạng thái tồn kho theo thời gian
+Bảng E.4 tổng hợp dòng hàng và trạng thái tồn kho theo từng giai đoạn của phương
+án giải chính xác. Các chỉ tiêu bao gồm lượng phân bổ từ kho trung tâm, lượng hàng từ kho
+trung tâm đến, lượng điều chuyển ngang đến, lượng điều chuyển ngang đi, tồn kho cuối kỳ
+và nợ đơn.
+Bảng E.4: Tổng hợp dòng hàng và tồn kho theo giải chính xác theo giai đoạn
+Giai
+đoạnPhân bổ từ
+kho trung
+tâmHàng từ kho
+trung tâm
+đếnĐiều chuyển
+ngang đếnĐiều chuyển
+ngang điTồn kho
+cuối kỳNợ đơn
+1 7,504 0 0 24,832 12,696 34
+2 7,484 0 0 48 7,209 955
+3 7,515 0 9,249 417 8,156 2,297
+4 7,059 0 15,631 123 16,163 0
+5 7,033 0 369 6 8,457 245
+6 6,972 0 171 0 2,949 1,498
+7 7,050 0 6 0 -1,783 4,323
+8 5,617 0 0 0 4,135 956
+9 5,655 7,504 0 0 8,431 113
+10 5,672 7,484 0 0 12,804 0
+assets/chart_exact_weekly_flows.png
+Hình E.3. Dòng hàng theo giai đoạn của phương án giải chính xác
+E5
+===TRANG 185===
+assets/chart_exact_inventory_backorder.png
+Hình E.4. Tồn kho, nợ đơn và thiếu hụt theo giai đoạn của phương án giải chính xác
+Từ Bảng E.4 và Hình E.4, có thể thấy phương án giải chính xác sử dụng điều chuyển
+ngang chủ động chủ yếu ở các giai đoạn đầu và giữa kỳ hoạch định. Lượng điều chuyển
+ngang đến tập trung nhiều ở giai đoạn 3 và giai đoạn 4, qua đó hỗ trợ giảm nợ đơn trong
+các giai đoạn tiếp theo. Kết quả này cho thấy phương án giải chính xác có khả năng phối
+hợp giữa phân bổ từ kho trung tâm và điều chuyển ngang để cải thiện tổng chi phí của bài
+toán mẫu.
+E6
+===TRANG 186===
+PHỤ LỤC F. KẾT QUẢ GIẢI BÀI TOÁN THỰC TIỄN BẰNG GIẢI THUẬT
+HIỆN TRẠNG
+Phụ lục này trình bày các thống kê chính khi giải bài toán thực tiễn theo phương án
+hiện trạng. Dữ liệu gồm 943 sản phẩm, 6 nhà máy và 10 giai đoạn lập kế hoạch. Mỗi sản
+phẩm được xử lý như một bài toán con, sau đó kết quả được tổng hợp trên toàn bộ dữ liệu.
+Các giá trị chi phí được trình bày theo đơn vị triệu USD.
+F.1. Tổng quan kết quả
+Bảng F.1 tóm tắt các chỉ tiêu chính của phương án hiện trạng. Tổng chi phí hiện trạng
+trên toàn bộ dữ liệu là 225.229 triệu USD, tương ứng chi phí trung bình 0.239 triệu USD
+cho mỗi sản phẩm.
+Bảng F.1: Tổng quan kết quả giải bài toán thực tiễn theo phương án hiện trạng
+Chỉ tiêu Giá trị
+Số sản phẩm 943
+Số nhà máy 6
+Số giai đoạn lập kế hoạch 10
+Số bài toán con xử lý thành công 943/943
+Tổng chi phí hiện trạng (triệu USD) 225.229
+Chi phí trung bình mỗi sản phẩm (triệu
+USD)0.239
+Sản phẩm có chi phí thấp nhất P1412 (0.005 triệu USD)
+Sản phẩm có chi phí cao nhất P0347 (1.593 triệu USD)
+Tổng thời gian xử lý (giây) 0.6790
+Thời gian xử lý trung bình mỗi sản
+phẩm (giây)0.0007
+Thời gian xử lý lớn nhất mỗi sản phẩm
+(giây)0.0020
+F1
+===TRANG 187===
+F.2. Cơ cấu chi phí hiện trạng
+Bảng F.2 trình bày cơ cấu chi phí của phương án hiện trạng. Chi phí nợ đơn là thành
+phần chi phí lớn nhất, chiếm 92.70% tổng chi phí.
+Bảng F.2: Cơ cấu chi phí hiện trạng trên bài toán thực tiễn
+Thành phần chi phí Tổng chi phí Trung bình/SP Tỷ trọng
+(triệu USD) (triệu USD) (%)
+Chi phí tồn kho vượt mức 0.002 0.000 0.00
+Chi phí thiếu hụt 0.199 0.000 0.09
+Chi phí nợ đơn 208.776 0.221 92.70
+Chi phí phạt vi phạm quy cách đóng
+gói14.166 0.015 6.29
+Chi phí điều chuyển ngang 2.086 0.002 0.93
+Tổng 225.229 0.239 100.00
+F.3. Dòng hàng và trạng thái tồn kho theo giai đoạn
+Bảng F.3 trình bày dòng hàng và trạng thái tồn kho của phương án hiện trạng theo
+từng giai đoạn. Bảng này dùng để ghi nhận các đại lượng vận hành chính trước khi so sánh
+với kết quả sau tối ưu.
+Bảng F.3: Dòng hàng và trạng thái tồn kho hiện trạng theo giai đoạn
+Giai
+đoạnPhân bổ đơn
+hàngHàng từ
+nguồn trung
+tâm đếnĐiều chuyển
+đếnĐiều chuyển
+điTồn kho cuối
+kỳNợ đơn Thiếu hụt Tồn kho
+vượt mức
+1 72,382 0 0 17,752 139,910 2,030 3,909 0
+2 72,940 0 0 5,396 118,398 6,029 15,689 0
+3 73,561 0 7,001 2,410 106,078 8,045 23,880 0
+4 72,846 0 12,777 2,179 100,450 9,207 27,978 0
+5 72,374 0 4,408 1,300 87,152 14,317 40,057 0
+6 72,925 0 2,283 848 73,167 20,852 53,571 0
+F2
+===TRANG 188===
+Giai
+đoạnPhân bổ đơn
+hàngHàng từ
+nguồn trung
+tâm đếnĐiều chuyển
+đếnĐiều chuyển
+điTồn kho cuối
+kỳNợ đơn Thiếu hụt Tồn kho
+vượt mức
+7 73,809 0 1,762 363 58,116 28,071 68,338 0
+8 72,875 0 1,337 0 43,376 36,383 83,050 0
+9 72,967 72,382 552 0 100,492 10,781 51,944 4,994
+10 72,679 72,940 128 0 157,353 3,469 29,142 12,073
+F.4. Tóm tắt kết quả
+Kết quả hiện trạng cho thấy tổng chi phí trên toàn bộ dữ liệu đạt 225.229 triệu USD.
+Thành phần chi phí lớn nhất là chi phí nợ đơn, đạt 208.776 triệu USD và chiếm 92.70%
+tổng chi phí. Do đó, chi phí nợ đơn là thành phần chính cần được cải thiện khi áp dụng giải
+thuật tối ưu.
+F3
+===TRANG 189===
+PHỤ LỤC G. KẾT QUẢ GIẢI BÀI TOÁN THỰC TIỄN BẰNG GIẢI THUẬT
+MEMETIC
+Phụ lục này trình bày các thống kê chính khi áp dụng giải thuật Memetic để giải bài
+toán thực tiễn. Dữ liệu thực nghiệm gồm 943 sản phẩm và 10 giai đoạn lập kế hoạch. Mỗi
+sản phẩm được xử lý như một bài toán con, sau đó kết quả được tổng hợp trên toàn bộ dữ
+liệu. Do giải thuật có yếu tố ngẫu nhiên, thực nghiệm được lặp lại 10 lần với các seed khác
+nhau.
+G.1. Tổng quan kết quả
+Bảng G.1 tóm tắt các chỉ tiêu chính của 10 lần chạy. Tổng chi phí trung bình đạt
+113.653 triệu USD, với độ lệch chuẩn 0.221 triệu USD. Kết quả này cho thấy giải thuật có
+độ dao động nhỏ giữa các lần chạy.
+Bảng G.1: Tổng quan kết quả giải bài toán thực tiễn
+Chỉ tiêu Giá trị
+Số lần chạy độc lập 10
+Số sản phẩm trong mỗi lần chạy 943
+Số giai đoạn lập kế hoạch 10
+Số bài toán con xử lý thành công
+trung bình943/943
+Tổng chi phí trung bình (triệu USD) 113.653
+Độ lệch chuẩn tổng chi phí (triệu
+USD)0.221
+Tổng chi phí nhỏ nhất (triệu USD) 113.431
+Tổng chi phí lớn nhất (triệu USD) 113.947
+Thời gian xử lý trung bình mỗi lần
+chạy (phút)154.88
+Thời gian xử lý trung bình mỗi sản
+phẩm (giây)9.85
+G1
+===TRANG 190===
+G.2. Kết quả theo từng lần chạy
+Bảng G.2 trình bày tổng chi phí, thời gian xử lý và số sản phẩm xử lý thành công của
+từng lần chạy. Các giá trị chi phí được trình bày theo đơn vị triệu USD.
+Bảng G.2: Thống kê tổng hợp theo từng lần chạy
+Lần
+chạyTổng chi phí Thời gian xử lý Thời gian
+TB/SPSố SP thành
+công
+(triệu USD) (phút) (giây)
+1 113.431 153.70 9.78 943
+2 113.454 154.95 9.86 943
+3 113.947 155.57 9.90 943
+4 113.863 155.59 9.90 943
+5 113.568 154.55 9.83 943
+6 113.443 153.83 9.79 943
+7 113.460 154.88 9.85 943
+8 113.946 155.46 9.89 943
+9 113.852 155.65 9.90 943
+10 113.571 154.59 9.84 943
+Trung
+bình113.653 154.88 9.85 943
+Độ
+lệch
+chuẩn0.221 0.72 0.05 –
+G.3. Cơ cấu chi phí trung bình
+Bảng G.3 trình bày cơ cấu chi phí trung bình sau 10 lần chạy. Chi phí nợ đơn là thành
+phần chi phí chiếm tỷ trọng lớn nhất, đạt 107.979 triệu USD, tương ứng 95.01% tổng chi
+phí.
+G2
+===TRANG 191===
+Bảng G.3: Cơ cấu chi phí trung bình sau tối ưu
+Thành phần chi phí Trung bình Độ lệch chuẩn Tỷ trọng
+(triệu USD) (triệu USD) (%)
+Chi phí tồn kho vượt mức 0.001 0.000 0.00
+Chi phí thiếu hụt 0.249 0.000 0.22
+Chi phí nợ đơn 107.979 0.225 95.01
+Chi phí phạt vi phạm quy cách đóng
+gói từ nguồn trung tâm3.550 0.003 3.12
+Chi phí phạt vi phạm quy cách đóng
+gói trong điều chuyển ngang0.688 0.007 0.61
+Chi phí điều chuyển ngang 1.186 0.003 1.04
+Tổng 113.653 0.221 100.00
+G.4. Tóm tắt kết quả
+Từ 10 lần chạy thực nghiệm, tổng chi phí trung bình của giải thuật Memetic đạt
+113.653 triệu USD. Độ lệch chuẩn tổng chi phí là 0.221 triệu USD, cho thấy kết quả giữa
+các lần chạy có mức dao động thấp. Chi phí nợ đơn là thành phần chi phí chi phối trong
+nghiệm sau tối ưu, chiếm 95.01% tổng chi phí trung bình. Tất cả 943 bài toán con đều được
+xử lý thành công trong mỗi lần chạy.
+G3

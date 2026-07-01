@@ -109,6 +109,8 @@ class SensitivityRun(BaseNDS):
 
     sensitivity_id = Column(Integer, primary_key=True, autoincrement=True)
     base_run_id = Column(Integer, ForeignKey("optimization_run.run_id"), nullable=True, index=True)
+    scenario_id = Column(Integer, ForeignKey("scenario.scenario_id"), nullable=True, index=True)
+    analysis_type = Column(String(20), default="oat")  # "oat" | "tornado"
     parameter_name = Column(String(50), nullable=False)
     variation_points = Column(Text)  # JSON
     results = Column(Text)  # JSON

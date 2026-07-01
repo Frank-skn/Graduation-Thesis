@@ -175,16 +175,27 @@ class OptimizationService:
         data: OptimizationInput,
         data_dir: str | None = None,
         product_ids: list | None = None,
+        scenario_overrides: dict | None = None,
     ) -> OptimizationResult:
         """
         Execute Hybrid GA-ALNS on DSS real data (or test cases fallback).
+
+        scenario_overrides: dict factor cho What-if/Sensitivity (ví dụ {"DI": 1.2}).
+            Áp lên input của Problem, không đụng thuật toán MA.
         """
         print(f"[OptimizationService] Running MA (Hybrid GA-ALNS) solver …")
 
         # --- Step 1: run MA solver ---
-        ma = MASolver()
+        # Pass the per-product time limit (seconds) from the API/B0 form so it
+        # actually caps each product's GA runtime (otherwise config.json's
+        # time_limit_seconds is used, which is meant only as a safety ceiling).
+        ma = MASolver(time_limit_s=float(self.time_limit) if self.time_limit else None)
         if data_dir:
-            ma_result = ma.solve_from_dss_data(data_dir, product_ids=product_ids)
+            ma_result = ma.solve_from_dss_data(
+                data_dir,
+                product_ids=product_ids,
+                scenario_overrides=scenario_overrides,
+            )
         else:
             ma_result = ma.solve_all()
 
@@ -214,14 +225,19 @@ class OptimizationService:
                 CSVDataLoader, compute_baseline_from_csv, compute_proportional_from_csv
             )
             _loader   = CSVDataLoader(data_dir)
-            baseline  = compute_baseline_from_csv(_loader)
-            prop_cost = compute_proportional_from_csv(_loader)
-            # Tính inventory cost thuần từ MA rows (Co/Cs/Cb) — cùng đơn vị với baseline/prop
+            # Limit baseline to the SAME product subset MA solved, so the
+            # comparison (savings) is apples-to-apples in test/product_limit mode.
+            baseline  = compute_baseline_from_csv(_loader, overrides=scenario_overrides, product_ids=product_ids)
+            # Proportional allocation baseline is DEPRECATED — it was developed for
+            # the old OA-only, 4-period model without PLT and is not valid for the
+            # current 10-period OA+PLT model. No longer computed.
+            prop_cost = 0.0
+            # Tính inventory cost thuần từ MA rows (Co/Cs/Cb) — cùng đơn vị với baseline
             ma_inv_cost, cost_breakdown = self._compute_inv_cost_from_rows(rows, _loader)
         else:
             _loader       = None
             baseline      = _baseline_cost(data)
-            prop_cost     = _proportional_allocation_cost(data)
+            prop_cost     = 0.0  # deprecated, see note above
             ma_inv_cost   = opt_cost
             cost_breakdown = {}
 

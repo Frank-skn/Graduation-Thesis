@@ -7,35 +7,65 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 
-const usePollJob = (onComplete) => {
+// Polling hook with localStorage persistence so an in-flight job keeps
+// being tracked even after the user navigates away and comes back.
+const usePollJob = (onComplete, persistKey) => {
   const [jobId, setJobId] = useState(null)
   const [polling, setPolling] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef(null)
   const timerRef = useRef(null)
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
-  const startPolling = (id) => { setJobId(id); setPolling(true); setElapsed(0) }
+  const startPolling = (id) => {
+    if (persistKey) localStorage.setItem(persistKey, String(id))
+    setJobId(id); setPolling(true); setElapsed(0)
+  }
+
+  useEffect(() => {
+    if (!persistKey) return
+    const saved = localStorage.getItem(persistKey)
+    if (saved) { setJobId(Number(saved)); setPolling(true); setElapsed(0) }
+  }, [persistKey])
 
   useEffect(() => {
     if (!polling || !jobId) return
+    const stop = () => {
+      clearInterval(intervalRef.current); clearInterval(timerRef.current)
+      setPolling(false)
+      if (persistKey) localStorage.removeItem(persistKey)
+    }
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
     intervalRef.current = setInterval(async () => {
       try {
         const res = await sensitivityService.pollJob(jobId)
         if (res.status === 'completed') {
-          clearInterval(intervalRef.current); clearInterval(timerRef.current)
-          setPolling(false); onComplete(res.result)
+          stop(); onCompleteRef.current(res.result)
         } else if (res.status === 'failed') {
-          clearInterval(intervalRef.current); clearInterval(timerRef.current)
-          setPolling(false); message.error('Phân tích thất bại: ' + (res.error || 'Unknown'))
+          stop(); message.error('Phân tích thất bại: ' + (res.error || 'Unknown'))
         }
-      } catch { clearInterval(intervalRef.current); clearInterval(timerRef.current); setPolling(false) }
+      } catch { stop() }
     }, 4000)
     return () => { clearInterval(intervalRef.current); clearInterval(timerRef.current) }
-  }, [polling, jobId])
+  }, [polling, jobId, persistKey])
 
   return { polling, elapsed, startPolling }
 }
+
+// Nhãn tiếng Việt cho mã tham số
+const PARAM_LABELS = {
+  DI: 'DI · Biến động cầu',
+  CAP: 'CAP · Năng lực cung ứng',
+  Cb: 'Cb · Chi phí nợ đơn',
+  Co: 'Co · Chi phí tồn kho vượt mức',
+  Cs: 'Cs · Chi phí thiếu hụt',
+  Cp: 'Cp · Chi phí phạt đóng gói',
+  U: 'U · Mức trần tồn kho',
+  L: 'L · Mức sàn tồn kho',
+  BI: 'BI · Tồn kho ban đầu',
+}
+const paramLabel = (code) => PARAM_LABELS[code] || code
 
 const ParameterStability = () => {
   const { activeScenarioId } = useAppContext()
@@ -45,10 +75,31 @@ const ParameterStability = () => {
   const [submitting, setSubmitting] = useState(false)
   const [fullDataset, setFullDataset] = useState(false)
 
+  const [history, setHistory] = useState([])
+
+  const loadHistory = async () => {
+    try {
+      const res = await sensitivityService.getHistory({ limit: 20, analysis_type: 'tornado' })
+      setHistory(res?.jobs || [])
+    } catch (e) { /* ignore */ }
+  }
+  useEffect(() => { loadHistory() }, [])
+
   const { polling, elapsed, startPolling } = usePollJob((result) => {
     setResults(result)
     message.success('Kiểm tra ổn định hoàn thành!')
-  })
+    loadHistory()
+  }, 'smi_d3_stability_job')
+
+  const viewHistoryJob = async (job) => {
+    try {
+      const res = await sensitivityService.getResults(job.job_id)
+      if (!res?.result) { message.warning('Job chưa có kết quả'); return }
+      setResults(res.result)
+    } catch (e) {
+      message.error('Không tải được kết quả job')
+    }
+  }
 
   const loading = submitting || polling
 
@@ -77,7 +128,7 @@ const ParameterStability = () => {
 
   // Parameter stability table
   const stabilityColumns = [
-    { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{t}</Tag> },
+    { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{paramLabel(t)}</Tag> },
     { title: `Giá trị tại -${variationLevel}%`, dataIndex: 'low_value', key: 'low_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
     { title: `Giá trị tại +${variationLevel}%`, dataIndex: 'high_value', key: 'high_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
     { title: 'Khoảng biến thiên', dataIndex: 'spread', key: 'spread', render: (v) => <span className="font-bold text-orange-600">{Number(v).toLocaleString('vi-VN')}</span> },
@@ -104,7 +155,7 @@ const ParameterStability = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BarChartOutlined className="mr-3" />D3. Độ Bền Vững Nghiệm Tối Ưu</h1>
+        <h1 className="text-3xl font-bold text-primary-700 mb-2"><BarChartOutlined className="mr-3" />D2. Độ Bền Vững Nghiệm Tối Ưu</h1>
         <p className="text-gray-600">Phân tích độ ổn định của nghiệm tối ưu khi các tham số thay đổi</p>
       </div>
 
@@ -116,7 +167,7 @@ const ParameterStability = () => {
             <Slider min={5} max={30} value={variationLevel} onChange={setVariationLevel} />
           </div>
           <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading} disabled={loading}>Chạy kiểm tra ổn định</Button>
-          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP (~14 phút)' : 'Chạy 50 mẫu đại diện (~1 phút)'}>
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (12 lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (nhanh)'}>
             <div className="flex items-center gap-2 ml-2">
               <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
               <Switch size="small" checked={fullDataset} onChange={setFullDataset} />
@@ -124,6 +175,15 @@ const ParameterStability = () => {
             </div>
           </Tooltip>
         </div>
+        {fullDataset && (
+          <Alert
+            className="mt-3"
+            type="warning"
+            showIcon
+            message="Cảnh báo: chạy trên toàn bộ 943 sản phẩm"
+            description="Kiểm tra ổn định chạy ±biến thiên cho 6 tham số = 12 lần chạy MA đầy đủ → có thể mất rất nhiều giờ. Khuyến nghị dùng chế độ 50 mẫu để khảo sát nhanh."
+          />
+        )}
       </Card>
 
       {polling && (
@@ -134,10 +194,10 @@ const ParameterStability = () => {
             <span>
               Đang kiểm tra độ bền vững trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
               <span className="ml-2 font-mono text-blue-600">{elapsed}s</span>
-              <span className="ml-2 text-gray-400">(ước tính {fullDataset ? '~14 phút' : '~1 phút'})</span>
+              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP — nhanh'})</span>
             </span>
           }
-          description="Kết quả sẽ tự động hiển thị khi hoàn thành. Vui lòng không đóng trang."
+          description="Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới."
         />
       )}
 
@@ -231,6 +291,32 @@ const ParameterStability = () => {
           showIcon
         />
       )}
+
+      <Card title="Lịch sử kiểm tra ổn định" extra={<Button size="small" onClick={loadHistory}>Làm mới</Button>}>
+        <Table
+          columns={[
+            { title: 'ID', dataIndex: 'job_id', key: 'job_id', width: 60 },
+            { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name',
+              render: (t) => <span className="text-xs">{t}</span> },
+            { title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 110,
+              render: (s) => {
+                const color = s === 'completed' ? 'green' : s === 'running' ? 'processing' : s === 'failed' ? 'red' : 'default'
+                return <Tag color={color}>{s}</Tag>
+              } },
+            { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at',
+              render: (v) => v ? new Date(v).toLocaleString('vi-VN') : '—' },
+            { title: '', key: 'action', width: 90,
+              render: (_, r) => r.status === 'completed'
+                ? <Button size="small" type="link" onClick={() => viewHistoryJob(r)}>Xem</Button>
+                : null },
+          ]}
+          dataSource={history}
+          pagination={{ pageSize: 5 }}
+          size="small"
+          rowKey="job_id"
+          locale={{ emptyText: 'Chưa có lịch sử kiểm tra' }}
+        />
+      </Card>
     </div>
   )
 }

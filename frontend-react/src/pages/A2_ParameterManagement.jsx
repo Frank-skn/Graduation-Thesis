@@ -92,8 +92,14 @@ const ParameterManagement = () => {
       title: 'Giá Trị Hiện Tại',
       dataIndex: 'param_value',
       key: 'param_value',
-      render: (value) => editMode 
-        ? <InputNumber value={value} step={0.01} onChange={(val) => {}} />
+      render: (value, record) => editMode
+        ? (
+          <InputNumber
+            value={editedParams[record.param_name] !== undefined ? editedParams[record.param_name] : value}
+            step={0.01}
+            onChange={(val) => handleEditChange(record.param_name, val)}
+          />
+        )
         : Number(value).toLocaleString(),
     },
     {
