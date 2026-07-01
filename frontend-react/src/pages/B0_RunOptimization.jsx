@@ -49,8 +49,14 @@ const RunOptimization = () => {
   const [errorMsg, setErrorMsg] = useState(null)
   const [timeLimit, setTimeLimit] = useState(300)
   const [runSummary, setRunSummary] = useState(null)
+  // Số sản phẩm và thời điểm bắt đầu của lần chạy hiện tại (để ước tính tiến độ)
+  const [runProductCount, setRunProductCount] = useState(943)
+  const startTsRef = useRef(null)
   const pollRef = useRef(null)
   const timerRef = useRef(null)
+
+  // Khóa localStorage để giữ trạng thái "đang chạy" khi rời trang rồi quay lại
+  const LS_RUNNING = 'smi_b0_running'
 
   // ── History tab state ──
   const [activeTab, setActiveTab] = useState('run')
@@ -69,20 +75,25 @@ const RunOptimization = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
   }
 
-  const startPolling = (runId) => {
-    setElapsedSec(0)
-    timerRef.current = setInterval(() => setElapsedSec((s) => s + 1), 1000)
+  const startPolling = (runId, startTs, prodCount) => {
+    startTsRef.current = startTs || Date.now()
+    // elapsed tính từ timestamp thật → resume đúng khi quay lại trang
+    const tick = () => setElapsedSec(Math.floor((Date.now() - startTsRef.current) / 1000))
+    tick()
+    timerRef.current = setInterval(tick, 1000)
 
     pollRef.current = setInterval(async () => {
       try {
         const status = await optimizationService.getRunStatus(runId)
         if (status.is_done) {
           stopPolling()
+          localStorage.removeItem(LS_RUNNING)
           setActiveRunId(runId)
           setPollResult(status)
           setStep(2)
-          message.success(`Tối ưu hoá hoàn thành! Lần chạy #${runId} - ${status.solver_status}`)
-          // Fetch baseline/savings summary
+          const ok = /optimal|feasible/i.test(status.solver_status)
+          if (ok) message.success(`Tối ưu hoá hoàn thành! Lần chạy #${runId} - ${status.solver_status}`)
+          else message.error(`Lần chạy #${runId} kết thúc với trạng thái: ${status.solver_status}`)
           try {
             const ext = await optimizationService.getSummaryExtended(runId)
             setRunSummary(ext)
@@ -94,7 +105,23 @@ const RunOptimization = () => {
     }, POLL_INTERVAL_MS)
   }
 
-  useEffect(() => () => stopPolling(), [])
+  // Resume trạng thái "đang chạy" nếu người dùng rời trang rồi quay lại
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_RUNNING)
+    if (saved) {
+      try {
+        const { runId, startTs, prodCount, tl } = JSON.parse(saved)
+        if (runId) {
+          setStep(1)
+          setPollingRunId(runId)
+          setTimeLimit(tl || 300)
+          setRunProductCount(prodCount || 943)
+          startPolling(runId, startTs, prodCount)
+        }
+      } catch { localStorage.removeItem(LS_RUNNING) }
+    }
+    return () => stopPolling()
+  }, [])
 
   // ── Load history ──
   const handleConfirmOptimization = () => {
@@ -191,10 +218,20 @@ const RunOptimization = () => {
         return
       }
 
+      const prodCount = values.product_limit
+        ? Number(values.product_limit)
+        : (counts.num_products || 943)
+      const startTs = Date.now()
+
       setPollingRunId(runId)
+      setRunProductCount(prodCount)
       setStep(1)
       setSubmitting(false)
-      startPolling(runId)
+      // Lưu trạng thái để resume khi rời trang rồi quay lại
+      localStorage.setItem(LS_RUNNING, JSON.stringify({
+        runId, startTs, prodCount, tl: values.time_limit,
+      }))
+      startPolling(runId, startTs, prodCount)
     } catch {
       // form validation failed
       setSubmitting(false)
@@ -203,6 +240,7 @@ const RunOptimization = () => {
 
   const handleReset = () => {
     stopPolling()
+    localStorage.removeItem(LS_RUNNING)
     setStep(0)
     setPollResult(null)
     setPollingRunId(null)
@@ -212,11 +250,12 @@ const RunOptimization = () => {
   }
 
   // -- Progress calculation for running state --
-  const totalItems = (counts.num_products ?? 0) * (counts.num_warehouses ?? 0)
-  const progressPct = timeLimit > 0
-    ? Math.min(97, Math.floor((elapsedSec / timeLimit) * 100))
-    : Math.min(97, elapsedSec * 2)
-  const itemsDone = totalItems > 0 ? Math.floor((progressPct / 100) * totalItems) : 0
+  // Ước tính tổng thời gian = số SP × ~10s/SP (theo đo thực nghiệm).
+  // Tiến độ dựa trên elapsed so với tổng ước tính, chặn ở 97% tới khi
+  // backend báo hoàn thành (tránh hiện 100% khi chưa xong).
+  const estTotalSec = Math.max(10, runProductCount * 10)
+  const progressPct = Math.min(97, Math.floor((elapsedSec / estTotalSec) * 100))
+  const itemsDone = Math.min(runProductCount, Math.floor((progressPct / 100) * runProductCount))
 
   const MILESTONES = [
     { pct: 15, label: 'Nạp dữ liệu' },
@@ -465,13 +504,13 @@ const RunOptimization = () => {
                 <div className="text-3xl font-bold text-blue-600">{elapsedSec}s</div>
                 <div className="text-gray-400 text-xs mt-1">Thời gian đã chạy</div>
               </div>
-              {totalItems > 0 && (
+              {runProductCount > 0 && (
                 <div>
                   <div className="text-3xl font-bold text-indigo-600">
-                    {itemsDone.toLocaleString()}
-                    <span className="text-lg font-normal text-gray-400"> / {totalItems.toLocaleString()}</span>
+                    {itemsDone.toLocaleString('vi-VN')}
+                    <span className="text-lg font-normal text-gray-400"> / {runProductCount.toLocaleString('vi-VN')}</span>
                   </div>
-                  <div className="text-gray-400 text-xs mt-1">Tổ hợp (I×J) đã xử lý (ước tính)</div>
+                  <div className="text-gray-400 text-xs mt-1">Sản phẩm đã giải (ước tính)</div>
                 </div>
               )}
             </div>

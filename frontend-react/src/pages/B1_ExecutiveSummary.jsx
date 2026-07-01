@@ -293,9 +293,9 @@ const ExecutiveSummary = () => {
         />
 
         {/* ── KPI Cards ── */}
-        <Row gutter={16}>
+        <Row gutter={16} align="stretch">
           <Col span={6}>
-            <Card>
+            <Card className="h-full">
               <Statistic
                 title="Tổng chi phí tối ưu"
                 value={totalCost}
@@ -303,10 +303,13 @@ const ExecutiveSummary = () => {
                 prefix={<DollarOutlined />}
                 valueStyle={{ color: '#cf1322' }}
               />
+              <div className="text-xs text-gray-400 mt-1">
+                Giá trị hàm mục tiêu MA
+              </div>
             </Card>
           </Col>
           <Col span={6}>
-            <Card>
+            <Card className="h-full">
               <Statistic
                 title="Mức độ phục vụ"
                 value={Number(kpis.service_level) || 0}
@@ -315,12 +318,15 @@ const ExecutiveSummary = () => {
                 valueStyle={{ color: '#3f8600' }}
                 prefix={<CheckCircleOutlined />}
               />
+              <div className="text-xs text-gray-400 mt-1">
+                Tỷ lệ đáp ứng nhu cầu
+              </div>
             </Card>
           </Col>
           <Col span={6}>
-            <Card>
+            <Card className="h-full">
               <Statistic
-                title="Tiết kiệm vs Do-nothing"
+                title="Tiết kiệm vs hiện trạng"
                 value={savingsPct}
                 precision={2}
                 suffix="%"
@@ -333,7 +339,7 @@ const ExecutiveSummary = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card>
+            <Card className="h-full">
               <Statistic
                 title="Thời gian giải"
                 value={Number(run.solve_time_seconds) || 0}
@@ -495,21 +501,23 @@ const ExecutiveSummary = () => {
 
                   {/* Mini KPI row từ extended summary */}
                   {ext && (ext.baseline_cost || ext.si_mean) && (
-                    <Row gutter={16} className="mb-4">
+                    <Row gutter={16} className="mb-4" align="stretch">
                       <Col xs={24} sm={12} md={6}>
-                        <Card size="small">
-                          <Statistic title="Chi phí cơ sở" value={ext.baseline_cost} precision={0}
+                        <Card size="small" className="h-full">
+                          <Statistic title="Chi phí cơ sở (hiện trạng)" value={ext.baseline_cost} precision={0}
                             prefix={<DollarOutlined />} valueStyle={{ color: '#666' }} formatter={(v) => fmt(v)} />
+                          <Text type="secondary" style={{ fontSize: 12 }}>Chi phí khi không tối ưu</Text>
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
-                        <Card size="small">
-                          <Statistic title="Chi phí tối ưu" value={ext.opt_cost} precision={0}
+                        <Card size="small" className="h-full">
+                          <Statistic title="Chi phí tối ưu (MA)" value={ext.opt_cost} precision={0}
                             prefix={<DollarOutlined />} valueStyle={{ color: COLORS.safe }} formatter={(v) => fmt(v)} />
+                          <Text type="secondary" style={{ fontSize: 12 }}>Sau khi áp dụng giải thuật</Text>
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
-                        <Card size="small">
+                        <Card size="small" className="h-full">
                           <Statistic title="Tiết kiệm" value={ext.savings_pct} precision={1} suffix="%"
                             prefix={<RiseOutlined />}
                             valueStyle={{ color: (ext.savings_pct ?? 0) > 0 ? COLORS.safe : COLORS.risk }} />
@@ -517,7 +525,7 @@ const ExecutiveSummary = () => {
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
-                        <Card size="small">
+                        <Card size="small" className="h-full">
                           <Statistic title="SI trung bình" value={ext.si_mean} precision={3}
                             prefix={<SafetyOutlined />}
                             valueStyle={{ color: (ext.si_mean ?? 0) >= 1 ? COLORS.safe : COLORS.risk }} />
