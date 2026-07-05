@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Row, Col, Table, Tag, Button, Select, InputNumber, Alert, message, Radio, Switch, Tooltip } from 'antd'
+import { Card, Row, Col, Table, Tag, Button, Select, InputNumber, Alert, message, Radio, Switch, Tooltip, Popconfirm } from 'antd'
 import {
   LineChartOutlined, BarChartOutlined, ThunderboltOutlined,
 } from '@ant-design/icons'
@@ -7,6 +7,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, SEMANTIC } from '../theme/tokens'
 
 const { Option } = Select
 
@@ -33,11 +34,15 @@ const usePollJob = (onComplete, persistKey) => {
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef(null)
   const timerRef = useRef(null)
+  const startTsRef = useRef(null)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
+  // localStorage lưu {id, ts} để resume + đếm elapsed từ timestamp thật.
   const startPolling = (id) => {
-    if (persistKey) localStorage.setItem(persistKey, String(id))
+    const ts = Date.now()
+    startTsRef.current = ts
+    if (persistKey) localStorage.setItem(persistKey, JSON.stringify({ id, ts }))
     setJobId(id)
     setPolling(true)
     setElapsed(0)
@@ -48,11 +53,28 @@ const usePollJob = (onComplete, persistKey) => {
     if (!persistKey) return
     const saved = localStorage.getItem(persistKey)
     if (saved) {
-      setJobId(Number(saved))
-      setPolling(true)
-      setElapsed(0)
+      try {
+        const { id, ts } = JSON.parse(saved)
+        startTsRef.current = ts || Date.now()
+        setJobId(Number(id))
+        setPolling(true)
+        setElapsed(Math.floor((Date.now() - startTsRef.current) / 1000))
+      } catch { localStorage.removeItem(persistKey) }
     }
   }, [persistKey])
+
+  const [cancelling, setCancelling] = useState(false)
+
+  const cancelJob = async () => {
+    if (!jobId) return
+    try {
+      await sensitivityService.cancelJob(jobId)
+      setCancelling(true)
+      message.info('Đã gửi yêu cầu dừng. Job sẽ dừng sau khi hoàn tất bước tính hiện tại.')
+    } catch (e) {
+      message.error('Không gửi được yêu cầu dừng')
+    }
+  }
 
   useEffect(() => {
     if (!polling || !jobId) return
@@ -60,18 +82,27 @@ const usePollJob = (onComplete, persistKey) => {
       clearInterval(intervalRef.current)
       clearInterval(timerRef.current)
       setPolling(false)
+      setCancelling(false)
       if (persistKey) localStorage.removeItem(persistKey)
     }
-    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    // elapsed tính từ timestamp thật → không reset khi quay lại trang
+    const tick = () => setElapsed(Math.floor((Date.now() - (startTsRef.current || Date.now())) / 1000))
+    tick()
+    timerRef.current = setInterval(tick, 1000)
     intervalRef.current = setInterval(async () => {
       try {
         const res = await sensitivityService.pollJob(jobId)
         if (res.status === 'completed') {
           stop()
           onCompleteRef.current(res.result)
+        } else if (res.status === 'cancelled') {
+          stop()
+          message.warning('Phân tích đã được dừng.')
         } else if (res.status === 'failed') {
           stop()
           message.error('Phân tích thất bại: ' + (res.error || 'Unknown error'))
+        } else if (res.status === 'cancelling') {
+          setCancelling(true)
         }
       } catch (e) {
         stop()
@@ -83,7 +114,7 @@ const usePollJob = (onComplete, persistKey) => {
     }
   }, [polling, jobId, persistKey])
 
-  return { polling, elapsed, startPolling }
+  return { polling, elapsed, startPolling, cancelJob, cancelling }
 }
 
 const SensitivityAnalysis = () => {
@@ -108,14 +139,14 @@ const SensitivityAnalysis = () => {
   }
   useEffect(() => { loadHistory() }, [])
 
-  const { polling: pollingOAT, elapsed: elapsedOAT, startPolling: startOAT } = usePollJob((result) => {
+  const { polling: pollingOAT, elapsed: elapsedOAT, startPolling: startOAT, cancelJob: cancelOAT, cancelling: cancellingOAT } = usePollJob((result) => {
     // OAT result stored as array of points in DB
     setOatResult(Array.isArray(result) ? { points: result, parameter_name: selectedParam, baseline_objective: result[0]?.baseline_objective || 0, elasticity: null } : result)
     message.success('Phân tích OAT hoàn thành!')
     loadHistory()
   }, 'smi_d2_oat_job')
 
-  const { polling: pollingTornado, elapsed: elapsedTornado, startPolling: startTornado } = usePollJob((result) => {
+  const { polling: pollingTornado, elapsed: elapsedTornado, startPolling: startTornado, cancelJob: cancelTornado, cancelling: cancellingTornado } = usePollJob((result) => {
     // Tornado result stored as {baseline_objective, variation_pct, bars}
     setTornadoResult(result)
     message.success('Phân tích Tornado hoàn thành!')
@@ -150,8 +181,9 @@ const SensitivityAnalysis = () => {
       const res = await sensitivityService.runSensitivity({
         scenario_id: scenarioId,
         parameter_name: selectedParam,
-        variation_percentages: [-20, -10, -5, 5, 10, 20],
+        variation_percentages: [-20, -10, 10, 20],
         sample_size: fullDataset ? null : 50,
+        time_limit: 5,
       })
       startOAT(res.job_id)
     } catch (e) {
@@ -169,6 +201,7 @@ const SensitivityAnalysis = () => {
         parameters: PARAM_CODES.slice(0, 6),
         variation_pct: variationPct,
         sample_size: fullDataset ? null : 50,
+        time_limit: 5,
       })
       startTornado(res.job_id)
     } catch (e) {
@@ -223,7 +256,7 @@ const SensitivityAnalysis = () => {
               <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={pollingTornado || submitting} disabled={loading}>Chạy Tornado</Button>
             </>
           )}
-          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (mỗi mức biến thiên là một lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (nhanh)'}>
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (mỗi mức biến thiên là một lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện — OAT ~22 phút, Tornado ~57 phút'}>
             <div className="flex items-center gap-2 ml-2">
               <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
               <Switch size="small" checked={fullDataset} onChange={setFullDataset} />
@@ -239,8 +272,8 @@ const SensitivityAnalysis = () => {
             message="Cảnh báo: chạy trên toàn bộ 943 sản phẩm"
             description={
               analysisType === 'oat'
-                ? 'OAT thực hiện 6 mức biến thiên, mỗi mức là một lần chạy MA đầy đủ (~2,5 giờ/lần) → tổng có thể mất nhiều giờ. Khuyến nghị dùng chế độ 50 mẫu để khảo sát nhanh.'
-                : 'Tornado chạy ±biến thiên cho 6 tham số = 12 lần chạy MA đầy đủ → có thể mất rất nhiều giờ. Khuyến nghị dùng chế độ 50 mẫu để khảo sát nhanh.'
+                ? 'OAT chạy 4 mức biến thiên trên toàn bộ 943 SP → mỗi mức là một lần chạy MA đầy đủ, tổng có thể mất NHIỀU GIỜ. Khuyến nghị dùng chế độ 50 mẫu (~22 phút).'
+                : 'Tornado chạy ±biến thiên cho 6 tham số = 12 lần chạy MA trên toàn bộ 943 SP → có thể mất RẤT NHIỀU GIỜ. Khuyến nghị dùng chế độ 50 mẫu (~57 phút).'
             }
           />
         )}
@@ -255,10 +288,26 @@ const SensitivityAnalysis = () => {
               Đang phân tích {pollingOAT ? `OAT (${selectedParam})` : 'Tornado'}
               {' '}trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
               <span className="ml-2 font-mono text-blue-600">{pollingOAT ? elapsedOAT : elapsedTornado}s</span>
-              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP — nhanh'})</span>
+              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP'})</span>
             </span>
           }
-          description="Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới."
+          description={
+            (pollingOAT ? cancellingOAT : cancellingTornado)
+              ? 'Đang dừng… job sẽ kết thúc sau khi hoàn tất bước tính hiện tại (có thể mất tới vài phút).'
+              : 'Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới.'
+          }
+          action={
+            <Popconfirm
+              title="Dừng phân tích?"
+              description="Job sẽ dừng sau khi hoàn tất bước tính hiện tại. Kết quả dở dang sẽ không được lưu."
+              okText="Dừng" cancelText="Tiếp tục"
+              onConfirm={pollingOAT ? cancelOAT : cancelTornado}
+            >
+              <Button danger size="small" loading={pollingOAT ? cancellingOAT : cancellingTornado}>
+                {(pollingOAT ? cancellingOAT : cancellingTornado) ? 'Đang dừng…' : 'Dừng'}
+              </Button>
+            </Popconfirm>
+          }
         />
       )}
 
@@ -276,8 +325,8 @@ const SensitivityAnalysis = () => {
                 <XAxis dataKey="variation" />
                 <YAxis />
                 <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString('vi-VN')}`]} />
-                <ReferenceLine y={Number(oatResult.baseline_objective)} stroke="#f5222d" strokeDasharray="3 3" label="Cơ sở" />
-                <Line type="monotone" dataKey="objective" stroke="#1890ff" strokeWidth={2} name="Giá trị mục tiêu" />
+                <ReferenceLine y={Number(oatResult.baseline_objective)} stroke={SEMANTIC.bad} strokeDasharray="3 3" label="Cơ sở" />
+                <Line type="monotone" dataKey="objective" stroke={BRAND[500]} strokeWidth={2} name="Giá trị mục tiêu" />
               </LineChart>
             </ResponsiveContainer>
           </Card>
@@ -299,8 +348,8 @@ const SensitivityAnalysis = () => {
                 <RechartsTooltip />
                 <Legend />
                 <ReferenceLine x={0} stroke="#000" />
-                <Bar dataKey="low" fill="#52c41a" name="Thấp (-)" />
-                <Bar dataKey="high" fill="#f5222d" name="Cao (+)" />
+                <Bar dataKey="low" fill={SEMANTIC.good} name="Thấp (-)" />
+                <Bar dataKey="high" fill={SEMANTIC.bad} name="Cao (+)" />
               </BarChart>
             </ResponsiveContainer>
           </Card>

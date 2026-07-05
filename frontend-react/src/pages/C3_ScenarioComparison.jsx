@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, NEUTRAL } from '../theme/tokens'
 
 const { Option } = Select
 const fmt = (v, d = 0) =>
@@ -184,8 +185,8 @@ const ScenarioComparison = () => {
                     <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={90} tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(v) => fmt(v, 2)} />
                     <Legend />
-                    <Bar dataKey="Cơ sở"    fill="#d9d9d9" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Kịch bản" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Cơ sở"    fill={NEUTRAL[400]} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Kịch bản" fill={BRAND[500]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>

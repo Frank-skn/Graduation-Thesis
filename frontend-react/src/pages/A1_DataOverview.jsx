@@ -13,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { useApi } from '../hooks/useApi'
 import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
+import { SEMANTIC } from '../theme/tokens'
 
 const DataOverview = () => {
   const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview())
@@ -73,7 +74,6 @@ const DataOverview = () => {
     zeroFree: p.num_entries > 0 ? Math.round((1 - p.zero_count / p.num_entries) * 100) : 0,
     entries: p.num_entries,
   }))
-  const PARAM_COLORS = ['#1890ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#a0d911','#faad14','#2f54eb']
 
   const freshSources = dataFreshness.filter(d => d.status === 'Fresh' || d.status === 'Good').length
 
@@ -235,7 +235,7 @@ const DataOverview = () => {
                   </div>
                   <Progress
                     percent={metric.value}
-                    strokeColor={metric.value >= metric.target ? '#52c41a' : metric.value >= 70 ? '#fa8c16' : '#f5222d'}
+                    strokeColor={metric.value >= metric.target ? SEMANTIC.good : metric.value >= 70 ? SEMANTIC.warn : SEMANTIC.bad}
                     size="small"
                     format={(pct) => `${pct}%`}
                   />
@@ -254,7 +254,7 @@ const DataOverview = () => {
                 <RechartsTooltip formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Tính Đầy Đủ' : 'Hợp Lệ']} />
                 <Bar dataKey="completeness" name="Tính Đầy Đủ" radius={[4,4,0,0]}>
                   {paramBarData.map((entry, idx) => (
-                    <Cell key={entry.name} fill={entry.completeness >= 95 ? '#52c41a' : entry.completeness >= 70 ? '#fa8c16' : '#f5222d'} />
+                    <Cell key={entry.name} fill={entry.completeness >= 95 ? SEMANTIC.good : entry.completeness >= 70 ? SEMANTIC.warn : SEMANTIC.bad} />
                   ))}
                   <LabelList dataKey="completeness" position="top" formatter={v => `${v}%`} style={{ fontSize: 11 }} />
                 </Bar>

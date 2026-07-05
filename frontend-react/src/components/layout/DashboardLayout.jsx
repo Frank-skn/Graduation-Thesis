@@ -171,9 +171,10 @@ const DashboardLayout = ({ children }) => {
         collapsible
         collapsed={collapsed}
         collapsedWidth={80}
-        className="shadow-xl relative"
+        className="relative"
         style={{
-          background: '#1a3a52',
+          background: '#FFFFFF',
+          borderRight: '1px solid #E8EDF4',
           position: 'fixed',
           left: 0,
           top: 0,
@@ -196,24 +197,31 @@ const DashboardLayout = ({ children }) => {
               bottom: 0,
               width: '4px',
               cursor: 'col-resize',
-              background: isDragging ? '#1890ff' : 'transparent',
+              background: isDragging ? '#2563EB' : 'transparent',
               transition: isDragging ? 'none' : 'background 0.3s',
               zIndex: 1000,
             }}
             title="Kéo để điều chỉnh độ rộng menu"
           />
         )}
-        
-        <div className="p-4 text-center">
-          <h1 className={`text-white font-bold transition-all ${collapsed ? 'text-lg' : 'text-xl'}`}>
-            {collapsed ? 'SMI' : 'SMI DSS'}
-          </h1>
+
+        <div className="px-4 py-5 flex items-center gap-2.5" style={{ borderBottom: '1px solid #F1F5F9' }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: 'linear-gradient(135deg, #2563EB, #3B82F6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0,
+            boxShadow: '0 2px 6px rgba(37,99,235,0.28)',
+          }}>SM</div>
           {!collapsed && (
-            <p className="text-accent-300 text-xs mt-1">Decision Support System</p>
+            <div className="leading-tight">
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#0F172A' }}>SMI DSS</div>
+              <div style={{ fontSize: 11, color: '#94A3B8' }}>Decision Support System</div>
+            </div>
           )}
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
@@ -222,30 +230,34 @@ const DashboardLayout = ({ children }) => {
             background: 'transparent',
             border: 'none',
             fontSize: collapsed ? '12px' : '13px',
+            marginTop: 8,
           }}
           className="custom-menu"
         />
       </Sider>
-      <Layout style={{ marginLeft: collapsed ? 80 : sidebarWidth, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: collapsed ? 80 : sidebarWidth, transition: 'margin-left 0.2s', background: '#F8FAFC' }}>
         <Header
-          className="bg-white shadow-sm px-6 flex items-center justify-between"
-          style={{ padding: '0 24px' }}
+          className="flex items-center justify-between"
+          style={{ padding: '0 24px', background: '#FFFFFF', borderBottom: '1px solid #E8EDF4', boxShadow: 'none' }}
         >
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-2xl text-primary-500 hover:text-primary-700 transition-colors"
+            className="text-xl transition-colors"
+            style={{ color: '#64748B' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#2563EB')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
           >
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </button>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-semibold text-primary-700">Single-Supplier Multi-Buyer</p>
-              <p className="text-xs text-gray-500">Supplier-Managed Inventory Optimization</p>
+              <p className="text-sm font-semibold" style={{ color: '#1E293B' }}>Single-Supplier Multi-Buyer</p>
+              <p className="text-xs" style={{ color: '#94A3B8' }}>Supplier-Managed Inventory Optimization</p>
             </div>
           </div>
         </Header>
-        <Content className="p-6 bg-gray-50">
-          <div className="bg-white rounded-lg shadow-sm p-6 min-h-[calc(100vh-120px)]">
+        <Content className="p-6" style={{ background: '#F8FAFC' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #E8EDF4', padding: 24, minHeight: 'calc(100vh - 120px)' }}>
             {children}
           </div>
         </Content>

@@ -24,11 +24,12 @@ import { useApi } from '../hooks/useApi'
 import optimizationService from '../services/optimizationService'
 import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
+import { CATEGORICAL, SEMANTIC, NEUTRAL, CHART_GRID } from '../theme/tokens'
 
 const { Option } = Select
 
-// ─── Màu sắc kho ────────────────────────────────────────────────────────────
-const WH_COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2']
+// ─── Màu sắc kho (bảng phân loại hài hòa) ───────────────────────────────────
+const WH_COLORS = CATEGORICAL
 const whColor = (idx) => WH_COLORS[idx % WH_COLORS.length]
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -86,8 +87,8 @@ const PLTTab = ({ runId, products, warehouses }) => {
       align: 'center',
       width: 100,
       render: (v, row) => {
-        if (row.from_wh === to) return <span style={{ color: '#d9d9d9' }}>—</span>
-        if (!v) return <span style={{ color: '#d9d9d9' }}>0</span>
+        if (row.from_wh === to) return <span style={{ color: NEUTRAL[300] }}>—</span>
+        if (!v) return <span style={{ color: NEUTRAL[300] }}>0</span>
         return <Tag color="orange">{Number(v).toLocaleString()}</Tag>
       },
     })),
@@ -177,7 +178,7 @@ const PLTTab = ({ runId, products, warehouses }) => {
             <Card title="Lượng PLT theo kỳ" size="small">
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={barData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
                   <XAxis dataKey="period" />
                   <YAxis />
                   <Tooltip />
@@ -263,7 +264,7 @@ const InventoryTrajectoryTab = ({ runId }) => {
               <div className="text-center">
                 <Tag color={whColor(i)} style={{ marginBottom: 4 }}>{w.warehouse_id}</Tag>
                 <div style={{ fontSize: 12, color: '#888' }}>Backorder</div>
-                <div style={{ fontWeight: 'bold', color: w.total_backorder > 0 ? '#f5222d' : '#52c41a' }}>
+                <div style={{ fontWeight: 'bold', color: w.total_backorder > 0 ? SEMANTIC.bad : SEMANTIC.good }}>
                   {Number(w.total_backorder).toLocaleString()}
                 </div>
               </div>
@@ -290,7 +291,7 @@ const InventoryTrajectoryTab = ({ runId }) => {
       <Card title={`Quỹ đạo ${metricLabel} theo kho qua các kỳ`} size="small">
         <ResponsiveContainer width="100%" height={340}>
           <LineChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
             <XAxis dataKey="period" />
             <YAxis tickFormatter={(v) => Number(v).toLocaleString()} />
             <Tooltip formatter={(v) => Number(v).toLocaleString()} />
@@ -311,12 +312,12 @@ const InventoryTrajectoryTab = ({ runId }) => {
             { title: 'Kho', dataIndex: 'warehouse_id',
               render: (v, _, i) => <Tag color={whColor(i)}>{v}</Tag> },
             { title: 'Tổng backorder', dataIndex: 'total_backorder', align: 'right',
-              render: (v) => <span style={{ color: v > 0 ? '#f5222d' : undefined }}>{Number(v).toLocaleString()}</span>,
+              render: (v) => <span style={{ color: v > 0 ? SEMANTIC.bad : undefined }}>{Number(v).toLocaleString()}</span>,
               sorter: (a, b) => a.total_backorder - b.total_backorder },
             { title: 'Tổng overstock', dataIndex: 'total_overstock', align: 'right',
-              render: (v) => <span style={{ color: v > 0 ? '#faad14' : undefined }}>{Number(v).toLocaleString()}</span> },
+              render: (v) => <span style={{ color: v > 0 ? SEMANTIC.warn : undefined }}>{Number(v).toLocaleString()}</span> },
             { title: 'Tổng shortage', dataIndex: 'total_shortage', align: 'right',
-              render: (v) => <span style={{ color: v > 0 ? '#fa8c16' : undefined }}>{Number(v).toLocaleString()}</span> },
+              render: (v) => <span style={{ color: v > 0 ? SEMANTIC.warn : undefined }}>{Number(v).toLocaleString()}</span> },
           ]}
         />
       </Card>
@@ -426,14 +427,14 @@ const AllocationTab = ({ runId, products, warehouses }) => {
             <Col span={6}>
               <Card size="small">
                 <Statistic title="Tổng backorder"
-                  valueStyle={{ color: allocations.reduce((s, a) => s + Number(a.backorder_qty || 0), 0) > 0 ? '#f5222d' : undefined }}
+                  valueStyle={{ color: allocations.reduce((s, a) => s + Number(a.backorder_qty || 0), 0) > 0 ? SEMANTIC.bad : undefined }}
                   value={allocations.reduce((s, a) => s + Number(a.backorder_qty || 0), 0).toLocaleString()} />
               </Card>
             </Col>
             <Col span={6}>
               <Card size="small">
                 <Statistic title="Vi phạm case-pack"
-                  valueStyle={{ color: allocations.filter((a) => a.penalty_flag).length > 0 ? '#faad14' : undefined }}
+                  valueStyle={{ color: allocations.filter((a) => a.penalty_flag).length > 0 ? SEMANTIC.warn : undefined }}
                   value={allocations.filter((a) => a.penalty_flag).length} suffix="dòng" />
               </Card>
             </Col>
@@ -444,7 +445,7 @@ const AllocationTab = ({ runId, products, warehouses }) => {
             <Card title={`Quỹ đạo tồn kho — ${filterProduct}`} size="small">
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={lineData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
                   <XAxis dataKey="period" />
                   <YAxis tickFormatter={(v) => Number(v).toLocaleString()} />
                   <Tooltip formatter={(v) => Number(v).toLocaleString()} />
@@ -475,26 +476,26 @@ const AllocationTab = ({ runId, products, warehouses }) => {
                   render: (v) => Number(v).toLocaleString() },
                 { title: 'Tồn kho (I)', dataIndex: 'net_inventory', key: 'inv', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) < 0 ? '#f5222d' : undefined }}>
+                    <span style={{ color: Number(v) < 0 ? SEMANTIC.bad : undefined }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ),
                   sorter: (a, b) => a.net_inventory - b.net_inventory },
                 { title: 'Backorder', dataIndex: 'backorder_qty', key: 'bo', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? '#f5222d' : undefined }}>
+                    <span style={{ color: Number(v) > 0 ? SEMANTIC.bad : undefined }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },
                 { title: 'Overstock', dataIndex: 'overstock_qty', key: 'ov', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? '#faad14' : undefined }}>
+                    <span style={{ color: Number(v) > 0 ? SEMANTIC.warn : undefined }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },
                 { title: 'Shortage', dataIndex: 'shortage_qty', key: 'sh', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? '#fa8c16' : undefined }}>
+                    <span style={{ color: Number(v) > 0 ? SEMANTIC.warn : undefined }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },

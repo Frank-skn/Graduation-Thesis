@@ -18,6 +18,7 @@ import optimizationService from '../services/optimizationService'
 import scenarioService from '../services/scenarioService'
 import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, NEUTRAL, SEMANTIC } from '../theme/tokens'
 
 const { Option } = Select
 
@@ -269,9 +270,9 @@ const RunOptimization = () => {
 
   const statusColor = (status) => {
     const s = (status || '').toLowerCase()
-    if (s === 'optimal') return '#52c41a'
-    if (s === 'feasible') return '#fa8c16'
-    return '#f5222d'
+    if (s === 'optimal') return SEMANTIC.good
+    if (s === 'feasible') return SEMANTIC.warn
+    return SEMANTIC.bad
   }
 
   // ── History table columns ──
@@ -374,7 +375,7 @@ const RunOptimization = () => {
       {step === 2 && pollResult && (
         <Card>
           <div className="text-center space-y-4">
-            <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a' }} />
+            <CheckCircleOutlined style={{ fontSize: 48, color: SEMANTIC.good }} />
             <h2 className="text-xl font-semibold">Tối ưu hoá hoàn thành!</h2>
 
             {/* Core KPI row */}
@@ -403,25 +404,25 @@ const RunOptimization = () => {
                 </Divider>
                 <Row gutter={[16, 16]} justify="center">
                   <Col xs={24} sm={8}>
-                    <Card size="small" style={{ background: '#f5f5f5', textAlign: 'center' }}>
+                    <Card size="small" style={{ background: NEUTRAL[100], textAlign: 'center' }}>
                       <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Chi phí cơ sở (Baseline)</div>
                       <div style={{ fontSize: 22, fontWeight: 700, color: '#333' }}>{fmt(runSummary.baseline_cost)}</div>
                     </Card>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Card size="small" style={{ background: '#e6f4ff', textAlign: 'center' }}>
-                      <div style={{ color: '#1677ff', fontSize: 12, marginBottom: 4 }}>Chi phí tối ưu</div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: '#0958d9' }}>{fmt(runSummary.opt_cost)}</div>
+                    <Card size="small" style={{ background: BRAND[50], textAlign: 'center' }}>
+                      <div style={{ color: BRAND[500], fontSize: 12, marginBottom: 4 }}>Chi phí tối ưu</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: BRAND[600] }}>{fmt(runSummary.opt_cost)}</div>
                     </Card>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Card size="small" style={{ background: '#f6ffed', textAlign: 'center' }}>
-                      <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 4 }}>
+                    <Card size="small" style={{ background: SEMANTIC.goodBg, textAlign: 'center' }}>
+                      <div style={{ color: SEMANTIC.good, fontSize: 12, marginBottom: 4 }}>
                         <FallOutlined className="mr-1" />Tiết kiệm được
                       </div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: '#389e0d' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: SEMANTIC.good }}>
                         {fmt(runSummary.savings)}
-                        <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6, color: '#52c41a' }}>
+                        <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6, color: SEMANTIC.good }}>
                           ({(runSummary.savings_pct ?? 0).toFixed(1)}%)
                         </span>
                       </div>
@@ -445,8 +446,8 @@ const RunOptimization = () => {
             <Divider orientation="left" orientationMargin={0}>Chọn bước tiếp theo</Divider>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12}>
-                <Card hoverable style={{ border: '2px solid #1890ff', height: '100%' }}
-                  title={<span style={{ color: '#1890ff' }}><ExperimentOutlined className="mr-2" />Lựa chọn 1: Phân tích &amp; điều chỉnh thêm</span>}>
+                <Card hoverable style={{ border: `2px solid ${BRAND[500]}`, height: '100%' }}
+                  title={<span style={{ color: BRAND[500] }}><ExperimentOutlined className="mr-2" />Lựa chọn 1: Phân tích &amp; điều chỉnh thêm</span>}>
                   <p className="text-gray-500 text-sm mb-3">
                     Xem kết quả đầy đủ, chạy phân tích kịch bản, rồi quay lại chạy tối ưu lại nếu chưa hài lòng.
                   </p>
@@ -470,14 +471,14 @@ const RunOptimization = () => {
                 </Card>
               </Col>
               <Col xs={24} md={12}>
-                <Card hoverable style={{ border: '2px solid #52c41a', height: '100%' }}
-                  title={<span style={{ color: '#52c41a' }}><CheckCircleOutlined className="mr-2" />Lựa chọn 2: Xác nhận kết quả tối ưu</span>}>
+                <Card hoverable style={{ border: `2px solid ${SEMANTIC.good}`, height: '100%' }}
+                  title={<span style={{ color: SEMANTIC.good }}><CheckCircleOutlined className="mr-2" />Lựa chọn 2: Xác nhận kết quả tối ưu</span>}>
                   <p className="text-gray-500 text-sm mb-3">
                     Xác nhận và lưu kết quả tối ưu hoá này làm kết quả chính thức.
                   </p>
                   <Button
                     type="primary"
-                    style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                    style={{ background: SEMANTIC.good, borderColor: SEMANTIC.good }}
                     icon={<CheckCircleOutlined />}
                     size="large"
                     block
@@ -495,7 +496,7 @@ const RunOptimization = () => {
       {step === 1 && (
         <Card>
           <div className="text-center space-y-5 py-4">
-            <LoadingOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+            <LoadingOutlined style={{ fontSize: 48, color: BRAND[500] }} />
             <h2 className="text-xl font-semibold">Đang giải bài toán MA (Hybrid GA-ALNS)...</h2>
 
             {/* Time + item counter */}
@@ -520,7 +521,7 @@ const RunOptimization = () => {
               <Progress
                 percent={progressPct}
                 status="active"
-                strokeColor={{ '0%': '#108ee9', '100%': '#52c41a' }}
+                strokeColor={{ '0%': BRAND[400], '100%': SEMANTIC.good }}
               />
             </div>
 
@@ -634,7 +635,7 @@ const RunOptimization = () => {
                 <HistoryOutlined /> Lịch Sử
                 {histRuns.length > 0 && (
                   <Badge count={histRuns.length} size="small"
-                    style={{ marginLeft: 6, backgroundColor: '#1890ff' }} />
+                    style={{ marginLeft: 6, backgroundColor: BRAND[500] }} />
                 )}
               </span>
             ),
@@ -682,25 +683,25 @@ const RunOptimization = () => {
                       <>
                         <Row gutter={[16, 16]}>
                           <Col xs={24} sm={8}>
-                            <Card size="small" style={{ background: '#f5f5f5', textAlign: 'center' }}>
+                            <Card size="small" style={{ background: NEUTRAL[100], textAlign: 'center' }}>
                               <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Chi phí cơ sở (Baseline)</div>
                               <div style={{ fontSize: 20, fontWeight: 700, color: '#333' }}>{fmt(histSummary.baseline_cost)}</div>
                             </Card>
                           </Col>
                           <Col xs={24} sm={8}>
-                            <Card size="small" style={{ background: '#e6f4ff', textAlign: 'center' }}>
-                              <div style={{ color: '#1677ff', fontSize: 12, marginBottom: 4 }}>Chi phí tối ưu</div>
-                              <div style={{ fontSize: 20, fontWeight: 700, color: '#0958d9' }}>{fmt(histSummary.opt_cost)}</div>
+                            <Card size="small" style={{ background: BRAND[50], textAlign: 'center' }}>
+                              <div style={{ color: BRAND[500], fontSize: 12, marginBottom: 4 }}>Chi phí tối ưu</div>
+                              <div style={{ fontSize: 20, fontWeight: 700, color: BRAND[600] }}>{fmt(histSummary.opt_cost)}</div>
                             </Card>
                           </Col>
                           <Col xs={24} sm={8}>
-                            <Card size="small" style={{ background: '#f6ffed', textAlign: 'center' }}>
-                              <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 4 }}>
+                            <Card size="small" style={{ background: SEMANTIC.goodBg, textAlign: 'center' }}>
+                              <div style={{ color: SEMANTIC.good, fontSize: 12, marginBottom: 4 }}>
                                 <FallOutlined className="mr-1" />Tiết kiệm được
                               </div>
-                              <div style={{ fontSize: 20, fontWeight: 700, color: '#389e0d' }}>
+                              <div style={{ fontSize: 20, fontWeight: 700, color: SEMANTIC.good }}>
                                 {fmt(histSummary.savings)}
-                                <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 6, color: '#52c41a' }}>
+                                <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 6, color: SEMANTIC.good }}>
                                   ({(histSummary.savings_pct ?? 0).toFixed(1)}%)
                                 </span>
                               </div>

@@ -27,6 +27,7 @@ import { useApi, useMutation } from '../hooks/useApi'
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, NEUTRAL, CATEGORICAL } from '../theme/tokens'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -37,60 +38,60 @@ const { TextArea } = Input
 const SCENARIO_GROUPS = [
   {
     key: 'demand',
-    icon: <BarChartOutlined style={{ fontSize: 28, color: '#1890ff' }} />,
-    label: '1️⃣ Điều chỉnh nhu cầu (DI)',
+    icon: <BarChartOutlined style={{ fontSize: 28, color: CATEGORICAL[0] }} />,
+    label: 'Điều chỉnh nhu cầu (DI)',
     description: 'Tăng hoặc giảm nhu cầu theo % ± x. Dương = nhu cầu tăng, âm = nhu cầu giảm.',
     paramTag: ['DI'],
-    color: '#1890ff',
+    color: CATEGORICAL[0],
     hasSlider: true,
     defaultPct: 20,
   },
   {
     key: 'capacity',
-    icon: <RocketOutlined style={{ fontSize: 28, color: '#722ed1' }} />,
-    label: '2️⃣ Điều chỉnh công suất (CAP)',
+    icon: <RocketOutlined style={{ fontSize: 28, color: CATEGORICAL[1] }} />,
+    label: 'Điều chỉnh công suất (CAP)',
     description: 'Tăng hoặc giảm công suất nhà cung cấp theo %. Âm = gián đoạn cung ứng.',
     paramTag: ['CAP'],
-    color: '#722ed1',
+    color: CATEGORICAL[1],
     hasSlider: true,
     defaultPct: 30,
   },
   {
     key: 'cost',
-    icon: <DollarOutlined style={{ fontSize: 28, color: '#cf1322' }} />,
-    label: '3️⃣ Điều chỉnh chi phí (Cb, Co, Cs, Cp)',
+    icon: <DollarOutlined style={{ fontSize: 28, color: CATEGORICAL[2] }} />,
+    label: 'Điều chỉnh chi phí (Cb, Co, Cs, Cp)',
     description: 'Điều chỉnh đồng thời tất cả thành phần chi phí (tồn thiếu, tồn thừa, thiếu hụt, vi phạm).',
     paramTag: ['Cb', 'Co', 'Cs', 'Cp'],
-    color: '#cf1322',
+    color: CATEGORICAL[2],
     hasSlider: true,
     defaultPct: 20,
   },
   {
     key: 'inventory',
-    icon: <SafetyOutlined style={{ fontSize: 28, color: '#52c41a' }} />,
-    label: '4️⃣ Điều chỉnh chính sách tồn kho (U/L)',
+    icon: <SafetyOutlined style={{ fontSize: 28, color: CATEGORICAL[3] }} />,
+    label: 'Điều chỉnh chính sách tồn kho (U/L)',
     description: 'Nới rộng hoặc thu hẹp khoảng giữa ngưỡng trên (U) và ngưỡng dưới (L).',
     paramTag: ['U', 'L'],
-    color: '#52c41a',
+    color: CATEGORICAL[3],
     hasSlider: true,
     defaultPct: 30,
   },
   {
     key: 'structural',
-    icon: <ApartmentOutlined style={{ fontSize: 28, color: '#fa8c16' }} />,
-    label: '5️⃣ Thay đổi cấu trúc',
+    icon: <ApartmentOutlined style={{ fontSize: 28, color: CATEGORICAL[4] }} />,
+    label: 'Thay đổi cấu trúc',
     description: 'Thêm sản phẩm mới hoặc đóng cửa kho hàng — thay đổi cơ cấu mô hình.',
     paramTag: ['I/J'],
-    color: '#fa8c16',
+    color: CATEGORICAL[4],
     hasSlider: false,
   },
   {
     key: 'custom',
-    icon: <ToolOutlined style={{ fontSize: 28, color: '#595959' }} />,
-    label: '6️⃣ Tùy chỉnh nâng cao (Custom)',
+    icon: <ToolOutlined style={{ fontSize: 28, color: CATEGORICAL[5] }} />,
+    label: 'Tùy chỉnh nâng cao (Custom)',
     description: 'Ghi đè tham số tùy ý. Dùng cho trường hợp đặc biệt không thuộc các nhóm trên.',
     paramTag: ['*'],
-    color: '#595959',
+    color: CATEGORICAL[5],
     hasSlider: false,
   },
 ]
@@ -452,8 +453,8 @@ const ScenarioManagement = () => {
                 <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={90} tick={{ fontSize: 10 }} />
                 <RChartTooltip formatter={(v) => fmt(v, 2)} />
                 <Legend />
-                <Bar dataKey="Cơ sở"    fill="#d9d9d9" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Kịch bản" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Cơ sở"    fill={NEUTRAL[400]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Kịch bản" fill={BRAND[500]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <Table

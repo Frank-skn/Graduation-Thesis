@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Row, Col, Table, Tag, Button, InputNumber, Alert, Slider, message, Progress, Switch, Tooltip } from 'antd'
+import { Card, Row, Col, Table, Tag, Button, InputNumber, Alert, Slider, message, Progress, Switch, Tooltip, Popconfirm } from 'antd'
 import {
   BarChartOutlined, ExperimentOutlined,
 } from '@ant-design/icons'
@@ -7,6 +7,7 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, SEMANTIC } from '../theme/tokens'
 
 // Polling hook with localStorage persistence so an in-flight job keeps
 // being tracked even after the user navigates away and comes back.
@@ -16,42 +17,71 @@ const usePollJob = (onComplete, persistKey) => {
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef(null)
   const timerRef = useRef(null)
+  const startTsRef = useRef(null)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
   const startPolling = (id) => {
-    if (persistKey) localStorage.setItem(persistKey, String(id))
+    const ts = Date.now()
+    startTsRef.current = ts
+    if (persistKey) localStorage.setItem(persistKey, JSON.stringify({ id, ts }))
     setJobId(id); setPolling(true); setElapsed(0)
   }
 
   useEffect(() => {
     if (!persistKey) return
     const saved = localStorage.getItem(persistKey)
-    if (saved) { setJobId(Number(saved)); setPolling(true); setElapsed(0) }
+    if (saved) {
+      try {
+        const { id, ts } = JSON.parse(saved)
+        startTsRef.current = ts || Date.now()
+        setJobId(Number(id)); setPolling(true)
+        setElapsed(Math.floor((Date.now() - startTsRef.current) / 1000))
+      } catch { localStorage.removeItem(persistKey) }
+    }
   }, [persistKey])
+
+  const [cancelling, setCancelling] = useState(false)
+
+  const cancelJob = async () => {
+    if (!jobId) return
+    try {
+      await sensitivityService.cancelJob(jobId)
+      setCancelling(true)
+      message.info('Đã gửi yêu cầu dừng. Job sẽ dừng sau khi hoàn tất bước tính hiện tại.')
+    } catch (e) {
+      message.error('Không gửi được yêu cầu dừng')
+    }
+  }
 
   useEffect(() => {
     if (!polling || !jobId) return
     const stop = () => {
       clearInterval(intervalRef.current); clearInterval(timerRef.current)
-      setPolling(false)
+      setPolling(false); setCancelling(false)
       if (persistKey) localStorage.removeItem(persistKey)
     }
-    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    const tick = () => setElapsed(Math.floor((Date.now() - (startTsRef.current || Date.now())) / 1000))
+    tick()
+    timerRef.current = setInterval(tick, 1000)
     intervalRef.current = setInterval(async () => {
       try {
         const res = await sensitivityService.pollJob(jobId)
         if (res.status === 'completed') {
           stop(); onCompleteRef.current(res.result)
+        } else if (res.status === 'cancelled') {
+          stop(); message.warning('Phân tích đã được dừng.')
         } else if (res.status === 'failed') {
           stop(); message.error('Phân tích thất bại: ' + (res.error || 'Unknown'))
+        } else if (res.status === 'cancelling') {
+          setCancelling(true)
         }
       } catch { stop() }
     }, 4000)
     return () => { clearInterval(intervalRef.current); clearInterval(timerRef.current) }
   }, [polling, jobId, persistKey])
 
-  return { polling, elapsed, startPolling }
+  return { polling, elapsed, startPolling, cancelJob, cancelling }
 }
 
 // Nhãn tiếng Việt cho mã tham số
@@ -86,7 +116,7 @@ const ParameterStability = () => {
   }
   useEffect(() => { loadHistory() }, [])
 
-  const { polling, elapsed, startPolling } = usePollJob((result) => {
+  const { polling, elapsed, startPolling, cancelJob, cancelling } = usePollJob((result) => {
     setResults(result)
     message.success('Kiểm tra ổn định hoàn thành!')
     loadHistory()
@@ -112,6 +142,7 @@ const ParameterStability = () => {
         parameters: ['DI', 'CAP', 'Cb', 'Co', 'Cs', 'Cp'],
         variation_pct: variationLevel,
         sample_size: fullDataset ? null : 50,
+        time_limit: 5,
       })
       startPolling(res.job_id)
     } catch { message.error('Không thể khởi động phân tích') }
@@ -196,10 +227,26 @@ const ParameterStability = () => {
             <span>
               Đang kiểm tra độ bền vững trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
               <span className="ml-2 font-mono text-blue-600">{elapsed}s</span>
-              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP — nhanh'})</span>
+              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP'})</span>
             </span>
           }
-          description="Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới."
+          description={
+            cancelling
+              ? 'Đang dừng… job sẽ kết thúc sau khi hoàn tất bước tính hiện tại (có thể mất tới vài phút).'
+              : 'Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới.'
+          }
+          action={
+            <Popconfirm
+              title="Dừng phân tích?"
+              description="Job sẽ dừng sau khi hoàn tất bước tính hiện tại. Kết quả dở dang sẽ không được lưu."
+              okText="Dừng" cancelText="Tiếp tục"
+              onConfirm={cancelJob}
+            >
+              <Button danger size="small" loading={cancelling}>
+                {cancelling ? 'Đang dừng…' : 'Dừng'}
+              </Button>
+            </Popconfirm>
+          }
         />
       )}
 
@@ -219,8 +266,8 @@ const ParameterStability = () => {
                     <PolarGrid />
                     <PolarAngleAxis dataKey="parameter" />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Biến động" dataKey="volatility" stroke="#fa8c16" fill="#fa8c16" fillOpacity={0.3} />
-                    <Radar name="Ổn định" dataKey="stability" stroke="#52c41a" fill="#52c41a" fillOpacity={0.3} />
+                    <Radar name="Biến động" dataKey="volatility" stroke={SEMANTIC.warn} fill={SEMANTIC.warn} fillOpacity={0.3} />
+                    <Radar name="Ổn định" dataKey="stability" stroke={SEMANTIC.good} fill={SEMANTIC.good} fillOpacity={0.3} />
                     <Legend />
                   </RadarChart>
                 </ResponsiveContainer>
@@ -234,7 +281,7 @@ const ParameterStability = () => {
                     <XAxis dataKey="param" />
                     <YAxis />
                     <RechartsTooltip formatter={(v) => `${Number(v).toLocaleString('vi-VN')}`} />
-                    <Bar dataKey="variationRange" fill="#1890ff" name="Khoảng biến thiên" />
+                    <Bar dataKey="variationRange" fill={BRAND[500]} name="Khoảng biến thiên" />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>

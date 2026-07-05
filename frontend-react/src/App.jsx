@@ -1,8 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { Layout } from 'antd'
+import { Layout, ConfigProvider } from 'antd'
+import viVN from 'antd/locale/vi_VN'
 import { AppProvider } from './context/AppContext'
 import DashboardLayout from './components/layout/DashboardLayout'
+import { BRAND, NEUTRAL, SEMANTIC } from './theme/tokens'
 
 // Group A: Data Foundation
 import A1_DataOverview from './pages/A1_DataOverview'
@@ -26,8 +28,36 @@ import RequireRun from './components/RequireRun'
 
 const { Content } = Layout
 
+const themeConfig = {
+  token: {
+    colorPrimary: BRAND[600],
+    colorInfo: BRAND[600],
+    colorSuccess: SEMANTIC.good,
+    colorWarning: SEMANTIC.warn,
+    colorError: SEMANTIC.bad,
+    colorText: NEUTRAL[900],
+    colorTextSecondary: NEUTRAL[600],
+    colorBorder: NEUTRAL[200],
+    colorBorderSecondary: NEUTRAL[100],
+    colorBgLayout: NEUTRAL[50],
+    borderRadius: 10,
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSize: 14,
+    controlHeight: 36,
+  },
+  components: {
+    Card: { borderRadiusLG: 12, headerFontSize: 15, paddingLG: 20 },
+    Table: { headerBg: NEUTRAL[50], headerColor: NEUTRAL[600], borderColor: NEUTRAL[200], rowHoverBg: BRAND[50] },
+    Statistic: { titleFontSize: 13 },
+    Tag: { defaultBg: NEUTRAL[100], defaultColor: NEUTRAL[600], borderRadiusSM: 6 },
+    Button: { primaryShadow: 'none', fontWeight: 500 },
+    Menu: { itemSelectedBg: BRAND[50], itemSelectedColor: BRAND[600] },
+  },
+}
+
 function App() {
   return (
+    <ConfigProvider locale={viVN} theme={themeConfig}>
     <AppProvider>
     <Router>
       <DashboardLayout>
@@ -60,6 +90,7 @@ function App() {
       </DashboardLayout>
     </Router>
     </AppProvider>
+    </ConfigProvider>
   )
 }
 

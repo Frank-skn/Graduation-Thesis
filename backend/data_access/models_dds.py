@@ -67,12 +67,13 @@ class FactInventorySMI(BaseDDS):
     """Main Fact Table"""
     __tablename__ = "fact_inventory_smi"
 
-    fact_id = Column(BigInteger, primary_key=True, autoincrement=True)
+    # SQLite chỉ autoincrement với INTEGER PRIMARY KEY (không phải BigInteger)
+    fact_id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # Foreign Keys
-    product_sk = Column(Integer, ForeignKey("dds.dim_product.product_sk"), nullable=False, index=True)
-    warehouse_sk = Column(Integer, ForeignKey("dds.dim_warehouse.warehouse_sk"), nullable=False, index=True)
-    time_period_sk = Column(Integer, ForeignKey("dds.dim_time.time_period_sk"), nullable=False, index=True)
+    # Foreign Keys (SQLite: không dùng schema prefix "dds.")
+    product_sk = Column(Integer, ForeignKey("dim_product.product_sk"), nullable=False, index=True)
+    warehouse_sk = Column(Integer, ForeignKey("dim_warehouse.warehouse_sk"), nullable=False, index=True)
+    time_period_sk = Column(Integer, ForeignKey("dim_time.time_period_sk"), nullable=False, index=True)
 
     # Inventory Measures
     beginning_inventory_qty = Column(Integer, nullable=False)
@@ -121,13 +122,17 @@ class DDSPackingConfig(BaseDDS):
     __tablename__ = "dds_packing_config"
 
     config_id = Column(Integer, primary_key=True, autoincrement=True)
-    product_sk = Column(Integer, ForeignKey("dds.dim_product.product_sk"), nullable=False)
-    warehouse_sk = Column(Integer, ForeignKey("dds.dim_warehouse.warehouse_sk"), nullable=False)
+    product_sk = Column(Integer, ForeignKey("dim_product.product_sk"), nullable=False)
+    warehouse_sk = Column(Integer, ForeignKey("dim_warehouse.warehouse_sk"), nullable=False)
     box_id = Column(Integer, nullable=False)
     pack_multiple = Column(Integer, nullable=False)
     box_volume = Column(Numeric(10, 2))
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships (để repository truy product_id/warehouse_id qua join)
+    product = relationship("DimProduct")
+    warehouse = relationship("DimWarehouse")
 
 
 class DDSModelParameters(BaseDDS):

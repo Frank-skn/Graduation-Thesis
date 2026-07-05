@@ -296,3 +296,92 @@ def create_dataset_version(
         checksum=snapshot_meta["checksum"],
         notes=version.description,
     )
+
+
+# ------------------------------------------------------------------ #
+#  6. GET /algorithm-parameters -- Tham số giải thuật Memetic          #
+# ------------------------------------------------------------------ #
+
+class AlgoParam(BaseModel):
+    """Một tham số giải thuật (đọc từ config.json)."""
+    name: str
+    symbol: str
+    value: float
+    group: str            # "GA" | "ALNS" | "Dừng" | "Chung"
+    description: str
+    taguchi: bool = False  # True nếu là 1 trong 5 tham số hiệu chỉnh Taguchi
+
+
+class AlgoParamList(BaseModel):
+    parameters: List[AlgoParam]
+    total: int
+    source: str
+    tuned_by: str
+
+
+@router.get("/algorithm-parameters", response_model=AlgoParamList)
+def get_algorithm_parameters():
+    """
+    Trả về tham số của giải thuật Memetic (Hybrid GA-ALNS) từ config.json.
+
+    5 tham số Taguchi (n_pop, G_max, p_crossover, p_mutation, n_iterations)
+    được đánh dấu taguchi=True — đây là cấu hình tối ưu từ thực nghiệm Taguchi
+    (Chương 6 luận văn: n_pop=38, G_max=500, ...).
+    """
+    from pathlib import Path
+    # data_overview.py ở backend/api/v1/endpoints → parents[3] = backend/
+    cfg_path = Path(__file__).resolve().parents[3] / "ma" / "config.json"
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception:
+        cfg = {}
+
+    ga = cfg.get("ga", {})
+    alns = cfg.get("alns", {})
+    stopping = cfg.get("stopping", {})
+
+    params: List[AlgoParam] = [
+        # ── 5 tham số Taguchi ─────────────────────────────────────
+        AlgoParam(name="Kích thước quần thể", symbol="n_pop", value=ga.get("n_pop", 0),
+                  group="GA", taguchi=True,
+                  description="Số cá thể trong quần thể GA (Taguchi: ảnh hưởng lớn nhất – 45.81%)"),
+        AlgoParam(name="Số thế hệ tối đa", symbol="G_max", value=ga.get("G_max", 0),
+                  group="GA", taguchi=True,
+                  description="Số thế hệ tối đa của GA trước khi dừng"),
+        AlgoParam(name="Xác suất lai chéo", symbol="p_crossover", value=ga.get("p_crossover", 0),
+                  group="GA", taguchi=True,
+                  description="Xác suất thực hiện lai chéo giữa hai cá thể cha mẹ"),
+        AlgoParam(name="Xác suất đột biến", symbol="p_mutation", value=ga.get("p_mutation", 0),
+                  group="GA", taguchi=True,
+                  description="Xác suất đột biến tạo đa dạng nghiệm"),
+        AlgoParam(name="Số vòng lặp ALNS", symbol="n_iterations", value=alns.get("n_iterations", 0),
+                  group="ALNS", taguchi=True,
+                  description="Số vòng lặp tìm kiếm lân cận lớn thích nghi để cải thiện cục bộ"),
+        # ── Tham số GA cố định ────────────────────────────────────
+        AlgoParam(name="Số thế hệ dừng sớm", symbol="G_stag", value=ga.get("G_stag", 0),
+                  group="GA", description="Dừng nếu không cải thiện trong G_stag thế hệ liên tiếp"),
+        AlgoParam(name="Kích thước tournament", symbol="k_tournament", value=ga.get("k_tournament", 0),
+                  group="GA", description="Số cá thể tham gia mỗi lần chọn lọc tournament"),
+        AlgoParam(name="Tỷ lệ seed từ MILP", symbol="milp_seed_fraction", value=ga.get("milp_seed_fraction", 0),
+                  group="GA", description="Tỷ lệ quần thể khởi tạo từ nghiệm MILP warm-start"),
+        AlgoParam(name="Tỷ lệ nghiệm heuristic", symbol="heuristic_fraction", value=ga.get("heuristic_fraction", 0),
+                  group="GA", description="Tỷ lệ quần thể khởi tạo bằng heuristic theo mức thiếu hụt"),
+        # ── Tham số ALNS cố định ──────────────────────────────────
+        AlgoParam(name="Tỷ lệ phá hủy tối thiểu", symbol="q_min_ratio", value=alns.get("q_min_ratio", 0),
+                  group="ALNS", description="Tỷ lệ nhỏ nhất của nghiệm bị phá hủy mỗi vòng ALNS"),
+        AlgoParam(name="Tỷ lệ phá hủy tối đa", symbol="q_max_ratio", value=alns.get("q_max_ratio", 0),
+                  group="ALNS", description="Tỷ lệ lớn nhất của nghiệm bị phá hủy mỗi vòng ALNS"),
+        AlgoParam(name="Hệ số cập nhật trọng số", symbol="lambda_rho", value=alns.get("lambda_rho", 0),
+                  group="ALNS", description="Hệ số λρ cập nhật trọng số thích nghi của toán tử"),
+        # ── Dừng ──────────────────────────────────────────────────
+        AlgoParam(name="Giới hạn thời gian (giây/SP)", symbol="time_limit_seconds",
+                  value=stopping.get("time_limit_seconds", 0),
+                  group="Dừng", description="Trần thời gian tối đa cho mỗi sản phẩm"),
+    ]
+
+    return AlgoParamList(
+        parameters=params,
+        total=len(params),
+        source="backend/ma/config.json",
+        tuned_by=cfg.get("_comment", "Hiệu chỉnh bằng phương pháp Taguchi (Chương 6)"),
+    )

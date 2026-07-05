@@ -16,18 +16,20 @@ import { useApi } from '../hooks/useApi'
 import { useAppContext } from '../context/AppContext'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
+import { BRAND, NEUTRAL, SEMANTIC, SI_COLORS, COST_COLORS, CHART_GRID } from '../theme/tokens'
 
 const { Text } = Typography
 const { Option } = Select
 
-// ── Màu sắc ───────────────────────────────────────────
-const BAR_COLORS = ['#f5222d', '#fa8c16', '#faad14', '#1890ff', '#52c41a']
+// ── Màu sắc (thống nhất từ design tokens) ─────────────
 const COLORS = {
-  q: '#2196F3', r: '#03A9F4', inv: '#4CAF50',
-  bo: '#F44336', o: '#FF9800', s: '#9C27B0',
-  safe: '#52c41a', risk: '#ff4d4f', warn: '#faad14',
+  q: BRAND[500], r: BRAND[300], inv: BRAND[400],
+  bo: SEMANTIC.bad, o: BRAND[400], s: SEMANTIC.warn,
+  safe: SI_COLORS.safe, risk: SI_COLORS.risk, warn: SI_COLORS.warn,
 }
-const PIE_COLORS = [COLORS.safe, COLORS.warn, COLORS.risk]
+const PIE_COLORS = [SI_COLORS.safe, SI_COLORS.warn, SI_COLORS.risk]
+// Thứ tự khớp costRows: nợ đơn, tồn thừa, thiếu hụt, phạt đóng gói
+const COST_BAR_COLORS = [COST_COLORS.backorder, COST_COLORS.overstock, COST_COLORS.shortage, COST_COLORS.penalty]
 const fmt = (v, d = 0) =>
   typeof v === 'number' ? v.toLocaleString('vi-VN', { maximumFractionDigits: d }) : '—'
 
@@ -301,7 +303,7 @@ const ExecutiveSummary = () => {
                 value={totalCost}
                 formatter={(v) => fmt(v, 0)}
                 prefix={<DollarOutlined />}
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: BRAND[600] }}
               />
               <div className="text-xs text-gray-400 mt-1">
                 Giá trị hàm mục tiêu MA
@@ -315,7 +317,7 @@ const ExecutiveSummary = () => {
                 value={Number(kpis.service_level) || 0}
                 precision={1}
                 suffix="%"
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: SEMANTIC.good }}
                 prefix={<CheckCircleOutlined />}
               />
               <div className="text-xs text-gray-400 mt-1">
@@ -331,7 +333,7 @@ const ExecutiveSummary = () => {
                 precision={2}
                 suffix="%"
                 prefix={savingsPct >= 0 ? <RiseOutlined /> : <FallOutlined />}
-                valueStyle={{ color: savingsPct >= 0 ? '#3f8600' : '#cf1322' }}
+                valueStyle={{ color: savingsPct >= 0 ? SEMANTIC.good : SEMANTIC.bad }}
               />
               <div className="text-xs text-gray-400 mt-1">
                 Tiết kiệm: {fmt(savingsAmt, 0)}
@@ -383,7 +385,7 @@ const ExecutiveSummary = () => {
                           size="middle"
                           className="mb-4"
                           summary={() => (
-                            <Table.Summary.Row style={{ fontWeight: 'bold', background: '#fafafa' }}>
+                            <Table.Summary.Row style={{ fontWeight: 'bold', background: NEUTRAL[50] }}>
                               <Table.Summary.Cell index={0}><strong>TỔNG</strong></Table.Summary.Cell>
                               <Table.Summary.Cell index={1} align="right"><strong>{fmt(totalCost, 2)}</strong></Table.Summary.Cell>
                               <Table.Summary.Cell index={2} align="right"><Tag color="purple"><strong>100%</strong></Tag></Table.Summary.Cell>
@@ -424,7 +426,7 @@ const ExecutiveSummary = () => {
                             <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={80} tick={{ fontSize: 10 }} />
                             <Tooltip formatter={(v) => [fmt(v, 2), 'Chi phí']} />
                             <Bar dataKey="Chi phí" radius={[4, 4, 0, 0]}>
-                              {costBarData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
+                              {costBarData.map((_, i) => <Cell key={i} fill={COST_BAR_COLORS[i % COST_BAR_COLORS.length]} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -438,8 +440,8 @@ const ExecutiveSummary = () => {
                                 <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
                                 <Tooltip formatter={(v) => [fmt(v, 2)]} />
                                 <Legend />
-                                <Bar dataKey="Do-nothing" fill="#d9d9d9" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="MA Tối ưu"  fill="#52c41a" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="Do-nothing" fill={NEUTRAL[400]} radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="MA Tối ưu"  fill={BRAND[500]} radius={[0, 4, 4, 0]} />
                               </BarChart>
                             </ResponsiveContainer>
                           </>
@@ -505,7 +507,7 @@ const ExecutiveSummary = () => {
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small" className="h-full">
                           <Statistic title="Chi phí cơ sở (hiện trạng)" value={ext.baseline_cost} precision={0}
-                            prefix={<DollarOutlined />} valueStyle={{ color: '#666' }} formatter={(v) => fmt(v)} />
+                            prefix={<DollarOutlined />} valueStyle={{ color: NEUTRAL[600] }} formatter={(v) => fmt(v)} />
                           <Text type="secondary" style={{ fontSize: 12 }}>Chi phí khi không tối ưu</Text>
                         </Card>
                       </Col>
@@ -608,8 +610,8 @@ const ExecutiveSummary = () => {
                                     <XAxis dataKey="si" label={{ value: 'SI', position: 'insideBottom', offset: -2 }} />
                                     <YAxis label={{ value: 'Số ô', angle: -90, position: 'insideLeft' }} />
                                     <Tooltip formatter={(v) => [v, 'Số ô']} />
-                                    <ReferenceLine x="1.0" stroke="#ff4d4f" strokeDasharray="4 4"
-                                      label={{ value: 'SI=1', fill: '#ff4d4f', fontSize: 11 }} />
+                                    <ReferenceLine x="1.0" stroke={SI_COLORS.risk} strokeDasharray="4 4"
+                                      label={{ value: 'SI=1', fill: SI_COLORS.risk, fontSize: 11 }} />
                                     <Bar dataKey="count" name="Số ô" fill={COLORS.warn} isAnimationActive={false}>
                                       {siHistData.map((entry) => (
                                         <Cell key={entry.si}
@@ -717,7 +719,7 @@ const ExecutiveSummary = () => {
                               t: acc.t + w.total_cost,
                             }), { bo: 0, o: 0, s: 0, p: 0, t: 0 })
                             return (
-                              <Table.Summary.Row style={{ fontWeight: 'bold', background: '#fafafa' }}>
+                              <Table.Summary.Row style={{ fontWeight: 'bold', background: NEUTRAL[50] }}>
                                 <Table.Summary.Cell index={0}><strong>TỔNG</strong></Table.Summary.Cell>
                                 <Table.Summary.Cell index={1} align="right">{fmt(totals.bo, 2)}</Table.Summary.Cell>
                                 <Table.Summary.Cell index={2} align="right">{fmt(totals.o, 2)}</Table.Summary.Cell>
@@ -742,10 +744,10 @@ const ExecutiveSummary = () => {
                                 <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={80} tick={{ fontSize: 10 }} />
                                 <Tooltip formatter={(v) => [fmt(v, 2), '']} />
                                 <Legend />
-                                <Bar dataKey="Nợ đơn" fill="#f5222d" stackId="a" />
-                                <Bar dataKey="Tồn thừa" fill="#fa8c16" stackId="a" />
-                                <Bar dataKey="Thiếu hụt"  fill="#faad14" stackId="a" />
-                                <Bar dataKey="Vi phạm đóng gói"   fill="#1890ff" stackId="a" />
+                                <Bar dataKey="Nợ đơn" fill={COST_COLORS.backorder} stackId="a" />
+                                <Bar dataKey="Tồn thừa" fill={COST_COLORS.overstock} stackId="a" />
+                                <Bar dataKey="Thiếu hụt"  fill={COST_COLORS.shortage} stackId="a" />
+                                <Bar dataKey="Vi phạm đóng gói"   fill={COST_COLORS.penalty} stackId="a" />
                               </BarChart>
                             </ResponsiveContainer>
                           )

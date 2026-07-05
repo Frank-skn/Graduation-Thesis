@@ -29,6 +29,15 @@ engine = create_engine(
     echo=(settings.environment == "development"),
 )
 
+# ── SQLite engine for DDS (kho dữ liệu chiều — file riêng dds.db) ──────
+# Tách file để phản ánh đúng 2 lớp dữ liệu logic trong luận văn (NDS + DDS).
+_dds_path = _sqlite_path.parent / "dds.db"
+engine_dds = create_engine(
+    f"sqlite:///{_dds_path}",
+    connect_args={"check_same_thread": False},
+    echo=(settings.environment == "development"),
+)
+
 
 @event.listens_for(Engine, "connect")
 def _set_sqlite_pragma(dbapi_connection, connection_record):
@@ -41,11 +50,12 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 SessionLocalNDS = SessionLocal  # explicit alias used by background tasks
+SessionLocalDDS = sessionmaker(autocommit=False, autoflush=False, bind=engine_dds)
 
 # NDS base – no schema prefix (SQLite does not support schemas)
 BaseNDS = declarative_base()
 
-# DDS base – kept for import compatibility, not bound to any DB engine
+# DDS base – bound to dds.db (star schema: dim_*, fact_*)
 BaseDDS = declarative_base()
 
 
@@ -64,10 +74,12 @@ def get_db_nds() -> Generator[Session, None, None]:
 
 
 def get_db_dds() -> Generator[Session, None, None]:
-    """Legacy alias – yields an NDS/SQLite session.
-    DDS input data is now served by CsvOptimizationDataRepository.
-    """
-    yield from get_db()
+    """DDS session (SQLite dds.db) — kho dữ liệu chiều cho tối ưu hóa."""
+    db = SessionLocalDDS()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # ── CSV repository dependency ─────────────────────────────────────────

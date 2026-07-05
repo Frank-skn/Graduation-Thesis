@@ -90,7 +90,7 @@ class OptimizationDataRepository(IOptimizationDataRepository):
         for fact in facts:
             i = fact.product.product_id
             j = fact.warehouse.warehouse_id
-            t = fact.time_period.time_period
+            t = fact.time_period_dim.time_period
             
             BI[(i, j)] = fact.beginning_inventory_qty
             U[(i, j, t)] = fact.inventory_ceiling

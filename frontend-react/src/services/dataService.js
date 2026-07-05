@@ -7,6 +7,7 @@ const dataService = {
     api.put(`/data-overview/parameters/${paramName}`, { param_value: paramValue }),
   getDatasets: (limit = 50) => api.get('/data-overview/datasets', { params: { limit } }),
   createDataset: (data) => api.post('/data-overview/datasets', data),
+  getAlgorithmParameters: () => api.get('/data-overview/algorithm-parameters'),
 };
 
 export default dataService;

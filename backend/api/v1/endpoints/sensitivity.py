@@ -4,6 +4,7 @@ POST /run and POST /tornado return immediately with a job_id.
 Poll GET /jobs/{job_id} for status; GET /jobs/{job_id}/result for full result.
 """
 import json
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
@@ -24,15 +25,49 @@ router = APIRouter()
 
 _sensitivity_svc = SensitivityService()
 
+# Job "running" quá ngưỡng này coi là kẹt (backend restart / crash giữa chừng).
+# Đặt cao (6h) để tránh đánh dấu nhầm job đang chạy thật bị chậm do đói CPU
+# (vd khi có một optimization run full 943 SP chạy song song).
+_STUCK_AFTER = timedelta(hours=6)
+
+
+def _mark_if_stuck(row, db) -> str:
+    """
+    Nếu job vẫn 'running' nhưng đã quá lâu (backend đã restart/crash) thì
+    đánh dấu 'failed' và trả về status mới. Tránh job kẹt vĩnh viễn.
+    """
+    status = row.status or "running"
+    if status == "running" and row.created_at:
+        if datetime.utcnow() - row.created_at > _STUCK_AFTER:
+            status = "failed"
+            row.status = "failed"
+            row.results = json.dumps({"error": "Job timed out / interrupted (no result)"})
+            db.commit()
+    return status
+
 
 # ------------------------------------------------------------------ #
 #  Background task helpers                                            #
 # ------------------------------------------------------------------ #
 
+def _is_cancel_requested(sensitivity_id: int) -> bool:
+    """Đọc DB (session riêng) xem job có bị yêu cầu hủy không."""
+    from backend.core.database import SessionLocalNDS
+    db = SessionLocalNDS()
+    try:
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        return bool(row and row.status == "cancelling")
+    finally:
+        db.close()
+
+
 def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
     """Background worker for OAT sensitivity."""
     from backend.core.database import SessionLocalNDS
     from backend.schemas.sensitivity import SensitivityRequest as Req
+    from backend.domain.sensitivity_service import AnalysisCancelled
 
     db = SessionLocalNDS()
     try:
@@ -44,6 +79,7 @@ def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
             base_data=base_input,
             request=request,
             data_dir=data_dir,
+            cancel_check=lambda: _is_cancel_requested(sensitivity_id),
         )
 
         serialised = [
@@ -65,6 +101,14 @@ def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
             row.status = "completed"
             db.commit()
 
+    except AnalysisCancelled:
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.status = "cancelled"
+            row.results = json.dumps({"error": "Đã hủy bởi người dùng"})
+            db.commit()
     except Exception as exc:
         row = db.query(SensitivityRun).filter(
             SensitivityRun.sensitivity_id == sensitivity_id
@@ -81,6 +125,7 @@ def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
     """Background worker for Tornado analysis."""
     from backend.core.database import SessionLocalNDS
     from backend.schemas.sensitivity import TornadoRequest as Req
+    from backend.domain.sensitivity_service import AnalysisCancelled
 
     db = SessionLocalNDS()
     try:
@@ -92,6 +137,7 @@ def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
             base_data=base_input,
             request=request,
             data_dir=data_dir,
+            cancel_check=lambda: _is_cancel_requested(sensitivity_id),
         )
 
         serialised = [
@@ -118,6 +164,14 @@ def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
             row.status = "completed"
             db.commit()
 
+    except AnalysisCancelled:
+        row = db.query(SensitivityRun).filter(
+            SensitivityRun.sensitivity_id == sensitivity_id
+        ).first()
+        if row:
+            row.status = "cancelled"
+            row.results = json.dumps({"error": "Đã hủy bởi người dùng"})
+            db.commit()
     except Exception as exc:
         row = db.query(SensitivityRun).filter(
             SensitivityRun.sensitivity_id == sensitivity_id
@@ -224,6 +278,33 @@ def run_tornado(
 
 
 # ================================================================== #
+#  2c. POST /jobs/{job_id}/cancel — Yêu cầu hủy job đang chạy          #
+# ================================================================== #
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_job(job_id: int, db: Session = Depends(get_db_nds)):
+    """
+    Yêu cầu hủy một job đang chạy. Đặt status='cancelling'; background task
+    sẽ phát hiện ở ranh giới giữa các lần solve và dừng (status='cancelled').
+    Việc hủy có thể mất tới vài phút (đợi lần solve hiện tại kết thúc).
+    """
+    row = db.query(SensitivityRun).filter(
+        SensitivityRun.sensitivity_id == job_id
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if row.status not in ("running", "cancelling"):
+        return {"job_id": job_id, "status": row.status,
+                "message": f"Job đã ở trạng thái '{row.status}', không thể hủy."}
+
+    row.status = "cancelling"
+    db.commit()
+    return {"job_id": job_id, "status": "cancelling",
+            "message": "Đã gửi yêu cầu hủy. Job sẽ dừng sau khi hoàn tất lần tính hiện tại."}
+
+
+# ================================================================== #
 #  3. GET /jobs/{job_id} — Poll job status                            #
 # ================================================================== #
 
@@ -236,7 +317,8 @@ def get_job_status(job_id: int, db: Session = Depends(get_db_nds)):
     if not row:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    response = {"job_id": job_id, "status": row.status}
+    status = _mark_if_stuck(row, db)
+    response = {"job_id": job_id, "status": status}
 
     if row.status == "completed" and row.results:
         try:
@@ -281,12 +363,13 @@ def get_sensitivity_history(
 
     items = []
     for r in rows:
+        status = _mark_if_stuck(r, db)
         items.append({
             "job_id": r.sensitivity_id,
             "scenario_id": r.scenario_id,
             "analysis_type": r.analysis_type or "oat",
             "parameter_name": r.parameter_name,
-            "status": r.status,
+            "status": status,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         })
     return {"jobs": items, "total": len(items)}

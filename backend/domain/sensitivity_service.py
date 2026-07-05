@@ -4,7 +4,7 @@ Performs one-at-a-time (OAT) parameter sensitivity and tornado analysis
 by perturbing individual parameters and re-solving the optimization model.
 """
 import copy
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Callable
 
 from backend.schemas.optimization import OptimizationInput
 from backend.schemas.sensitivity import (
@@ -16,6 +16,11 @@ from backend.schemas.sensitivity import (
     TornadoResult,
 )
 from backend.domain.services import OptimizationService, OptimizationResult
+
+
+class AnalysisCancelled(Exception):
+    """Raised when a sensitivity/tornado analysis is cancelled by the user."""
+    pass
 
 
 class SensitivityService:
@@ -49,6 +54,7 @@ class SensitivityService:
         request: SensitivityRequest,
         base_result: Optional[OptimizationResult] = None,
         data_dir: Optional[str] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ) -> SensitivityResult:
         """
         Run OAT sensitivity on a single parameter.
@@ -58,13 +64,18 @@ class SensitivityService:
             request: SensitivityRequest specifying parameter and variations.
             base_result: Pre-computed base result (avoids re-solving base).
             data_dir: Path to CSV data directory (required for MA solver).
+            cancel_check: Optional callable; if it returns True between solves,
+                          the analysis is aborted (raises AnalysisCancelled).
 
         Returns:
             SensitivityResult with baseline and per-variation points.
         """
+        def _check_cancel():
+            if cancel_check and cancel_check():
+                raise AnalysisCancelled()
         solver_kwargs = dict(
             solver="ma",
-            time_limit=request.time_limit or 300,
+            time_limit=request.time_limit or 60,
             mip_gap=request.mip_gap or 0.01,
         )
 
@@ -73,9 +84,17 @@ class SensitivityService:
         if sample_size:
             base_data = self._sample_products(base_data, sample_size)
 
+        # Danh sách sản phẩm MA cần giải = đúng tập sample (nếu có).
+        # QUAN TRỌNG: khi truyền data_dir, MA đọc CSV gốc (943 SP) nên PHẢI
+        # truyền product_ids để giới hạn đúng tập mẫu, tránh chạy full 943 SP.
+        sample_pids = list(base_data.I) if sample_size else None
+
         # Solve baseline if not provided
         if base_result is None:
-            base_result = OptimizationService(**solver_kwargs).solve(base_data, data_dir=data_dir)
+            base_result = OptimizationService(**solver_kwargs).solve(
+                base_data, data_dir=data_dir, product_ids=sample_pids
+            )
+        _check_cancel()
 
         baseline_obj = base_result.ma_inv_cost or base_result.objective_value
         baseline_kpis = dict(base_result.kpis)
@@ -83,6 +102,7 @@ class SensitivityService:
         # Run each variation
         points: List[SensitivityPoint] = []
         for pct in request.variation_percentages:
+            _check_cancel()
             scale_factor = 1.0 + pct / 100.0
             modified = self._scale_parameter(
                 base_data,
@@ -98,7 +118,7 @@ class SensitivityService:
 
             try:
                 svc = OptimizationService(**solver_kwargs)
-                res = svc.solve(modified, data_dir=data_dir, scenario_overrides=ma_overrides)
+                res = svc.solve(modified, data_dir=data_dir, product_ids=sample_pids, scenario_overrides=ma_overrides)
                 points.append(
                     SensitivityPoint(
                         variation_pct=pct,
@@ -142,6 +162,7 @@ class SensitivityService:
         request: TornadoRequest,
         base_result: Optional[OptimizationResult] = None,
         data_dir: Optional[str] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ) -> TornadoResult:
         """
         Run tornado analysis across multiple parameters.
@@ -151,13 +172,17 @@ class SensitivityService:
             request: TornadoRequest with parameters and variation_pct.
             base_result: Pre-computed base result (avoids re-solving base).
             data_dir: Path to CSV data directory (required for MA solver).
+            cancel_check: Optional callable; if True between solves → abort.
 
         Returns:
             TornadoResult with bars sorted by descending spread.
         """
+        def _check_cancel():
+            if cancel_check and cancel_check():
+                raise AnalysisCancelled()
         solver_kwargs = dict(
             solver="ma",
-            time_limit=request.time_limit or 300,
+            time_limit=request.time_limit or 60,
             mip_gap=request.mip_gap or 0.01,
         )
 
@@ -166,19 +191,26 @@ class SensitivityService:
         if sample_size:
             base_data = self._sample_products(base_data, sample_size)
 
+        # Giới hạn MA đúng tập mẫu (xem giải thích ở run_sensitivity).
+        sample_pids = list(base_data.I) if sample_size else None
+
         if base_result is None:
-            base_result = OptimizationService(**solver_kwargs).solve(base_data, data_dir=data_dir)
+            base_result = OptimizationService(**solver_kwargs).solve(
+                base_data, data_dir=data_dir, product_ids=sample_pids
+            )
+        _check_cancel()
 
         baseline_obj = base_result.ma_inv_cost or base_result.objective_value
         variation = request.variation_pct
 
         bars: List[TornadoBar] = []
         for param_name in request.parameters:
+            _check_cancel()
             low_obj = self._solve_at_variation(
-                base_data, param_name, -variation, solver_kwargs, data_dir=data_dir
+                base_data, param_name, -variation, solver_kwargs, data_dir=data_dir, product_ids=sample_pids
             )
             high_obj = self._solve_at_variation(
-                base_data, param_name, +variation, solver_kwargs, data_dir=data_dir
+                base_data, param_name, +variation, solver_kwargs, data_dir=data_dir, product_ids=sample_pids
             )
 
             # If either solve failed, skip this parameter
@@ -229,6 +261,7 @@ class SensitivityService:
         variation_pct: float,
         solver_kwargs: Dict[str, Any],
         data_dir: Optional[str] = None,
+        product_ids: Optional[List[str]] = None,
     ) -> Optional[float]:
         """
         Scale *param_name* by (1 + variation_pct/100), solve, and return
@@ -239,7 +272,7 @@ class SensitivityService:
         ma_overrides = {param_name: scale_factor}
         try:
             svc = OptimizationService(**solver_kwargs)
-            res = svc.solve(modified, data_dir=data_dir, scenario_overrides=ma_overrides)
+            res = svc.solve(modified, data_dir=data_dir, product_ids=product_ids, scenario_overrides=ma_overrides)
             return res.ma_inv_cost or res.objective_value
         except RuntimeError:
             return None

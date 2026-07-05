@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
-import { Card, Row, Col, Table, Tag, Button, InputNumber, Switch, Alert, Spin, message, Tabs, Modal, Form, Input, Timeline } from 'antd'
+import { Card, Row, Col, Table, Tag, Button, InputNumber, Alert, Spin, message, Tabs, Modal, Form, Input, Timeline } from 'antd'
 import {
   SettingOutlined,
   DollarOutlined,
   EditOutlined,
   SaveOutlined,
   ReloadOutlined,
-  LockOutlined,
   BranchesOutlined,
   PlusOutlined,
   CheckCircleOutlined,
@@ -22,7 +21,6 @@ const { TabPane } = Tabs
 
 const ParameterManagement = () => {
   const [editMode, setEditMode] = useState(false)
-  const [hasPermission, setHasPermission] = useState(true)
   const [editedParams, setEditedParams] = useState({})
   const [activeTab, setActiveTab] = useState('parameters')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -31,14 +29,16 @@ const ParameterManagement = () => {
   const { data: overview, loading: loadingOverview } = useApi(() => dataService.getOverview())
   const { data: paramsData, loading: loadingParams, execute: refreshParams } = useApi(() => dataService.getParameters())
   const { data: datasetsData, loading: loadingDatasets, execute: refreshDatasets } = useApi(() => dataService.getDatasets())
+  const { data: algoData, loading: loadingAlgo } = useApi(() => dataService.getAlgorithmParameters())
   const { mutate: saveParam, loading: saving } = useMutation((name, value) => dataService.updateParameter(name, value))
   const { mutate: createDataset, loading: creating } = useMutation((data) => dataService.createDataset(data))
 
   // Ensure parameters is always a valid array
   const parameters = Array.isArray(paramsData?.parameters) ? paramsData.parameters : []
-  
+  const algoParams = Array.isArray(algoData?.parameters) ? algoData.parameters : []
+
   const datasets = datasetsData?.datasets || []
-  const loading = loadingOverview || loadingParams || loadingDatasets
+  const loading = loadingOverview || loadingParams || loadingDatasets || loadingAlgo
 
   const handleEditChange = (paramName, value) => {
     setEditedParams(prev => ({ ...prev, [paramName]: value }))
@@ -120,6 +120,36 @@ const ParameterManagement = () => {
     },
   ]
 
+  // Cột bảng tham số giải thuật (read-only)
+  const algoColumns = [
+    {
+      title: 'Tham Số', dataIndex: 'name', key: 'name',
+      render: (text, r) => (
+        <span>
+          <span className="font-semibold text-gray-800">{text}</span>
+          {r.taguchi && <Tag color="gold" className="ml-2">Taguchi</Tag>}
+        </span>
+      ),
+    },
+    {
+      title: 'Ký Hiệu', dataIndex: 'symbol', key: 'symbol', width: 140,
+      render: (t) => <code className="text-primary-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">{t}</code>,
+    },
+    {
+      title: 'Giá Trị', dataIndex: 'value', key: 'value', width: 100, align: 'right',
+      render: (v) => <span className="font-semibold">{Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}</span>,
+    },
+    {
+      title: 'Nhóm', dataIndex: 'group', key: 'group', width: 90,
+      render: (g) => {
+        const color = g === 'GA' ? 'blue' : g === 'ALNS' ? 'purple' : g === 'Dừng' ? 'red' : 'default'
+        return <Tag color={color}>{g}</Tag>
+      },
+    },
+    { title: 'Diễn Giải', dataIndex: 'description', key: 'description',
+      render: (t) => <span className="text-gray-600 text-sm">{t}</span> },
+  ]
+
   // Overview summary
   const numProducts = overview?.num_products || 0
   const numWarehouses = overview?.num_warehouses || 0
@@ -168,46 +198,6 @@ const ParameterManagement = () => {
         <TabPane tab={<><SettingOutlined />Tham Số</>} key="parameters">
           {/* Parameters Content */}
           <div className="space-y-6">
-            {/* Header Controls */}
-            <div className="flex justify-between items-start">
-              <div className="flex gap-2">
-                {hasPermission ? (
-                  <>
-                    {!editMode ? (
-                      <Button
-                        type="primary"
-                        icon={<EditOutlined />}
-                        onClick={() => setEditMode(true)}
-                      >
-                        Chỉnh Sửa Tham Số
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          icon={<ReloadOutlined />}
-                          onClick={handleCancel}
-                        >
-                          Hủy Bỏ
-                        </Button>
-                        <Button
-                          type="primary" 
-                          icon={<SaveOutlined />}
-                          onClick={handleSave}
-                          disabled={Object.keys(editedParams).length === 0}
-                        >
-                          Lưu Thay Đổi
-                        </Button>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <Button disabled icon={<LockOutlined />}>
-                    View Only
-                  </Button>
-                )}
-              </div>
-            </div>
-
             {/* Edit Mode Alert */}
             {editMode && (
               <Alert
@@ -218,32 +208,52 @@ const ParameterManagement = () => {
               />
             )}
 
-            {/* Role Control */}
-            <Card size="small" style={{ borderLeft: '4px solid #c5a572' }}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <span className="text-sm font-medium">Vai trò: </span>
-                  <Tag color="blue" className="ml-2">Quản Trị Viên</Tag>
-                </Col>
-                <Col span={12}>
-                  <span className="text-sm font-medium">Quyền Chỉnh Sửa:</span>
-                  <Switch
-                    checked={hasPermission}
-                    onChange={setHasPermission}
-                    className="ml-2"
-                    size="small"
-                  />
-                </Col>
-              </Row>
+            {/* Tham số giải thuật Memetic (đọc từ config, hiệu chỉnh Taguchi) */}
+            <Card
+              title={
+                <span className="text-lg font-semibold flex items-center">
+                  <SyncOutlined className="mr-2" />
+                  Tham Số Giải Thuật Memetic (GA-ALNS)
+                </span>
+              }
+              extra={<Tag color="gold">Cấu hình tối ưu từ Taguchi</Tag>}
+            >
+              <Alert
+                type="info"
+                showIcon
+                className="mb-4"
+                message="Cấu hình được hiệu chỉnh bằng phương pháp thực nghiệm Taguchi (Chương 6)"
+                description="5 tham số đánh dấu Taguchi là bộ tham số tối ưu (n_pop=38, G_max=500, p_crossover=0.75, p_mutation=0.25, n_iterations=45). Các tham số này quyết định chất lượng và tốc độ hội tụ của giải thuật."
+              />
+              <Table
+                columns={algoColumns}
+                dataSource={algoParams}
+                pagination={false}
+                size="middle"
+                rowKey="symbol"
+              />
             </Card>
 
-            {/* Model Parameters */}
+            {/* Tham số mô hình (hằng số kỹ thuật lưu trong DB) */}
             <Card
               title={
                 <span className="text-lg font-semibold flex items-center">
                   <DollarOutlined className="mr-2" />
                   Tham Số Mô Hình
                 </span>
+              }
+              extra={
+                !editMode ? (
+                  <Button type="primary" icon={<EditOutlined />} onClick={() => setEditMode(true)}>
+                    Chỉnh Sửa
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button icon={<ReloadOutlined />} onClick={handleCancel}>Hủy</Button>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}
+                      disabled={Object.keys(editedParams).length === 0}>Lưu Thay Đổi</Button>
+                  </div>
+                )
               }
             >
               <Table
@@ -252,6 +262,7 @@ const ParameterManagement = () => {
                 pagination={false}
                 size="middle"
                 rowKey="param_name"
+                locale={{ emptyText: 'Chưa có tham số mô hình tùy chỉnh' }}
               />
             </Card>
 

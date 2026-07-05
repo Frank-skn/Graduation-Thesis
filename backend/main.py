@@ -46,6 +46,31 @@ def startup_event():
     # Create all tables in SQLite
     BaseNDS.metadata.create_all(bind=engine)
 
+    # --- DDS (kho dữ liệu chiều) — tạo bảng star schema trong dds.db ---
+    from backend.data_access import models_dds  # noqa: F401
+    from backend.core.database import engine_dds, BaseDDS
+    BaseDDS.metadata.create_all(bind=engine_dds)
+
+    # --- ETL: nạp CSV → DDS (idempotent). Chạy nếu DDS rỗng. ---
+    try:
+        from backend.core.database import SessionLocalDDS
+        from backend.data_access.models_dds import FactInventorySMI
+        from backend.data_access.dds_etl import run_etl
+        _dds_db = SessionLocalDDS()
+        try:
+            n_fact = _dds_db.query(FactInventorySMI).count()
+        finally:
+            _dds_db.close()
+        if n_fact == 0:
+            from backend.core.database import _project_root
+            _data_path = str(_project_root / settings.data_dir)
+            run_etl(_data_path)
+            print("[startup] DDS ETL nạp dữ liệu lần đầu xong.")
+        else:
+            print(f"[startup] DDS đã có {n_fact} bản ghi fact, bỏ qua ETL.")
+    except Exception as exc:
+        print(f"[startup] DDS ETL warning: {exc}")
+
     # --- Safe column migrations (idempotent) ---
     # Each entry: (column_name, column_type, default_sql)
     _migrations = {
