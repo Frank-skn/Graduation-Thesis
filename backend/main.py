@@ -89,6 +89,9 @@ def startup_event():
             ("scenario_id",   "INTEGER", "NULL"),
             ("analysis_type", "TEXT",    "'oat'"),
         ],
+        "optimization_run": [
+            ("version_id", "INTEGER", "NULL"),
+        ],
     }
     with engine.connect() as conn:
         for table, cols in _migrations.items():

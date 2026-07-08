@@ -296,6 +296,8 @@ def create_whatif(
 @router.get("/{whatif_id}/status")
 def get_whatif_status(whatif_id: int, db: Session = Depends(get_db_nds)):
     """Poll a what-if job. Returns status, and run_id + objective when completed."""
+    from datetime import datetime, timedelta
+
     whatif = db.query(WhatIfScenario).filter(
         WhatIfScenario.whatif_id == whatif_id
     ).first()
@@ -303,6 +305,15 @@ def get_whatif_status(whatif_id: int, db: Session = Depends(get_db_nds)):
         raise HTTPException(status_code=404, detail="What-if scenario not found")
 
     status = whatif.status or "running"
+
+    # Phát hiện job kẹt: nếu vẫn "running" quá lâu (backend restart/crash giữa
+    # chừng) thì đánh dấu failed, tránh frontend poll vô hạn.
+    if status == "running" and whatif.created_at:
+        if datetime.utcnow() - whatif.created_at > timedelta(hours=2):
+            status = "failed: timed out / interrupted"
+            whatif.status = status
+            db.commit()
+
     is_done = status not in ("running", "pending")
 
     payload = {

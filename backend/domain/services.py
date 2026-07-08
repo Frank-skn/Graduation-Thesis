@@ -241,7 +241,18 @@ class OptimizationService:
             ma_inv_cost   = opt_cost
             cost_breakdown = {}
 
-        kpis = self._calculate_kpis_from_rows(rows, opt_cost=opt_cost, cost_breakdown=cost_breakdown)
+        # Tổng năng lực cung ứng (CAP) để tính mức sử dụng năng lực đúng khái niệm
+        total_cap = 0.0
+        if _loader is not None:
+            try:
+                cap_df = _loader.capacity
+                if product_ids:
+                    cap_df = cap_df[cap_df["product_id"].isin(product_ids)]
+                total_cap = float(cap_df["capacity"].sum())
+            except Exception:
+                total_cap = 0.0
+
+        kpis = self._calculate_kpis_from_rows(rows, opt_cost=opt_cost, cost_breakdown=cost_breakdown, total_capacity=total_cap)
 
         # So sánh dùng inventory cost thuần (cùng đơn vị)
         savings          = max(0.0, baseline - ma_inv_cost)
@@ -351,6 +362,7 @@ class OptimizationService:
         results: list,
         opt_cost: float = 0.0,
         cost_breakdown: Dict = {},
+        total_capacity: float = 0.0,
     ) -> Dict[str, float]:
         """Compute KPI summary from MA row dicts."""
         total_bo = total_o = total_s = 0.0
@@ -370,12 +382,16 @@ class OptimizationService:
                 periods_ok += 1
 
         service_level = (periods_ok / len(results) * 100) if results else 0.0
+        # Mức sử dụng năng lực = tổng lượng đã phân bổ (OA) / tổng năng lực cung ứng (CAP).
+        # Trước đây dùng mẫu số |net_inventory| (sai khái niệm) → đã sửa dùng CAP.
         total_used = sum(
             r.get("q_case_pack", 0) + r.get("r_residual_units", 0)
             for r in results
         )
-        total_inv = sum(abs(r.get("net_inventory", 0)) for r in results) or 1.0
-        cap_util  = min(100.0, total_used / total_inv * 100)
+        if total_capacity and total_capacity > 0:
+            cap_util = min(100.0, total_used / total_capacity * 100)
+        else:
+            cap_util = 0.0
 
         return {
             "total_cost"          : opt_cost,

@@ -385,3 +385,105 @@ def get_algorithm_parameters():
         source="backend/ma/config.json",
         tuned_by=cfg.get("_comment", "Hiệu chỉnh bằng phương pháp Taguchi (Chương 6)"),
     )
+
+
+# ------------------------------------------------------------------ #
+#  7. GET /cost-parameters -- Tham số chi phí & vận hành (read-only)   #
+# ------------------------------------------------------------------ #
+
+class CostParam(BaseModel):
+    """Một tham số chi phí/vận hành (giá trị nền, chỉ đọc)."""
+    name: str
+    symbol: str
+    value: str            # chuỗi để hiển thị (có đơn vị/khoảng)
+    unit: str
+    group: str            # "Chi phí" | "Vận chuyển"
+    description: str
+
+
+class CostParamList(BaseModel):
+    parameters: List[CostParam]
+    total: int
+    note: str
+
+
+@router.get("/cost-parameters", response_model=CostParamList)
+def get_cost_parameters(
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
+):
+    """
+    Trả về các tham số chi phí và vận hành của mô hình (Bảng 3.3 luận văn).
+
+    Đây là DỮ LIỆU NỀN (giá trị vận hành thực của doanh nghiệp), chỉ hiển thị
+    để tham khảo. Muốn thay đổi để đánh giá tác động → dùng Phân tích kịch bản
+    (What-if / Độ nhạy), không sửa trực tiếp tại đây.
+    """
+    inp = csv_repo.get_optimization_input()
+
+    def _mode(d):
+        """Giá trị xuất hiện nhiều nhất (đại diện) trong dict."""
+        if not d:
+            return None
+        from collections import Counter
+        c = Counter(round(float(v), 4) for v in d.values())
+        return c.most_common(1)[0][0]
+
+    co = _mode(inp.Co)
+    cs = _mode(inp.Cs)
+    cb = _mode(inp.Cb)
+    cp = _mode(inp.Cp)
+
+    params = [
+        CostParam(name="Chi phí tồn kho vượt mức", symbol="Co", value=str(co), unit="USD/đơn vị",
+                  group="Chi phí", description="Chi phí phát sinh khi tồn kho vượt mức trần U"),
+        CostParam(name="Chi phí thiếu hụt", symbol="Cs", value=str(cs), unit="USD/đơn vị",
+                  group="Chi phí", description="Chi phí phát sinh khi tồn kho thấp hơn mức sàn L"),
+        CostParam(name="Chi phí nợ đơn", symbol="Cb", value=str(cb), unit="USD/đơn vị",
+                  group="Chi phí", description="Chi phí phát sinh khi tồn kho âm / không đáp ứng đủ nhu cầu (thành phần chi phối)"),
+        CostParam(name="Chi phí phạt đóng gói", symbol="Cp", value=str(cp), unit="USD/lần",
+                  group="Chi phí", description="Chi phí phạt khi lượng phân bổ/điều chuyển không đủ một case-pack"),
+        CostParam(name="Chi phí vận chuyển ngang", symbol="TC", value=str(round(csv_repo.get_transport_cost(), 4)) if hasattr(csv_repo, "get_transport_cost") else "1.2", unit="USD/km",
+                  group="Vận chuyển", description="Chi phí trên một đơn vị khoảng cách cho mỗi tuyến điều chuyển ngang (container 40ft Dry)"),
+        CostParam(name="Thời gian giao hàng từ nguồn (OA)", symbol="LT_OA", value="8", unit="tuần",
+                  group="Vận chuyển", description="Thời gian vận chuyển từ kho trung tâm (Việt Nam) đến nhà máy nhận (Hoa Kỳ)"),
+        CostParam(name="Thời gian điều chuyển ngang (PLT)", symbol="LT_PLT", value="2–3", unit="tuần",
+                  group="Vận chuyển", description="Thời gian vận chuyển hàng giữa các nhà máy nhận"),
+    ]
+
+    return CostParamList(
+        parameters=params,
+        total=len(params),
+        note="Giá trị nền từ dữ liệu vận hành doanh nghiệp. Để phân tích tác động khi thay đổi, dùng chức năng Phân tích kịch bản (What-if / Độ nhạy).",
+    )
+
+
+# ------------------------------------------------------------------ #
+#  8. GET /datasets/{version_id}/runs -- Các lần chạy dùng phiên bản   #
+# ------------------------------------------------------------------ #
+
+@router.get("/datasets/{version_id}/runs")
+def get_runs_for_version(version_id: int, db: Session = Depends(get_db_nds)):
+    """
+    Liệt kê các lần chạy tối ưu đã sử dụng phiên bản dữ liệu này.
+    Phục vụ truy vết: 'phiên bản X được dùng bởi những run nào'.
+    """
+    from backend.data_access.models_nds import OptimizationRun
+    runs = (
+        db.query(OptimizationRun)
+        .filter(OptimizationRun.version_id == version_id)
+        .order_by(OptimizationRun.run_id.desc())
+        .all()
+    )
+    return {
+        "version_id": version_id,
+        "runs": [
+            {
+                "run_id": r.run_id,
+                "run_time": r.run_time.isoformat() if r.run_time else None,
+                "solver_status": r.solver_status,
+                "objective_value": float(r.objective_value or 0),
+            }
+            for r in runs
+        ],
+        "total": len(runs),
+    }

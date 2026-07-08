@@ -24,21 +24,31 @@ const ParameterManagement = () => {
   const [editedParams, setEditedParams] = useState({})
   const [activeTab, setActiveTab] = useState('parameters')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [versionRuns, setVersionRuns] = useState({})  // {version_id: [runs]}
   const [form] = Form.useForm()
+
+  const loadVersionRuns = async (versionId) => {
+    try {
+      const res = await dataService.getRunsForVersion(versionId)
+      setVersionRuns((prev) => ({ ...prev, [versionId]: res?.runs || [] }))
+    } catch (e) { /* ignore */ }
+  }
 
   const { data: overview, loading: loadingOverview } = useApi(() => dataService.getOverview())
   const { data: paramsData, loading: loadingParams, execute: refreshParams } = useApi(() => dataService.getParameters())
   const { data: datasetsData, loading: loadingDatasets, execute: refreshDatasets } = useApi(() => dataService.getDatasets())
   const { data: algoData, loading: loadingAlgo } = useApi(() => dataService.getAlgorithmParameters())
+  const { data: costData, loading: loadingCost } = useApi(() => dataService.getCostParameters())
   const { mutate: saveParam, loading: saving } = useMutation((name, value) => dataService.updateParameter(name, value))
   const { mutate: createDataset, loading: creating } = useMutation((data) => dataService.createDataset(data))
 
   // Ensure parameters is always a valid array
   const parameters = Array.isArray(paramsData?.parameters) ? paramsData.parameters : []
   const algoParams = Array.isArray(algoData?.parameters) ? algoData.parameters : []
+  const costParams = Array.isArray(costData?.parameters) ? costData.parameters : []
 
   const datasets = datasetsData?.datasets || []
-  const loading = loadingOverview || loadingParams || loadingDatasets || loadingAlgo
+  const loading = loadingOverview || loadingParams || loadingDatasets || loadingAlgo || loadingCost
 
   const handleEditChange = (paramName, value) => {
     setEditedParams(prev => ({ ...prev, [paramName]: value }))
@@ -52,12 +62,12 @@ const ParameterManagement = () => {
       if (!result) { success = false; break }
     }
     if (success) {
-      message.success('Parameters saved successfully')
+      message.success('Đã lưu tham số thành công')
       setEditMode(false)
       setEditedParams({})
       refreshParams()
     } else {
-      message.error('Failed to save some parameters')
+      message.error('Không lưu được một số tham số')
     }
   }
 
@@ -71,14 +81,14 @@ const ParameterManagement = () => {
       const values = await form.validateFields()
       const result = await createDataset(values)
       if (result) {
-        message.success('Dataset version created successfully')
+        message.success('Đã tạo phiên bản dữ liệu thành công')
         setShowCreateModal(false)
         form.resetFields()
         refreshDatasets()
       }
     } catch (err) {
       if (err.errorFields) return
-      message.error('Failed to create dataset version')
+      message.error('Không tạo được phiên bản dữ liệu')
     }
   }
 
@@ -146,6 +156,22 @@ const ParameterManagement = () => {
         return <Tag color={color}>{g}</Tag>
       },
     },
+    { title: 'Diễn Giải', dataIndex: 'description', key: 'description',
+      render: (t) => <span className="text-gray-600 text-sm">{t}</span> },
+  ]
+
+  // Cột bảng tham số chi phí/vận hành (read-only)
+  const costColumns = [
+    { title: 'Tham Số', dataIndex: 'name', key: 'name',
+      render: (t) => <span className="font-semibold text-gray-800">{t}</span> },
+    { title: 'Ký Hiệu', dataIndex: 'symbol', key: 'symbol', width: 110,
+      render: (t) => <code className="text-primary-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">{t}</code> },
+    { title: 'Giá Trị', dataIndex: 'value', key: 'value', width: 90, align: 'right',
+      render: (v) => <span className="font-semibold">{v}</span> },
+    { title: 'Đơn Vị', dataIndex: 'unit', key: 'unit', width: 100,
+      render: (t) => <span className="text-gray-500 text-sm">{t}</span> },
+    { title: 'Nhóm', dataIndex: 'group', key: 'group', width: 110,
+      render: (g) => <Tag color={g === 'Chi phí' ? 'volcano' : 'cyan'}>{g}</Tag> },
     { title: 'Diễn Giải', dataIndex: 'description', key: 'description',
       render: (t) => <span className="text-gray-600 text-sm">{t}</span> },
   ]
@@ -222,12 +248,37 @@ const ParameterManagement = () => {
                 type="info"
                 showIcon
                 className="mb-4"
-                message="Cấu hình được hiệu chỉnh bằng phương pháp thực nghiệm Taguchi (Chương 6)"
-                description="5 tham số đánh dấu Taguchi là bộ tham số tối ưu (n_pop=38, G_max=500, p_crossover=0.75, p_mutation=0.25, n_iterations=45). Các tham số này quyết định chất lượng và tốc độ hội tụ của giải thuật."
+                message="Bộ tham số vận hành tối ưu"
+                description="Các tham số giải thuật đã được tinh chỉnh bằng quy hoạch thực nghiệm Taguchi nhằm cân bằng chất lượng lời giải và tốc độ hội tụ. Giá trị chi tiết hiển thị trong bảng dưới."
               />
               <Table
                 columns={algoColumns}
                 dataSource={algoParams}
+                pagination={false}
+                size="middle"
+                rowKey="symbol"
+              />
+            </Card>
+
+            {/* Tham số chi phí & vận hành (Bảng 3.3 — read-only) */}
+            <Card
+              title={
+                <span className="text-lg font-semibold flex items-center">
+                  <DollarOutlined className="mr-2" />
+                  Tham Số Chi Phí & Vận Hành
+                </span>
+              }
+            >
+              <Alert
+                type="warning"
+                showIcon
+                className="mb-4"
+                message="Giá trị nền của dữ liệu vận hành (chỉ hiển thị)"
+                description="Đây là các tham số chi phí và vận chuyển thực của doanh nghiệp. Để thay đổi và đánh giá tác động của chúng đến chi phí tối ưu, hãy dùng chức năng Phân tích kịch bản (C1. What-If) hoặc Phân tích độ nhạy (D1)."
+              />
+              <Table
+                columns={costColumns}
+                dataSource={costParams}
                 pagination={false}
                 size="middle"
                 rowKey="symbol"
@@ -299,6 +350,12 @@ const ParameterManagement = () => {
         <TabPane tab={<><BranchesOutlined />Quản Lý Phiên Bản</>} key="versions">
           {/* Version Control Content */}
           <div className="space-y-6">
+            <Alert
+              type="info"
+              showIcon
+              message="Phiên bản dữ liệu dùng để làm gì?"
+              description="Mỗi lần chạy tối ưu được gắn với một phiên bản dữ liệu (ảnh chụp bộ dữ liệu đầu vào tại thời điểm chạy, kèm mã kiểm tra checksum). Nhờ đó có thể truy vết lần chạy nào dùng bộ dữ liệu nào — hỗ trợ cơ chế rolling horizon khi dữ liệu cập nhật theo từng kỳ. Nhấn vào dấu ▸ ở mỗi phiên bản để xem các lần chạy đã dùng nó."
+            />
             <Card
               title={<><BranchesOutlined /> Quản Lý Phiên Bản Dữ Liệu</>}
               extra={
@@ -316,6 +373,30 @@ const ParameterManagement = () => {
                 dataSource={datasets}
                 rowKey="version_id"
                 pagination={{ pageSize: 10 }}
+                expandable={{
+                  onExpand: (expanded, record) => {
+                    if (expanded && !versionRuns[record.version_id]) loadVersionRuns(record.version_id)
+                  },
+                  expandedRowRender: (record) => {
+                    const runs = versionRuns[record.version_id]
+                    if (!runs) return <span className="text-gray-400">Đang tải...</span>
+                    if (runs.length === 0) return <span className="text-gray-400">Chưa có lần chạy nào dùng phiên bản này.</span>
+                    return (
+                      <Table
+                        size="small"
+                        pagination={false}
+                        rowKey="run_id"
+                        dataSource={runs}
+                        columns={[
+                          { title: 'Lần chạy', dataIndex: 'run_id', render: (v) => <strong>#{v}</strong> },
+                          { title: 'Thời gian', dataIndex: 'run_time', render: (v) => v ? String(v).slice(0, 16) : '—' },
+                          { title: 'Trạng thái', dataIndex: 'solver_status', render: (v) => <Tag color={/optimal/i.test(v) ? 'green' : /error/i.test(v) ? 'red' : 'orange'}>{v}</Tag> },
+                          { title: 'Chi phí tối ưu', dataIndex: 'objective_value', align: 'right', render: (v) => Number(v).toLocaleString('vi-VN') },
+                        ]}
+                      />
+                    )
+                  },
+                }}
               />
             </Card>
 

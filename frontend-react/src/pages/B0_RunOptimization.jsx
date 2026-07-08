@@ -293,6 +293,8 @@ const RunOptimization = () => {
   const histColumns = [
     { title: 'Lần chạy', dataIndex: 'run_id', key: 'run_id', width: 90,
       render: (v) => <strong>#{v}</strong> },
+    { title: 'Phiên bản DL', dataIndex: 'version_id', key: 'version_id', width: 110,
+      render: (v) => v ? <Tag color="geekblue">PB #{v}</Tag> : <span className="text-gray-400">—</span> },
     { title: 'Thời gian chạy', dataIndex: 'run_time', key: 'run_time', width: 160,
       render: (v) => v ? String(v).slice(0, 16) : '—' },
     { title: 'Trạng thái', dataIndex: 'solver_status', key: 'status', width: 110,

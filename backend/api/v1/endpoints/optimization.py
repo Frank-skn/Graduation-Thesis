@@ -118,6 +118,15 @@ def run_optimization(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
 
+    # Xác định phiên bản dữ liệu hiện tại (tạo mới nếu data đổi, dùng lại nếu
+    # trùng checksum). An toàn: chỉ đọc CSV, không đụng data/thuật toán.
+    version_id = None
+    try:
+        from backend.data_access.versioning import get_or_create_current_version
+        version_id = get_or_create_current_version(db_nds, csv_repo)
+    except Exception as exc:
+        print(f"[optimize] versioning warning: {exc}")
+
     # Create run record immediately with status "running"
     result_repo = ResultRepository(db_nds)
     run_id = result_repo.save_optimization_run(
@@ -127,6 +136,13 @@ def run_optimization(
         objective_value=0.0,
         mip_gap=request.mip_gap,
     )
+
+    # Gắn version_id vào run vừa tạo
+    if version_id is not None:
+        run = db_nds.query(RunModel).filter(RunModel.run_id == run_id).first()
+        if run:
+            run.version_id = version_id
+            db_nds.commit()
 
     # Launch solver in background
     background_tasks.add_task(
@@ -169,6 +185,7 @@ def list_runs(
         {
             "run_id": r.run_id,
             "scenario_id": r.scenario_id,
+            "version_id": r.version_id,
             "run_time": r.run_time.isoformat() if r.run_time else None,
             "solver_status": r.solver_status,
             "objective_value": float(r.objective_value or 0),

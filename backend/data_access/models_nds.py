@@ -30,6 +30,9 @@ class OptimizationRun(BaseNDS):
 
     run_id = Column(Integer, primary_key=True, autoincrement=True)
     scenario_id = Column(Integer, ForeignKey("scenario.scenario_id"), nullable=False, index=True)
+    # Phiên bản dữ liệu mà lần chạy này sử dụng (truy vết rolling horizon).
+    # nullable để run cũ (trước khi có versioning) không bị ảnh hưởng.
+    version_id = Column(Integer, ForeignKey("dataset_version.version_id"), nullable=True, index=True)
     run_time = Column(DateTime, default=datetime.utcnow)
     solver_status = Column(String(50))
     solve_time_seconds = Column(Numeric(10, 2))

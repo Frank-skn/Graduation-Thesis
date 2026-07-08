@@ -19,15 +19,14 @@ import {
   ExperimentOutlined, PlayCircleOutlined, ThunderboltOutlined, PlusOutlined,
   ReloadOutlined, BarChartOutlined, DollarOutlined, SafetyOutlined,
   ApartmentOutlined, ToolOutlined, RocketOutlined, InfoCircleOutlined,
-  CheckCircleOutlined, WarningOutlined, ArrowUpOutlined, ArrowDownOutlined,
+  CheckCircleOutlined, WarningOutlined,
 } from '@ant-design/icons'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RChartTooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { useAppContext } from '../context/AppContext'
 import { useApi, useMutation } from '../hooks/useApi'
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
-import { BRAND, NEUTRAL, CATEGORICAL } from '../theme/tokens'
+import { CATEGORICAL } from '../theme/tokens'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -148,12 +147,6 @@ const ScenarioManagement = () => {
   const [showModal, setShowModal]         = useState(false)
   const [modalForm]                       = Form.useForm()
 
-  // Comparison state
-  const [compareBase, setCompareBase]     = useState(null)
-  const [compareWhatIf, setCompareWhatIf] = useState(null)
-  const [comparing, setComparing]         = useState(false)
-  const [compResult, setCompResult]       = useState(null)
-
   // ── API ────────────────────────────────────────────────────────────
   const { data: historyData, error: scenariosError, execute: refreshScenarios } = useApi(() => scenarioService.getWhatIfHistory())
   const { mutate: createWhatIf, loading: creating } = useMutation((data) => scenarioService.createWhatIf(data))
@@ -260,23 +253,6 @@ const ScenarioManagement = () => {
     }
   }
 
-  // ── So sánh 2 lần chạy ─────────────────────────────────────────────
-  const handleCompare = async () => {
-    if (!compareBase || !compareWhatIf) {
-      message.warning('Vui lòng chọn 2 lần chạy để so sánh')
-      return
-    }
-    setComparing(true)
-    try {
-      const res = await scenarioService.compareWhatIf(compareBase, compareWhatIf)
-      setCompResult(res.data ?? res)
-    } catch (err) {
-      message.error('Không thể so sánh: ' + (err?.message || ''))
-    } finally {
-      setComparing(false)
-    }
-  }
-
   // ── Cột bảng lịch sử kịch bản (What-If runs) ────────────────────
   const scenarioColumns = [
     { title: 'ID', dataIndex: 'whatif_id', key: 'id', width: 60,
@@ -312,18 +288,6 @@ const ScenarioManagement = () => {
     : adjustPct > 0
       ? `Tăng +${adjustPct}%`
       : `Giảm ${adjustPct}%`
-
-  // Biểu đồ so sánh KPI
-  const compChartData = compResult?.deltas
-    ? compResult.deltas
-        .filter((d) => Math.abs(d.percent_change ?? 0) >= 0.1)
-        .map((d) => ({
-          name: d.kpi_name,
-          'Cơ sở': Number(d.base_value) || 0,
-          'Kịch bản': Number(d.whatif_value) || 0,
-          pct: Number(d.percent_change) || 0,
-        }))
-    : []
 
   // ────────────────────────────────────────────────────────────────────
   // Render
@@ -390,102 +354,6 @@ const ScenarioManagement = () => {
             : 'Chưa có kịch bản nào. Chọn nhóm bên trên để bắt đầu.'
           }}
         />
-      </Card>
-
-      {/* So sánh 2 lần chạy */}
-      <Card title={<span className="font-bold"><BarChartOutlined className="mr-2" />So sánh lần chạy</span>}>
-        <div className="flex items-center gap-4 flex-wrap mb-4">
-          <div>
-            <span className="text-gray-500 text-xs block mb-1">Lần chạy cơ sở:</span>
-            <Select
-              style={{ width: 260 }}
-              placeholder="Chọn lần chạy cơ sở"
-              value={compareBase}
-              onChange={setCompareBase}
-            >
-              {runs.map((r) => (
-                <Option key={r.run_id} value={r.run_id}>
-                  Run #{r.run_id} — {r.solver_status} ({fmt(r.objective_value)})
-                </Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <span className="text-gray-500 text-xs block mb-1">Lần chạy so sánh:</span>
-            <Select
-              style={{ width: 260 }}
-              placeholder="Chọn lần chạy so sánh"
-              value={compareWhatIf}
-              onChange={setCompareWhatIf}
-            >
-              {runs.map((r) => (
-                <Option key={r.run_id} value={r.run_id}>
-                  Run #{r.run_id} — {r.solver_status} ({fmt(r.objective_value)})
-                </Option>
-              ))}
-            </Select>
-          </div>
-          <div style={{ marginTop: 20 }}>
-            <Button
-              type="primary"
-              icon={<BarChartOutlined />}
-              onClick={handleCompare}
-              loading={comparing}
-              disabled={!compareBase || !compareWhatIf}
-            >
-              So sánh KPI
-            </Button>
-          </div>
-        </div>
-
-        {compResult && compChartData.length > 0 && (
-          <>
-            <Alert
-              type="info"
-              showIcon
-              message={compResult.summary || 'So sánh hoàn tất'}
-              className="mb-4"
-            />
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={compChartData} margin={{ bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} tick={{ fontSize: 11 }} />
-                <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={90} tick={{ fontSize: 10 }} />
-                <RChartTooltip formatter={(v) => fmt(v, 2)} />
-                <Legend />
-                <Bar dataKey="Cơ sở"    fill={NEUTRAL[400]} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Kịch bản" fill={BRAND[500]} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <Table
-              size="small"
-              pagination={false}
-              className="mt-4"
-              dataSource={compResult.deltas ?? []}
-              rowKey="kpi_name"
-              columns={[
-                { title: 'KPI', dataIndex: 'kpi_name', key: 'kpi_name',
-                  render: (v) => <span className="font-medium">{v}</span> },
-                { title: 'Cơ sở', dataIndex: 'base_value', key: 'base',
-                  align: 'right', render: (v) => fmt(Number(v), 2) },
-                { title: 'Kịch bản', dataIndex: 'whatif_value', key: 'wi',
-                  align: 'right', render: (v) => fmt(Number(v), 2) },
-                { title: 'Thay đổi', dataIndex: 'percent_change', key: 'pct',
-                  align: 'right',
-                  render: (v) => {
-                    const n = Number(v)
-                    if (!v && v !== 0) return '—'
-                    const color = n > 0 ? 'red' : n < 0 ? 'green' : 'default'
-                    const icon = n > 0 ? <ArrowUpOutlined /> : n < 0 ? <ArrowDownOutlined /> : null
-                    return <Tag color={color} icon={icon}>{n > 0 ? '+' : ''}{n.toFixed(1)}%</Tag>
-                  }},
-              ]}
-            />
-          </>
-        )}
-        {compResult && compChartData.length === 0 && (
-          <Alert type="success" showIcon message="Không có thay đổi KPI đáng kể giữa hai lần chạy." />
-        )}
       </Card>
 
       {/* ════ MODAL tạo kịch bản ════ */}

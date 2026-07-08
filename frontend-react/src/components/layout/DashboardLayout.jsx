@@ -210,9 +210,9 @@ const DashboardLayout = ({ children }) => {
             width: 34, height: 34, borderRadius: 9,
             background: 'linear-gradient(135deg, #2563EB, #3B82F6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0,
+            color: '#fff', fontWeight: 700, fontSize: 13, letterSpacing: '-0.3px', flexShrink: 0,
             boxShadow: '0 2px 6px rgba(37,99,235,0.28)',
-          }}>SM</div>
+          }}>SMI</div>
           {!collapsed && (
             <div className="leading-tight">
               <div style={{ fontWeight: 700, fontSize: 16, color: '#0F172A' }}>SMI DSS</div>

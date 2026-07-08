@@ -8,6 +8,8 @@ const dataService = {
   getDatasets: (limit = 50) => api.get('/data-overview/datasets', { params: { limit } }),
   createDataset: (data) => api.post('/data-overview/datasets', data),
   getAlgorithmParameters: () => api.get('/data-overview/algorithm-parameters'),
+  getCostParameters: () => api.get('/data-overview/cost-parameters'),
+  getRunsForVersion: (versionId) => api.get(`/data-overview/datasets/${versionId}/runs`),
 };
 
 export default dataService;
