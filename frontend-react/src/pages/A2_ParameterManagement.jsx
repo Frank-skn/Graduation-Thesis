@@ -176,11 +176,6 @@ const ParameterManagement = () => {
       render: (t) => <span className="text-gray-600 text-sm">{t}</span> },
   ]
 
-  // Overview summary
-  const numProducts = overview?.num_products || 0
-  const numWarehouses = overview?.num_warehouses || 0
-  const numPeriods = overview?.num_periods || 0
-
   // Dataset version columns
   const datasetColumns = [
               { title: 'ID', dataIndex: 'version_id', key: 'version_id', width: 60 },
@@ -316,34 +311,6 @@ const ParameterManagement = () => {
                 locale={{ emptyText: 'Chưa có tham số mô hình tùy chỉnh' }}
               />
             </Card>
-
-            {/* Quick Summary */}
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card size="small">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Sản Phẩm</h3>
-                    <p className="text-2xl font-bold text-green-600">{numProducts}</p>
-                  </div>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card size="small">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Kho Hàng</h3>
-                    <p className="text-2xl font-bold text-blue-600">{numWarehouses}</p>
-                  </div>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card size="small">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-primary-700">Kỳ Thời Gian</h3>
-                    <p className="text-2xl font-bold text-purple-600">{numPeriods}</p>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
           </div>
         </TabPane>
 

@@ -15,6 +15,21 @@ import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
 import { SEMANTIC } from '../theme/tokens'
 
+// Diễn giải tiếng Việt cho ký hiệu tham số mô hình (Bảng 3.3 luận văn)
+const PARAM_LABEL = {
+  BI: 'Tồn kho đầu kỳ (BI)',
+  CP: 'Cấu hình đóng gói (CP)',
+  U: 'Ngưỡng tồn kho trên (U)',
+  L: 'Ngưỡng tồn kho dưới (L)',
+  DI: 'Nhu cầu (DI)',
+  CAP: 'Công suất cung ứng (CAP)',
+  Cb: 'Chi phí nợ đơn (Cb)',
+  Co: 'Chi phí tồn kho vượt mức (Co)',
+  Cs: 'Chi phí thiếu hụt (Cs)',
+  Cp: 'Chi phí phạt đóng gói (Cp)',
+}
+const paramLabel = (symbol) => PARAM_LABEL[symbol] || symbol
+
 const DataOverview = () => {
   const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview())
 
@@ -85,7 +100,7 @@ const DataOverview = () => {
       render: (text) => (
         <span className="flex items-center">
           <DatabaseOutlined className="mr-2 text-blue-500" />
-          {text}
+          {paramLabel(text)}
         </span>
       ),
     },
@@ -246,12 +261,15 @@ const DataOverview = () => {
         </Col>
         <Col span={14}>
           <Card title={<span className="text-lg font-semibold">Độ Hoàn Chỉnh Từng Tham Số (%)</span>}>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={paramBarData} margin={{ top: 28, right: 24, left: 8, bottom: 16 }}>
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={paramBarData} margin={{ top: 28, right: 24, left: 8, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="name" tickFormatter={paramLabel} angle={-25} textAnchor="end" interval={0} height={70} tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                <RechartsTooltip formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Tính Đầy Đủ' : 'Hợp Lệ']} />
+                <RechartsTooltip
+                  labelFormatter={paramLabel}
+                  formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Tính Đầy Đủ' : 'Hợp Lệ']}
+                />
                 <Bar dataKey="completeness" name="Tính Đầy Đủ" radius={[4,4,0,0]}>
                   {paramBarData.map((entry, idx) => (
                     <Cell key={entry.name} fill={entry.completeness >= 95 ? SEMANTIC.good : entry.completeness >= 70 ? SEMANTIC.warn : SEMANTIC.bad} />

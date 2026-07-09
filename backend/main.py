@@ -118,7 +118,7 @@ def startup_event():
             db.add(ModelParameter(
                 param_name="HV",
                 param_value=9999,
-                param_description="Hằng số tuyến tính hóa nhị phân (Binary Linearization)",
+                param_description="Hằng số tuyến tính hóa nhị phân (giá trị đủ lớn dùng trong ràng buộc Big-M)",
             ))
             db.commit()
     finally:

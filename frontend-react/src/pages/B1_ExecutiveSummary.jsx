@@ -252,13 +252,16 @@ const ExecutiveSummary = () => {
     { title: 'Kỳ',             dataIndex: 'time_period',  key: 'time_period',  width: 60,
       sorter: (a, b) => a.time_period - b.time_period },
     { title: 'q (kiện)',       dataIndex: 'q',             key: 'q',            width: 90,
-      render: (v) => <Tag color="blue">{v}</Tag> },
+      align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
     { title: 'r (đơn vị lẻ)', dataIndex: 'r',             key: 'r',            width: 110,
-      render: (v) => <Tag color="cyan">{v}</Tag> },
+      align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
     { title: 'Tồn kho net',   dataIndex: 'inv',            key: 'inv',          width: 110,
-      render: (v) => fmt(v, 1) },
+      align: 'right', render: (v) => <span className="tabular-nums">{fmt(v, 1)}</span> },
     { title: 'Thiếu hụt',     dataIndex: 'shortage_qty',  key: 'shortage_qty', width: 100,
-      render: (v) => v > 0 ? <Tag color="red">{fmt(v, 1)}</Tag> : <Tag color="green">0</Tag> },
+      align: 'right',
+      render: (v) => v > 0
+        ? <span className="tabular-nums font-medium" style={{ color: SEMANTIC.bad }}>{fmt(v, 1)}</span>
+        : <span className="tabular-nums" style={{ color: NEUTRAL[400] }}>0</span> },
   ]
 
   return (
@@ -388,28 +391,28 @@ const ExecutiveSummary = () => {
                             <Table.Summary.Row style={{ fontWeight: 'bold', background: NEUTRAL[50] }}>
                               <Table.Summary.Cell index={0}><strong>TỔNG</strong></Table.Summary.Cell>
                               <Table.Summary.Cell index={1} align="right"><strong>{fmt(totalCost, 2)}</strong></Table.Summary.Cell>
-                              <Table.Summary.Cell index={2} align="right"><Tag color="purple"><strong>100%</strong></Tag></Table.Summary.Cell>
+                              <Table.Summary.Cell index={2} align="right"><strong>100%</strong></Table.Summary.Cell>
                             </Table.Summary.Row>
                           )}
                         />
                         {baselineCost > 0 && (
-                          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                            <h4 className="font-bold text-green-700 mb-3">
-                              <RiseOutlined className="mr-1" />So sánh với chi phí cơ sở (Do-nothing)
+                          <div className="p-4 rounded-lg" style={{ background: NEUTRAL[50], border: `1px solid ${NEUTRAL[200]}` }}>
+                            <h4 className="font-semibold mb-3" style={{ color: NEUTRAL[700] }}>
+                              <RiseOutlined className="mr-1" style={{ color: SEMANTIC.good }} />So sánh với chi phí cơ sở (Do-nothing)
                             </h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Chi phí cơ sở (Baseline):</span>
-                                <span className="font-semibold text-gray-700">{fmt(baselineCost, 2)}</span>
+                                <span style={{ color: NEUTRAL[500] }}>Chi phí cơ sở (Baseline):</span>
+                                <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{fmt(baselineCost, 2)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Chi phí tối ưu:</span>
-                                <span className="font-semibold text-green-700">{fmt(optCost, 2)}</span>
+                                <span style={{ color: NEUTRAL[500] }}>Chi phí tối ưu:</span>
+                                <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{fmt(optCost, 2)}</span>
                               </div>
                               <Divider className="my-2" />
                               <div className="flex justify-between text-base">
-                                <span className="font-bold text-green-700">Tiết kiệm:</span>
-                                <span className="font-bold text-green-700">
+                                <span className="font-bold" style={{ color: SEMANTIC.good }}>Tiết kiệm:</span>
+                                <span className="font-bold tabular-nums" style={{ color: SEMANTIC.good }}>
                                   {fmt(savingsAmt, 2)} ({savingsPct.toFixed(2)}%)
                                 </span>
                               </div>
@@ -471,15 +474,18 @@ const ExecutiveSummary = () => {
                       <Col span={12}>
                         <div className="space-y-0 text-sm">
                           {[
-                            ['Tổng bản ghi kết quả', summary.result_count || 0,   ''],
-                            ['Chi phí nợ đơn',            Number(kpis.cost_backorder || 0).toLocaleString('vi-VN'), 'text-red-600'],
-                            ['Chi phí tồn kho vượt mức',  Number(kpis.cost_overstock || 0).toLocaleString('vi-VN'), 'text-orange-600'],
-                            ['Chi phí thiếu hụt',         Number(kpis.cost_shortage  || 0).toLocaleString('vi-VN'), 'text-yellow-600'],
-                            ['Chi phí phạt đóng gói',     Number(kpis.cost_penalty   || 0).toLocaleString('vi-VN'), 'text-blue-600'],
-                          ].map(([label, val, cls]) => (
-                            <div key={label} className="flex justify-between py-2 border-b last:border-0">
-                              <span className="text-gray-500">{label}:</span>
-                              <span className={`font-medium ${cls}`}>{val}</span>
+                            ['Tổng bản ghi kết quả', summary.result_count || 0,   null],
+                            ['Chi phí nợ đơn',            Number(kpis.cost_backorder || 0).toLocaleString('vi-VN'), COST_COLORS.backorder],
+                            ['Chi phí tồn kho vượt mức',  Number(kpis.cost_overstock || 0).toLocaleString('vi-VN'), COST_COLORS.overstock],
+                            ['Chi phí thiếu hụt',         Number(kpis.cost_shortage  || 0).toLocaleString('vi-VN'), COST_COLORS.shortage],
+                            ['Chi phí phạt đóng gói',     Number(kpis.cost_penalty   || 0).toLocaleString('vi-VN'), COST_COLORS.penalty],
+                          ].map(([label, val, dot]) => (
+                            <div key={label} className="flex justify-between items-center py-2 border-b last:border-0">
+                              <span className="flex items-center" style={{ color: NEUTRAL[500] }}>
+                                {dot && <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: dot }} />}
+                                {label}:
+                              </span>
+                              <span className="font-medium tabular-nums" style={{ color: NEUTRAL[700] }}>{val}</span>
                             </div>
                           ))}
                         </div>
@@ -501,31 +507,9 @@ const ExecutiveSummary = () => {
                 <Spin spinning={varLoading}>
                   {varError && <Alert type="error" message={varError} showIcon className="mb-4" />}
 
-                  {/* Mini KPI row từ extended summary */}
-                  {ext && (ext.baseline_cost || ext.si_mean) && (
+                  {/* SI trung bình từ extended summary */}
+                  {ext && ext.si_mean != null && (
                     <Row gutter={16} className="mb-4" align="stretch">
-                      <Col xs={24} sm={12} md={6}>
-                        <Card size="small" className="h-full">
-                          <Statistic title="Chi phí cơ sở (hiện trạng)" value={ext.baseline_cost} precision={0}
-                            prefix={<DollarOutlined />} valueStyle={{ color: NEUTRAL[600] }} formatter={(v) => fmt(v)} />
-                          <Text type="secondary" style={{ fontSize: 12 }}>Chi phí khi không tối ưu</Text>
-                        </Card>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Card size="small" className="h-full">
-                          <Statistic title="Chi phí tối ưu (MA)" value={ext.opt_cost} precision={0}
-                            prefix={<DollarOutlined />} valueStyle={{ color: COLORS.safe }} formatter={(v) => fmt(v)} />
-                          <Text type="secondary" style={{ fontSize: 12 }}>Sau khi áp dụng giải thuật</Text>
-                        </Card>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Card size="small" className="h-full">
-                          <Statistic title="Tiết kiệm" value={ext.savings_pct} precision={1} suffix="%"
-                            prefix={<RiseOutlined />}
-                            valueStyle={{ color: (ext.savings_pct ?? 0) > 0 ? COLORS.safe : COLORS.risk }} />
-                          <Text type="secondary" style={{ fontSize: 12 }}>{fmt(ext.savings)} đơn vị tiền</Text>
-                        </Card>
-                      </Col>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small" className="h-full">
                           <Statistic title="SI trung bình" value={ext.si_mean} precision={3}
@@ -693,7 +677,7 @@ const ExecutiveSummary = () => {
                           pagination={false}
                           columns={[
                             { title: 'Kho', dataIndex: 'warehouse_id', key: 'warehouse_id',
-                              render: (v) => <Tag color="blue">{v}</Tag> },
+                              render: (v) => <span className="font-medium" style={{ color: NEUTRAL[700] }}>{v}</span> },
                             { title: 'Nợ đơn', dataIndex: 'cost_backorder', key: 'cost_backorder',
                               align: 'right', render: (v) => fmt(v, 2),
                               sorter: (a, b) => a.cost_backorder - b.cost_backorder },
@@ -726,7 +710,7 @@ const ExecutiveSummary = () => {
                                 <Table.Summary.Cell index={3} align="right">{fmt(totals.s, 2)}</Table.Summary.Cell>
                                 <Table.Summary.Cell index={4} align="right">{fmt(totals.p, 2)}</Table.Summary.Cell>
                                 <Table.Summary.Cell index={5} align="right"><strong>{fmt(totals.t, 2)}</strong></Table.Summary.Cell>
-                                <Table.Summary.Cell index={6} align="right"><Tag color="purple"><strong>100%</strong></Tag></Table.Summary.Cell>
+                                <Table.Summary.Cell index={6} align="right"><strong>100%</strong></Table.Summary.Cell>
                               </Table.Summary.Row>
                             )
                           }}

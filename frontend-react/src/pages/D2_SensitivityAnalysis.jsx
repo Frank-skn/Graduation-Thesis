@@ -325,7 +325,12 @@ const SensitivityAnalysis = () => {
                 <XAxis dataKey="variation" />
                 <YAxis />
                 <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString('vi-VN')}`]} />
-                <ReferenceLine y={Number(oatResult.baseline_objective)} stroke={SEMANTIC.bad} strokeDasharray="3 3" label="Cơ sở" />
+                <ReferenceLine
+                  y={Number(oatResult.baseline_objective)}
+                  stroke={SEMANTIC.bad}
+                  strokeDasharray="3 3"
+                  label={{ value: 'Cơ sở', position: 'insideBottomLeft', fill: SEMANTIC.bad, fontSize: 11, dy: -6 }}
+                />
                 <Line type="monotone" dataKey="objective" stroke={BRAND[500]} strokeWidth={2} name="Giá trị mục tiêu" />
               </LineChart>
             </ResponsiveContainer>
