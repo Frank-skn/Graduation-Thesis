@@ -71,6 +71,24 @@ def startup_event():
     except Exception as exc:
         print(f"[startup] DDS ETL warning: {exc}")
 
+    # --- ETL kết quả: NDS → DDS (backfill nếu nhóm bảng kết quả rỗng) ---
+    try:
+        from backend.core.database import SessionLocalDDS
+        from backend.data_access.models_dds import DimRun
+        from backend.data_access.dds_etl import run_result_etl
+        _dds_db = SessionLocalDDS()
+        try:
+            n_run = _dds_db.query(DimRun).count()
+        finally:
+            _dds_db.close()
+        if n_run == 0:
+            counts = run_result_etl(None)  # backfill toàn bộ run có sẵn
+            print(f"[startup] DDS Result ETL backfill xong: {counts}")
+        else:
+            print(f"[startup] DDS đã có {n_run} lần chạy trong dim_run, bỏ qua backfill.")
+    except Exception as exc:
+        print(f"[startup] DDS Result ETL warning: {exc}")
+
     # --- Safe column migrations (idempotent) ---
     # Each entry: (column_name, column_type, default_sql)
     _migrations = {

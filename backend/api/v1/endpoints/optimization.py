@@ -92,6 +92,14 @@ def _run_optimization_task(
             savings_pct_prop=result.savings_pct_prop,
         )
 
+        # Đồng bộ kết quả sang DDS (kho dữ liệu chiều). Lỗi ETL không ảnh
+        # hưởng luồng chính — kết quả đã lưu an toàn ở NDS.
+        try:
+            from backend.data_access.dds_etl import run_result_etl
+            run_result_etl(run_id)
+        except Exception as dds_exc:
+            print(f"[optimization] DDS result ETL warning cho run {run_id}: {dds_exc}")
+
     except Exception as exc:
         run = db.query(RunModel).filter(RunModel.run_id == run_id).first()
         if run:
