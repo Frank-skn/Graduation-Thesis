@@ -13,7 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { useApi } from '../hooks/useApi'
 import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
-import { SEMANTIC } from '../theme/tokens'
+import { SEMANTIC, BRAND, NEUTRAL } from '../theme/tokens'
 
 // Diễn giải tiếng Việt cho ký hiệu tham số mô hình (Bảng 3.3 luận văn)
 const PARAM_LABEL = {
@@ -99,7 +99,7 @@ const DataOverview = () => {
       key: 'source',
       render: (text) => (
         <span className="flex items-center">
-          <DatabaseOutlined className="mr-2 text-blue-500" />
+          <DatabaseOutlined className="mr-2" style={{ color: BRAND[400] }} />
           {paramLabel(text)}
         </span>
       ),
@@ -160,52 +160,26 @@ const DataOverview = () => {
         subtitle="Giám sát mức độ đầy đủ, chất lượng và tính sẵn sàng của toàn bộ nguồn dữ liệu"
       />
 
-      {/* Summary Cards */}
+      {/* Summary Cards — đồng nhất tone brand, số ink đậm, icon brand nhạt */}
       <Row gutter={16}>
-        <Col span={6}>
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Sản Phẩm</p>
-                <p className="text-2xl font-bold text-green-600">{numProducts}</p>
+        {[
+          { label: 'Sản Phẩm',        value: numProducts,       Icon: CheckCircleOutlined },
+          { label: 'Kho Hàng',        value: numWarehouses,     Icon: DatabaseOutlined },
+          { label: 'Kỳ Thời Gian',    value: numPeriods,        Icon: CalendarOutlined },
+          { label: 'Tổ Hợp (SP-Kho)', value: totalCombinations, Icon: SyncOutlined },
+        ].map(({ label, value, Icon }) => (
+          <Col span={6} key={label}>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm mb-1" style={{ color: NEUTRAL[500] }}>{label}</p>
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: NEUTRAL[800] }}>{value}</p>
+                </div>
+                <Icon className="text-3xl" style={{ color: BRAND[400] }} />
               </div>
-              <CheckCircleOutlined className="text-3xl text-green-500" />
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Kho Hàng</p>
-                <p className="text-2xl font-bold text-blue-600">{numWarehouses}</p>
-              </div>
-              <DatabaseOutlined className="text-3xl text-blue-500" />
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Kỳ Thời Gian</p>
-                <p className="text-2xl font-bold text-purple-600">{numPeriods}</p>
-              </div>
-              <CalendarOutlined className="text-3xl text-purple-500" />
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Tổ Hợp (SP-Kho)</p>
-                <p className="text-2xl font-bold text-orange-600">{totalCombinations}</p>
-              </div>
-              <SyncOutlined className="text-3xl text-orange-500" />
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
+        ))}
       </Row>
 
       {/* Data Freshness Table */}

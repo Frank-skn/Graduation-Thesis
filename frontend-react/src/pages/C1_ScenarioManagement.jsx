@@ -26,7 +26,7 @@ import { useApi, useMutation } from '../hooks/useApi'
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
-import { CATEGORICAL } from '../theme/tokens'
+import { CATEGORICAL, NEUTRAL } from '../theme/tokens'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -260,14 +260,14 @@ const ScenarioManagement = () => {
     { title: 'Tên / Nhãn', dataIndex: 'label', key: 'label',
       render: (v, r) => <span className="font-medium">{v || r.whatif_type || '—'}</span> },
     { title: 'Loại', dataIndex: 'whatif_type', key: 'type',
-      render: (v) => <Tag color="geekblue">{TYPE_LABEL[v] ?? v ?? 'Tùy chỉnh'}</Tag> },
+      render: (v) => <Tag color="blue">{TYPE_LABEL[v] ?? v ?? 'Tùy chỉnh'}</Tag> },
     { title: 'Trạng thái', dataIndex: 'status', key: 'status',
       render: (v) => {
         const color = v === 'completed' ? 'green' : v === 'running' ? 'processing' : v === 'failed' ? 'red' : 'default'
         return <Tag color={color}>{v ?? '—'}</Tag>
       }},
     { title: 'Chi phí tối ưu', dataIndex: 'objective_value', key: 'obj', align: 'right',
-      render: (v) => v != null ? <span className="font-semibold text-red-600">{fmt(v, 0)}</span> : '—' },
+      render: (v) => v != null ? <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{fmt(v, 0)}</span> : '—' },
     { title: 'Solver', dataIndex: 'solver_status', key: 'solver',
       render: (v) => v ? <Tag color={/^optimal$/i.test(v) ? 'green' : /^feasible$/i.test(v) ? 'orange' : 'red'}>{v}</Tag> : '—' },
     { title: 'Ngày tạo', dataIndex: 'created_at', key: 'at',

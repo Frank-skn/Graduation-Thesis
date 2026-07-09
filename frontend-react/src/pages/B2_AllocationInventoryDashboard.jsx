@@ -24,7 +24,7 @@ import { useApi } from '../hooks/useApi'
 import optimizationService from '../services/optimizationService'
 import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
-import { CATEGORICAL, SEMANTIC, NEUTRAL, CHART_GRID } from '../theme/tokens'
+import { CATEGORICAL, SEMANTIC, NEUTRAL, CHART_GRID, BRAND } from '../theme/tokens'
 
 const { Option } = Select
 
@@ -78,33 +78,34 @@ const PLTTab = ({ runId, products, warehouses }) => {
       key: 'from_wh',
       fixed: 'left',
       width: 100,
-      render: (v) => <Tag color="blue">{v}</Tag>,
+      render: (v) => <span className="font-medium" style={{ color: NEUTRAL[700] }}>{v}</span>,
     },
     ...whs.map((to) => ({
-      title: <Tag color="green">{to}</Tag>,
+      title: <span className="font-medium" style={{ color: NEUTRAL[600] }}>{to}</span>,
       dataIndex: to,
       key: to,
-      align: 'center',
+      align: 'right',
       width: 100,
       render: (v, row) => {
         if (row.from_wh === to) return <span style={{ color: NEUTRAL[300] }}>—</span>
         if (!v) return <span style={{ color: NEUTRAL[300] }}>0</span>
-        return <Tag color="orange">{Number(v).toLocaleString()}</Tag>
+        return <span className="tabular-nums font-medium" style={{ color: BRAND[600] }}>{Number(v).toLocaleString()}</span>
       },
     })),
   ]
 
-  // Biểu đồ theo kỳ
+  // Biểu đồ theo kỳ — gom theo KHO NGUỒN (from_wh) để giữ ≤ 6 màu (không cầu vồng 22 cặp).
+  // Mỗi cột kỳ = tổng lượng chuyển ĐI từ mỗi kho nguồn trong kỳ đó.
   const periods = [...new Set(transfers.map((t) => t.time_period))].sort((a, b) => a - b)
   const barData = periods.map((t) => {
     const row = { period: `Kỳ ${t}` }
     transfers.filter((r) => r.time_period === t).forEach((r) => {
-      const k = `${r.from_warehouse_id}→${r.to_warehouse_id}`
+      const k = r.from_warehouse_id
       row[k] = (row[k] || 0) + r.qty
     })
     return row
   })
-  const barKeys = [...new Set(transfers.map((t) => `${t.from_warehouse_id}→${t.to_warehouse_id}`))]
+  const barKeys = [...new Set(transfers.map((t) => t.from_warehouse_id))].sort()
 
   if (loading) return <div className="flex justify-center py-16"><Spin size="large" /></div>
   if (error) return <Alert type="error" message="Lỗi tải dữ liệu PLT" description={String(error)} />
@@ -175,16 +176,16 @@ const PLTTab = ({ runId, products, warehouses }) => {
 
           {/* Biểu đồ theo kỳ */}
           {barData.length > 0 && (
-            <Card title="Lượng PLT theo kỳ" size="small">
+            <Card title="Lượng PLT theo kỳ (theo kho nguồn)" size="small">
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={barData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
                   <XAxis dataKey="period" />
                   <YAxis />
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip formatter={(v, name) => [Number(v).toLocaleString('vi-VN'), `Từ ${name}`]} />
+                  <Legend formatter={(v) => `Từ ${v}`} />
                   {barKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} stackId="a" fill={WH_COLORS[i % WH_COLORS.length]} />
+                    <Bar key={k} dataKey={k} name={k} stackId="a" fill={WH_COLORS[i % WH_COLORS.length]} radius={i === barKeys.length - 1 ? [4, 4, 0, 0] : 0} />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
@@ -198,9 +199,9 @@ const PLTTab = ({ runId, products, warehouses }) => {
               columns={[
                 { title: 'Sản phẩm', dataIndex: 'product_id', key: 'pid', width: 130 },
                 { title: 'Từ kho', dataIndex: 'from_warehouse_id', key: 'from',
-                  render: (v) => <Tag color="blue">{v}</Tag> },
+                  render: (v) => <span className="font-medium" style={{ color: NEUTRAL[700] }}>{v}</span> },
                 { title: 'Đến kho', dataIndex: 'to_warehouse_id', key: 'to',
-                  render: (v) => <Tag color="green">{v}</Tag> },
+                  render: (v) => <span className="font-medium" style={{ color: NEUTRAL[700] }}>{v}</span> },
                 { title: 'Kỳ', dataIndex: 'time_period', key: 't',
                   sorter: (a, b) => a.time_period - b.time_period },
                 { title: 'Số lượng', dataIndex: 'qty', key: 'qty', align: 'right',
@@ -262,9 +263,12 @@ const InventoryTrajectoryTab = ({ runId }) => {
           <Col key={w.warehouse_id} span={4}>
             <Card size="small" style={{ borderTop: `3px solid ${whColor(i)}` }}>
               <div className="text-center">
-                <Tag color={whColor(i)} style={{ marginBottom: 4 }}>{w.warehouse_id}</Tag>
-                <div style={{ fontSize: 12, color: '#888' }}>Backorder</div>
-                <div style={{ fontWeight: 'bold', color: w.total_backorder > 0 ? SEMANTIC.bad : SEMANTIC.good }}>
+                <div className="flex items-center justify-center mb-1 font-medium" style={{ color: NEUTRAL[700] }}>
+                  <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: whColor(i) }} />
+                  {w.warehouse_id}
+                </div>
+                <div style={{ fontSize: 12, color: NEUTRAL[400] }}>Backorder</div>
+                <div className="tabular-nums" style={{ fontWeight: 'bold', color: w.total_backorder > 0 ? SEMANTIC.badText : SEMANTIC.goodText }}>
                   {Number(w.total_backorder).toLocaleString()}
                 </div>
               </div>
@@ -296,7 +300,7 @@ const InventoryTrajectoryTab = ({ runId }) => {
             <YAxis tickFormatter={(v) => Number(v).toLocaleString()} />
             <Tooltip formatter={(v) => Number(v).toLocaleString()} />
             <Legend />
-            <ReferenceLine y={0} stroke="#aaa" strokeDasharray="3 3" />
+            <ReferenceLine y={0} stroke={NEUTRAL[400]} strokeDasharray="3 3" />
             {warehouses.map((w, i) => (
               <Line key={w.warehouse_id} type="monotone" dataKey={w.warehouse_id}
                 stroke={whColor(i)} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
@@ -310,9 +314,13 @@ const InventoryTrajectoryTab = ({ runId }) => {
         <Table dataSource={warehouses} rowKey="warehouse_id" size="small" pagination={false}
           columns={[
             { title: 'Kho', dataIndex: 'warehouse_id',
-              render: (v, _, i) => <Tag color={whColor(i)}>{v}</Tag> },
+              render: (v, _, i) => (
+                <span className="flex items-center font-medium" style={{ color: NEUTRAL[700] }}>
+                  <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: whColor(i) }} />{v}
+                </span>
+              ) },
             { title: 'Tổng backorder', dataIndex: 'total_backorder', align: 'right',
-              render: (v) => <span style={{ color: v > 0 ? SEMANTIC.bad : undefined }}>{Number(v).toLocaleString()}</span>,
+              render: (v) => <span className="tabular-nums" style={{ color: v > 0 ? SEMANTIC.badText : NEUTRAL[600] }}>{Number(v).toLocaleString()}</span>,
               sorter: (a, b) => a.total_backorder - b.total_backorder },
             { title: 'Tổng overstock', dataIndex: 'total_overstock', align: 'right',
               render: (v) => <span style={{ color: v > 0 ? SEMANTIC.warn : undefined }}>{Number(v).toLocaleString()}</span> },
@@ -450,7 +458,7 @@ const AllocationTab = ({ runId, products, warehouses }) => {
                   <YAxis tickFormatter={(v) => Number(v).toLocaleString()} />
                   <Tooltip formatter={(v) => Number(v).toLocaleString()} />
                   <Legend />
-                  <ReferenceLine y={0} stroke="#aaa" strokeDasharray="3 3" />
+                  <ReferenceLine y={0} stroke={NEUTRAL[400]} strokeDasharray="3 3" />
                   {whList.map((wh, i) => (
                     <Line key={wh} type="monotone" dataKey={wh} stroke={whColor(i)}
                       strokeWidth={2} dot={{ r: 3 }} />
@@ -466,7 +474,7 @@ const AllocationTab = ({ runId, products, warehouses }) => {
               size="small" pagination={{ pageSize: 20, showSizeChanger: true }}
               columns={[
                 { title: 'Kho', dataIndex: 'warehouse_id', key: 'wh',
-                  render: (v) => <Tag color="green">{v}</Tag> },
+                  render: (v) => <span className="font-medium" style={{ color: NEUTRAL[700] }}>{v}</span> },
                 { title: 'Kỳ', dataIndex: 'time_period', key: 't',
                   sorter: (a, b) => a.time_period - b.time_period },
                 { title: 'Kiện hàng (Q)', dataIndex: 'q_case_pack', key: 'q', align: 'right',
@@ -476,26 +484,26 @@ const AllocationTab = ({ runId, products, warehouses }) => {
                   render: (v) => Number(v).toLocaleString() },
                 { title: 'Tồn kho (I)', dataIndex: 'net_inventory', key: 'inv', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) < 0 ? SEMANTIC.bad : undefined }}>
+                    <span className="tabular-nums" style={{ color: Number(v) < 0 ? SEMANTIC.badText : NEUTRAL[600] }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ),
                   sorter: (a, b) => a.net_inventory - b.net_inventory },
                 { title: 'Backorder', dataIndex: 'backorder_qty', key: 'bo', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? SEMANTIC.bad : undefined }}>
+                    <span className="tabular-nums" style={{ color: Number(v) > 0 ? SEMANTIC.badText : NEUTRAL[600] }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },
                 { title: 'Overstock', dataIndex: 'overstock_qty', key: 'ov', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? SEMANTIC.warn : undefined }}>
+                    <span className="tabular-nums" style={{ color: Number(v) > 0 ? SEMANTIC.warnText : NEUTRAL[600] }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },
                 { title: 'Shortage', dataIndex: 'shortage_qty', key: 'sh', align: 'right',
                   render: (v) => (
-                    <span style={{ color: Number(v) > 0 ? SEMANTIC.warn : undefined }}>
+                    <span className="tabular-nums" style={{ color: Number(v) > 0 ? SEMANTIC.warnText : NEUTRAL[600] }}>
                       {Number(v).toLocaleString()}
                     </span>
                   ) },

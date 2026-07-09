@@ -42,16 +42,22 @@ export const NEUTRAL = {
   white: '#ffffff',
 }
 
-// ── Ngữ nghĩa (tươi vừa phải, hợp nền sáng) ──────────────────
+// ── Ngữ nghĩa (tươi sáng dễ nhìn, vẫn đủ tương phản) ─────────
+// Quy tắc: bản `*` dùng cho MARK/nền nhấn (tươi hơn); `*Text` dùng khi làm
+// CHỮ trên nền trắng (đậm hơn để >= 4.5:1 đọc rõ). `*Bg` là nền phụ nhạt.
 export const SEMANTIC = {
-  good:   '#16A34A',   // xanh lá — an toàn / tiết kiệm
-  goodBg: '#F0FDF4',
-  warn:   '#D97706',   // hổ phách — cảnh báo
-  warnBg: '#FFFBEB',
-  bad:    '#DC2626',   // đỏ — rủi ro / nợ đơn
-  badBg:  '#FEF2F2',
-  info:   '#2563EB',   // xanh brand — thông tin
-  infoBg: '#EFF6FF',
+  good:     '#1BAE4B',   // xanh lá tươi — an toàn / tiết kiệm (mark/nền)
+  goodText: '#15803D',   // xanh đậm — khi làm chữ nhỏ (>=4.5:1)
+  goodBg:   '#F0FDF4',
+  warn:     '#F59E0B',   // hổ phách tươi — cảnh báo (mark/nền)
+  warnText: '#B45309',   // hổ phách đậm — khi làm chữ nhỏ
+  warnBg:   '#FFFBEB',
+  bad:      '#EF4444',   // đỏ tươi — rủi ro / nợ đơn (mark/nền)
+  badText:  '#DC2626',   // đỏ đậm — khi làm chữ nhỏ
+  badBg:    '#FEF2F2',
+  info:     '#3B82F6',   // xanh brand tươi — thông tin
+  infoText: '#1D4ED8',
+  infoBg:   '#EFF6FF',
 }
 
 // ── Thang đơn sắc cho biểu đồ (chuỗi cùng loại) ──────────────
@@ -66,7 +72,7 @@ export const CATEGORICAL = [
   '#7C3AED', // violet
   '#EA580C', // orange
   '#0891B2', // cyan
-  '#DB2777', // pink
+  '#EF4444', // đỏ tươi (khớp semantic bad — dùng cho danh mục thứ 6)
 ]
 
 // ── Ánh xạ ngữ nghĩa cho các thành phần chi phí ──────────────

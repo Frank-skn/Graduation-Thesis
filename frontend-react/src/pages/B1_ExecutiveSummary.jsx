@@ -23,7 +23,7 @@ const { Option } = Select
 
 // ── Màu sắc (thống nhất từ design tokens) ─────────────
 const COLORS = {
-  q: BRAND[500], r: BRAND[300], inv: BRAND[400],
+  q: BRAND[500], r: BRAND[300], inv: NEUTRAL[700],
   bo: SEMANTIC.bad, o: BRAND[400], s: SEMANTIC.warn,
   safe: SI_COLORS.safe, risk: SI_COLORS.risk, warn: SI_COLORS.warn,
 }
@@ -260,7 +260,7 @@ const ExecutiveSummary = () => {
     { title: 'Thiếu hụt',     dataIndex: 'shortage_qty',  key: 'shortage_qty', width: 100,
       align: 'right',
       render: (v) => v > 0
-        ? <span className="tabular-nums font-medium" style={{ color: SEMANTIC.bad }}>{fmt(v, 1)}</span>
+        ? <span className="tabular-nums font-medium" style={{ color: SEMANTIC.badText }}>{fmt(v, 1)}</span>
         : <span className="tabular-nums" style={{ color: NEUTRAL[400] }}>0</span> },
   ]
 
@@ -411,8 +411,8 @@ const ExecutiveSummary = () => {
                               </div>
                               <Divider className="my-2" />
                               <div className="flex justify-between text-base">
-                                <span className="font-bold" style={{ color: SEMANTIC.good }}>Tiết kiệm:</span>
-                                <span className="font-bold tabular-nums" style={{ color: SEMANTIC.good }}>
+                                <span className="font-bold" style={{ color: SEMANTIC.goodText }}>Tiết kiệm:</span>
+                                <span className="font-bold tabular-nums" style={{ color: SEMANTIC.goodText }}>
                                   {fmt(savingsAmt, 2)} ({savingsPct.toFixed(2)}%)
                                 </span>
                               </div>

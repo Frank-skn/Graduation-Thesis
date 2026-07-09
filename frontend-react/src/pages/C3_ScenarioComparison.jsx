@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import scenarioService from '../services/scenarioService'
 import optimizationService from '../services/optimizationService'
 import PageHeader from '../components/PageHeader'
-import { BRAND, NEUTRAL } from '../theme/tokens'
+import { BRAND, NEUTRAL, SEMANTIC } from '../theme/tokens'
 
 const { Option } = Select
 const fmt = (v, d = 0) =>
@@ -92,7 +92,7 @@ const ScenarioComparison = () => {
     { title: 'Thay đổi tuyệt đối', dataIndex: 'absolute_change', key: 'absolute_change', align: 'right',
       render: (v) => {
         const n = Number(v)
-        return <span className={n > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+        return <span className="font-medium tabular-nums" style={{ color: n > 0 ? SEMANTIC.badText : SEMANTIC.goodText }}>
           {n > 0 ? '+' : ''}{fmt(n, 2)}
         </span>
       }},
@@ -200,15 +200,15 @@ const ScenarioComparison = () => {
             {summaryItems.length > 0 ? (
               <Card
                 size="small"
-                title={<span className="font-semibold text-blue-700">Tóm tắt thay đổi so với lần chạy cơ sở</span>}
-                styles={{ header: { background: '#EFF6FF', borderBottom: '1px solid #DBEAFE' } }}
+                title={<span className="font-semibold" style={{ color: BRAND[700] }}>Tóm tắt thay đổi so với lần chạy cơ sở</span>}
+                styles={{ header: { background: BRAND[50], borderBottom: `1px solid ${BRAND[100]}` } }}
               >
                 <ul className="space-y-2 my-1">
                   {summaryItems.map((it) => (
                     <li key={it.name} className="flex items-center gap-2">
                       {it.up
-                        ? <ArrowUpOutlined className="text-red-500" />
-                        : <ArrowDownOutlined className="text-green-600" />}
+                        ? <ArrowUpOutlined style={{ color: SEMANTIC.bad }} />
+                        : <ArrowDownOutlined style={{ color: SEMANTIC.good }} />}
                       <span className="font-medium">{it.name}</span>
                       <span className="text-gray-500">{it.up ? 'tăng' : 'giảm'}</span>
                       <Tag color={it.up ? 'red' : 'green'} className="ml-auto">

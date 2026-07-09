@@ -7,7 +7,7 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { useAppContext } from '../context/AppContext'
 import sensitivityService from '../services/sensitivityService'
 import PageHeader from '../components/PageHeader'
-import { BRAND, SEMANTIC } from '../theme/tokens'
+import { BRAND, SEMANTIC, NEUTRAL } from '../theme/tokens'
 
 // Polling hook with localStorage persistence so an in-flight job keeps
 // being tracked even after the user navigates away and comes back.
@@ -163,7 +163,7 @@ const ParameterStability = () => {
     { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{paramLabel(t)}</Tag> },
     { title: `Giá trị tại -${variationLevel}%`, dataIndex: 'low_value', key: 'low_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
     { title: `Giá trị tại +${variationLevel}%`, dataIndex: 'high_value', key: 'high_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
-    { title: 'Khoảng biến thiên', dataIndex: 'spread', key: 'spread', render: (v) => <span className="font-bold text-orange-600">{Number(v).toLocaleString('vi-VN')}</span> },
+    { title: 'Khoảng biến thiên', dataIndex: 'spread', key: 'spread', align: 'right', render: (v) => <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{Number(v).toLocaleString('vi-VN')}</span> },
     {
       title: 'Chỉ số ổn định', key: 'stability',
       render: (_, record) => {
@@ -177,7 +177,7 @@ const ParameterStability = () => {
       render: (_, record) => {
         const volatility = Math.abs(Number(record.spread || 0)) / Math.max(1, Number(results?.baseline_objective || 1)) * 100
         if (volatility < 5)  return <Tag color="green">Rất ổn định</Tag>
-        if (volatility < 15) return <Tag color="cyan">Ổn định</Tag>
+        if (volatility < 15) return <Tag color="blue">Ổn định</Tag>
         if (volatility < 25) return <Tag color="orange">Trung bình</Tag>
         return <Tag color="red">Biến động</Tag>
       },
@@ -226,7 +226,7 @@ const ParameterStability = () => {
           message={
             <span>
               Đang kiểm tra độ bền vững trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
-              <span className="ml-2 font-mono text-blue-600">{elapsed}s</span>
+              <span className="ml-2 font-mono" style={{ color: BRAND[600] }}>{elapsed}s</span>
               <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP'})</span>
             </span>
           }

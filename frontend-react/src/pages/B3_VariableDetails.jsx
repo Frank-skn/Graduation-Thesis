@@ -24,6 +24,7 @@ import {
 } from '@ant-design/icons'
 import optimizationService from '../services/optimizationService'
 import { useAppContext } from '../context/AppContext'
+import { SEMANTIC, NEUTRAL } from '../theme/tokens'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -198,13 +199,16 @@ export default function B3_VariableDetails() {
     { title: 'Kỳ', dataIndex: 'time_period', key: 'time_period', width: 60,
       sorter: (a, b) => a.time_period - b.time_period },
     { title: 'q (kiện)', dataIndex: 'q', key: 'q', width: 90,
-      render: (v) => <Tag color="blue">{v}</Tag> },
+      align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
     { title: 'r (đơn vị lẻ)', dataIndex: 'r', key: 'r', width: 110,
-      render: (v) => <Tag color="cyan">{v}</Tag> },
+      align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
     { title: 'Tồn kho net', dataIndex: 'inv', key: 'inv', width: 110,
-      render: (v) => fmt(v, 1) },
+      align: 'right', render: (v) => <span className="tabular-nums">{fmt(v, 1)}</span> },
     { title: 'Thiếu hụt', dataIndex: 'shortage_qty', key: 'shortage_qty', width: 100,
-      render: (v) => v > 0 ? <Tag color="red">{fmt(v, 1)}</Tag> : <Tag color="green">0</Tag> },
+      align: 'right',
+      render: (v) => v > 0
+        ? <span className="tabular-nums font-medium" style={{ color: SEMANTIC.badText }}>{fmt(v, 1)}</span>
+        : <span className="tabular-nums" style={{ color: NEUTRAL[400] }}>0</span> },
   ]
 
   // ─────────────────────────────────────────

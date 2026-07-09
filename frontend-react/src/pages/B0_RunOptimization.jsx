@@ -294,7 +294,7 @@ const RunOptimization = () => {
     { title: 'Lần chạy', dataIndex: 'run_id', key: 'run_id', width: 90,
       render: (v) => <strong>#{v}</strong> },
     { title: 'Phiên bản DL', dataIndex: 'version_id', key: 'version_id', width: 110,
-      render: (v) => v ? <Tag color="geekblue">PB #{v}</Tag> : <span className="text-gray-400">—</span> },
+      render: (v) => v ? <Tag color="blue">PB #{v}</Tag> : <span className="text-gray-400">—</span> },
     { title: 'Thời gian chạy', dataIndex: 'run_time', key: 'run_time', width: 160,
       render: (v) => v ? String(v).slice(0, 16) : '—' },
     { title: 'Trạng thái', dataIndex: 'solver_status', key: 'status', width: 110,
@@ -504,12 +504,12 @@ const RunOptimization = () => {
             {/* Time + item counter */}
             <div className="flex justify-center gap-8">
               <div>
-                <div className="text-3xl font-bold text-blue-600">{elapsedSec}s</div>
+                <div className="text-3xl font-bold tabular-nums" style={{ color: BRAND[600] }}>{elapsedSec}s</div>
                 <div className="text-gray-400 text-xs mt-1">Thời gian đã chạy</div>
               </div>
               {runProductCount > 0 && (
                 <div>
-                  <div className="text-3xl font-bold text-indigo-600">
+                  <div className="text-3xl font-bold tabular-nums" style={{ color: BRAND[600] }}>
                     {itemsDone.toLocaleString('vi-VN')}
                     <span className="text-lg font-normal text-gray-400"> / {runProductCount.toLocaleString('vi-VN')}</span>
                   </div>

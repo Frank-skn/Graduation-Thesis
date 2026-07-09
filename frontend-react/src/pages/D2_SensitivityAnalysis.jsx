@@ -287,7 +287,7 @@ const SensitivityAnalysis = () => {
             <span>
               Đang phân tích {pollingOAT ? `OAT (${selectedParam})` : 'Tornado'}
               {' '}trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
-              <span className="ml-2 font-mono text-blue-600">{pollingOAT ? elapsedOAT : elapsedTornado}s</span>
+              <span className="ml-2 font-mono" style={{ color: BRAND[600] }}>{pollingOAT ? elapsedOAT : elapsedTornado}s</span>
               <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP'})</span>
             </span>
           }
