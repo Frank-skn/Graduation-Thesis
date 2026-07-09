@@ -69,7 +69,9 @@ temp/
 # Excluded from repo — legacy/standalone folders and documents
 ver2/
 hybrid_ga_alns/
-optimization/
+data_test/
 *.pdf
+thesis_p103_end.txt
 data_original/
 mapping_reference.json
+node_modules/

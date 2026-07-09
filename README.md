@@ -1,161 +1,90 @@
 # Decision Support System for Single-Supplier, Multi-Buyer SMI
 
-A modular, reproducible Decision Support System for optimizing Supplier-Managed Inventory in a single-supplier, multi-buyer context using Mixed-Integer Linear Programming.
+Hệ thống hỗ trợ ra quyết định (DSS) cho bài toán quản lý tồn kho do nhà cung cấp
+quản lý (Supplier-Managed Inventory) trong bối cảnh một nhà cung cấp – nhiều người
+mua (Single-Supplier, Multi-Buyer). Hệ thống tối ưu hóa phân bổ và điều chuyển tồn
+kho bằng giải thuật Memetic (Hybrid GA-ALNS).
 
-## Architecture Overview
-
-This DSS follows a clean, layered architecture:
+## Tổng quan kiến trúc
 
 ```
-Data Layer (NDS/DDS) → Backend (FastAPI) → Optimization (Pyomo) → Visualization → Frontend (Streamlit)
+Dữ liệu (CSV) → Backend (FastAPI) → Giải thuật MA (GA-ALNS) → SQLite (NDS/DDS) → Frontend (React)
 ```
 
-### Technology Stack
+### Công nghệ sử dụng
 
-- **Database**: SQL Server (NDS + DDS with star schema)
 - **Backend**: FastAPI + SQLAlchemy + Pydantic
-- **Optimization**: Pyomo (MILP) with CBC/GLPK solver
-- **Visualization**: Plotly + Matplotlib
-- **Frontend**: Streamlit
-- **Deployment**: Docker + Docker Compose
+- **Giải thuật tối ưu**: Memetic Algorithm (Hybrid GA-ALNS), tinh chỉnh bằng Taguchi
+- **Cơ sở dữ liệu**: SQLite (NDS `nds.db` + DDS `dds.db` với star schema)
+- **Dữ liệu đầu vào**: Tệp CSV trong thư mục `data/`
+- **Frontend**: React 18 + Vite + Ant Design + Recharts + Tailwind CSS
+- **Triển khai**: Docker + Docker Compose
 
-## Project Structure
+## Cấu trúc dự án
 
 ```
-ss-mb-smi-dss/
-├── database/               # Database schemas and migrations
-│   ├── nds/               # Normalized Data Store schemas
-│   ├── dds/               # Dimensional Data Store schemas
-│   └── migrations/        # Version control for schema changes
-├── backend/               # FastAPI application
-│   ├── api/              # REST endpoints
-│   ├── core/             # Configuration and dependencies
-│   ├── data_access/      # Repository pattern for DB access
-│   ├── domain/           # Business logic
-│   └── schemas/          # Pydantic models
-├── optimization/          # Optimization engine
-│   ├── models/           # Pyomo model definitions
-│   ├── solvers/          # Solver configurations
-│   └── services/         # Optimization orchestration
-├── visualization/         # Visualization layer
-│   ├── charts/           # Chart generation logic
-│   └── reports/          # Report templates
-├── frontend/             # Streamlit UI
-│   ├── pages/            # Multi-page navigation
-│   └── components/       # Reusable UI components
-├── shared/               # Shared utilities
-│   ├── utils/
-│   └── constants/
-├── docker/               # Docker configurations
-└── tests/                # Test suites
+Graduation-Thesis/
+├── backend/                # Ứng dụng FastAPI
+│   ├── api/                # REST endpoints
+│   ├── core/               # Cấu hình & kết nối cơ sở dữ liệu
+│   ├── data_access/        # Repository truy cập dữ liệu (CSV/NDS/DDS)
+│   ├── domain/             # Nghiệp vụ (dịch vụ tối ưu, what-if, sensitivity)
+│   ├── ma/                 # Giải thuật Memetic (GA + ALNS + core)
+│   └── schemas/            # Pydantic models
+├── frontend-react/         # Giao diện React (Vite + Ant Design)
+│   └── src/
+│       ├── pages/          # Các trang A/B/C/D
+│       ├── components/     # Thành phần UI dùng chung
+│       ├── services/       # Gọi API
+│       └── theme/          # Design tokens (bảng màu thống nhất)
+├── data/                   # Dữ liệu đầu vào (CSV) + SQLite (nds.db, dds.db)
+├── docker/                 # Cấu hình Docker (backend)
+├── tests/                  # Kiểm thử API
+├── docker-compose.yml
+└── requirements.txt
 ```
 
-## SOLID Principles Applied
+## Tính năng chính
 
-### Single Responsibility Principle (SRP)
-- Each module has one reason to change
-- Data access separated from business logic
-- Optimization logic isolated from API endpoints
+1. **A1/A2 – Dữ liệu & tham số**: Xem tổng quan dữ liệu đầu vào, tham số mô hình
+   và tham số giải thuật (Taguchi), quản lý phiên bản dữ liệu.
+2. **B0/B1/B2 – Tối ưu hóa**: Chạy giải thuật MA, xem kết quả & phân tích chi phí,
+   phân bổ và động thái tồn kho (điều chuyển ngang PLT).
+3. **C1/C2 – Phân tích kịch bản**: Phân tích What-If và so sánh KPI giữa các lần chạy.
+4. **D1/D2 – Phân tích độ nhạy & rủi ro**: Phân tích OAT/Tornado, đánh giá độ bền
+   vững của nghiệm tối ưu.
 
-### Open/Closed Principle (OCP)
-- Abstract base classes for repositories
-- Strategy pattern for different solvers
-- Plugin architecture for visualization types
+## Khởi chạy nhanh
 
-### Liskov Substitution Principle (LSP)
-- Repository implementations interchangeable
-- Different solver backends can be swapped
+### Yêu cầu
+- Docker và Docker Compose
 
-### Interface Segregation Principle (ISP)
-- Small, focused interfaces for data access
-- Specific contracts for each service
+### Các bước
 
-### Dependency Inversion Principle (DIP)
-- Depend on abstractions (repository interfaces)
-- Dependency injection throughout
-- Configuration-driven component selection
-
-## Key Features
-
-1. **Base Case Optimization**: Solve SS-MB-SMI MILP with current data
-2. **What-If Scenarios**: Create and compare alternative scenarios
-3. **Sensitivity Analysis**: Analyze impact of parameter changes
-4. **Result Persistence**: Track scenario history
-5. **Decision Visualization**: Clear, actionable visual outputs
-
-## Quick Start
-
-### Prerequisites
-- Docker and Docker Compose
-- SQL Server (or use Docker container)
-
-### Setup
-
-1. Clone and navigate to project:
-```bash
-cd ss-mb-smi-dss
-```
-
-2. Configure environment:
+1. Cấu hình môi trường:
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials
 ```
 
-3. Start services:
+2. Khởi động dịch vụ:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-4. Initialize database:
-```bash
-docker-compose exec backend python -m scripts.init_db
-```
-
-5. Access the application:
-- Frontend: http://localhost:8501
+3. Truy cập ứng dụng:
+- Frontend: http://localhost:3000
 - API Docs: http://localhost:8000/docs
 
-## Workflow
+## Luồng làm việc
 
-1. **Data Ingestion**: Load operational data into NDS
-2. **ETL Process**: Transform NDS data to DDS star schema
-3. **Optimization**: Run MILP solver on DDS data
-4. **Analysis**: View results, create scenarios
-5. **Decision**: Export recommendations
+1. **Xem dữ liệu**: Kiểm tra tính đầy đủ, chất lượng dữ liệu đầu vào (A1).
+2. **Chạy tối ưu**: Chọn bộ giải MA và cấu hình, chạy tối ưu hóa (B0).
+3. **Phân tích**: Xem kết quả, chi phí, phân bổ và điều chuyển tồn kho (B1/B2).
+4. **Kịch bản**: Tạo What-If và so sánh với lần chạy cơ sở (C1/C2).
+5. **Độ nhạy**: Đánh giá tác động thay đổi tham số và độ bền nghiệm (D1/D2).
 
-## API Endpoints
+## Kiểm thử
 
-### Scenarios
-- `POST /api/v1/scenarios` - Create new scenario
-- `GET /api/v1/scenarios` - List all scenarios
-- `GET /api/v1/scenarios/{id}` - Get scenario details
-
-### Optimization
-- `POST /api/v1/optimize/run` - Execute optimization
-- `GET /api/v1/optimize/results/{run_id}` - Get results
-- `POST /api/v1/optimize/sensitivity` - Run sensitivity analysis
-
-### Data
-- `GET /api/v1/data/products` - Get products from DDS
-- `GET /api/v1/data/warehouses` - Get warehouses
-- `GET /api/v1/data/inventory` - Get inventory facts
-
-## Development
-
-### Running Tests
 ```bash
-pytest tests/
-```
-
-### Code Quality
-```bash
-# Linting
-flake8 backend/ optimization/ frontend/
-
-# Type checking
-mypy backend/
-
-# Formatting
-black backend/ optimization/ frontend/
+docker compose exec backend pytest tests/
 ```

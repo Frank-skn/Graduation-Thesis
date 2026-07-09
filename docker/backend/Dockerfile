@@ -19,8 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY backend/ /app/backend/
-COPY optimization/ /app/optimization/
-COPY shared/ /app/shared/
 COPY data/ /app/data/
 
 # Expose port
