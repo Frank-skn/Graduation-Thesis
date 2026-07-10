@@ -81,7 +81,9 @@ def _run_optimization_task(
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=result.baseline_cost,
-            opt_cost=result.ma_inv_cost,
+            # opt_cost = giá trị hàm mục tiêu MA đầy đủ (fitness), cùng bản chất
+            # với baseline hiện trạng → baseline − opt_cost = savings nhất quán.
+            opt_cost=result.objective_value,
             savings=result.savings,
             savings_pct=result.savings_pct,
             n_changes=result.n_changes,

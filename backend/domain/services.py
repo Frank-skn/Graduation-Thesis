@@ -221,18 +221,22 @@ class OptimizationService:
 
         # --- Step 2: KPIs + inventory cost breakdown từ CSV ---
         if data_dir:
-            from backend.domain.ma_adapter import (
-                CSVDataLoader, compute_baseline_from_csv, compute_proportional_from_csv
+            from backend.domain.ma_adapter import CSVDataLoader
+            from backend.domain.operational_baseline import (
+                compute_operational_baseline_from_csv,
             )
             _loader   = CSVDataLoader(data_dir)
-            # Limit baseline to the SAME product subset MA solved, so the
-            # comparison (savings) is apples-to-apples in test/product_limit mode.
-            baseline  = compute_baseline_from_csv(_loader, overrides=scenario_overrides, product_ids=product_ids)
-            # Proportional allocation baseline is DEPRECATED — it was developed for
-            # the old OA-only, 4-period model without PLT and is not valid for the
-            # current 10-period OA+PLT model. No longer computed.
+            # Baseline "hiện trạng" (Greedy Operational Heuristic — có PLT, đầy đủ
+            # thành phần chi phí như hàm mục tiêu). Đây là Z_current mà luận văn
+            # dùng để so sánh mức cải thiện với MA. Giới hạn cùng tập SP với MA
+            # để so sánh apples-to-apples trong test/product_limit mode.
+            baseline  = compute_operational_baseline_from_csv(
+                _loader, overrides=scenario_overrides, product_ids=product_ids
+            )
+            # Proportional allocation baseline is DEPRECATED — không còn dùng.
             prop_cost = 0.0
-            # Tính inventory cost thuần từ MA rows (Co/Cs/Cb) — cùng đơn vị với baseline
+            # Inventory cost thuần (Co/Cs/Cb) từ MA rows — dùng cho breakdown chi
+            # phí hiển thị theo thành phần (KHÔNG dùng để tính savings nữa).
             ma_inv_cost, cost_breakdown = self._compute_inv_cost_from_rows(rows, _loader)
         else:
             _loader       = None
@@ -254,10 +258,13 @@ class OptimizationService:
 
         kpis = self._calculate_kpis_from_rows(rows, opt_cost=opt_cost, cost_breakdown=cost_breakdown, total_capacity=total_cap)
 
-        # So sánh dùng inventory cost thuần (cùng đơn vị)
-        savings          = max(0.0, baseline - ma_inv_cost)
+        # Mức cải thiện so với hiện trạng (khớp luận văn, công thức 2.1):
+        #   Improvement = (Z_current − Z_MA) / Z_current
+        # Cả baseline (hiện trạng) và opt_cost (MA fitness) đều là TỔNG chi phí
+        # đầy đủ (Co/Cs/Cb + phạt OA + phạt PLT + vận chuyển) → so sánh cùng bản chất.
+        savings          = max(0.0, baseline - opt_cost)
         savings_pct      = (savings / baseline * 100) if baseline > 0 else 0.0
-        savings_vs_prop  = max(0.0, prop_cost - ma_inv_cost)
+        savings_vs_prop  = max(0.0, prop_cost - opt_cost)
         savings_pct_prop = (savings_vs_prop / prop_cost * 100) if prop_cost > 0 else 0.0
 
         # --- Step 4: SI / SS metrics ---

@@ -221,7 +221,8 @@ def _run_whatif_task(whatif_id: int, request_dict: dict, data_dir: str):
         result_repo.save_run_summary(
             run_id=run_id,
             baseline_cost=whatif_response.baseline_cost,
-            opt_cost=whatif_response.ma_inv_cost,
+            # opt_cost = fitness đầy đủ (nhất quán với baseline hiện trạng)
+            opt_cost=whatif_response.objective_value,
             savings=whatif_response.savings,
             savings_pct=whatif_response.savings_pct,
             n_changes=whatif_response.n_changes,

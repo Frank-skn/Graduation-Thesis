@@ -580,7 +580,7 @@ const RunOptimization = () => {
               {errorMsg && (
                 <Alert type="error" message={errorMsg} showIcon closable className="mb-4" onClose={() => setErrorMsg(null)} />
               )}
-              <Form form={form} layout="vertical" initialValues={{ solver: 'ma', time_limit: 4, mip_gap: 0.01, product_limit: 20 }}>
+              <Form form={form} layout="vertical" initialValues={{ solver: 'ma', time_limit: 10, mip_gap: 0.01, product_limit: 20 }}>
                 <Form.Item label="Bộ giải (Solver)">
                   <div className="flex items-center gap-2">
                     <Tag color="blue" className="text-sm py-1 px-3">MA · Memetic (Hybrid GA-ALNS)</Tag>
@@ -598,7 +598,7 @@ const RunOptimization = () => {
                 <Form.Item
                   label="Giới hạn thời gian mỗi sản phẩm (giây)" name="time_limit"
                   rules={[{ required: true, type: 'number', min: 1, max: 3600 }]}
-                  extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để có nghiệm tốt hơn, giảm để chạy nhanh hơn."
+                  extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để nghiệm hội tụ tốt hơn, giảm để chạy nhanh hơn khi test."
                 >
                   <InputNumber min={1} max={3600} step={1} style={{ width: '100%' }} />
                 </Form.Item>
