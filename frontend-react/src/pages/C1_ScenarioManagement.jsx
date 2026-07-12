@@ -10,6 +10,7 @@
  *   6. custom       → custom
  */
 import React, { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Card, Row, Col, Table, Tag, Button, Form, Input, InputNumber,
   Select, Slider, Alert, Spin, message, Modal, Divider, Space, Tooltip,
@@ -137,6 +138,7 @@ const sliderMarks = { '-50': '-50%', '-20': '-20%', 0: '0', 20: '+20%', 50: '+50
 
 // ────────────────────────────────────────────────────────────────────
 const ScenarioManagement = () => {
+  const navigate = useNavigate()
   const { setActiveScenarioId, setActiveRunId, activeScenarioId } = useAppContext()
 
   // ── State ──────────────────────────────────────────────────────────
@@ -199,7 +201,7 @@ const ScenarioManagement = () => {
     modalForm.setFieldsValue({
       base_run_id: preselect ?? runs[0]?.run_id ?? undefined,
       label: '',
-      time_limit: 300,
+      time_limit: 10,
     })
     setShowModal(true)
   }
@@ -239,7 +241,7 @@ const ScenarioManagement = () => {
         label: values.label || `${TYPE_LABEL[scenario_type]} ±${Math.abs(adjustPct)}%`,
         overrides,
         solver: 'ma',
-        time_limit: values.time_limit || 300,
+        time_limit: values.time_limit || 10,
         mip_gap: 0.01,
       })
 
@@ -276,7 +278,8 @@ const ScenarioManagement = () => {
       render: (_, r) => r.run_id ? (
         <Button size="small" type="link" onClick={() => {
           setActiveRunId(r.run_id)
-          message.success(`Đã chọn lần chạy #${r.run_id} — điều hướng đến B2 để xem kết quả`)
+          message.success(`Đã chọn lần chạy #${r.run_id}`)
+          navigate('/b2-executive-summary')
         }}>Xem kết quả</Button>
       ) : null,
     },
@@ -485,9 +488,14 @@ const ScenarioManagement = () => {
               } />
             </Form.Item>
 
-            {/* Giới hạn thời gian */}
-            <Form.Item name="time_limit" label="Giới hạn thời gian giải (giây)" initialValue={300}>
-              <InputNumber min={30} max={3600} step={30} style={{ width: '100%' }} />
+            {/* Giới hạn thời gian mỗi sản phẩm */}
+            <Form.Item
+              name="time_limit"
+              label="Giới hạn thời gian mỗi sản phẩm (giây)"
+              initialValue={10}
+              extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để nghiệm tốt hơn, giảm để chạy nhanh hơn."
+            >
+              <InputNumber min={1} max={60} step={1} style={{ width: '100%' }} />
             </Form.Item>
           </Form>
         )}

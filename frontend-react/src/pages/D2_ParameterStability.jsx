@@ -200,7 +200,7 @@ const ParameterStability = () => {
             <Slider min={5} max={30} value={variationLevel} onChange={setVariationLevel} />
           </div>
           <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading} disabled={loading}>Chạy kiểm tra ổn định</Button>
-          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (12 lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (nhanh)'}>
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (12 lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (chọn theo nhóm số kho phục vụ, ưu tiên sản phẩm chi phí cao) — nhanh hơn nhiều'}>
             <div className="flex items-center gap-2 ml-2">
               <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
               <Switch size="small" checked={fullDataset} onChange={setFullDataset} />

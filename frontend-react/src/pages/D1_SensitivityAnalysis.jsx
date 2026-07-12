@@ -256,7 +256,7 @@ const SensitivityAnalysis = () => {
               <Button type="primary" icon={<BarChartOutlined />} onClick={handleRunTornado} loading={pollingTornado || submitting} disabled={loading}>Chạy Tornado</Button>
             </>
           )}
-          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (mỗi mức biến thiên là một lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện — OAT ~22 phút, Tornado ~57 phút'}>
+          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (mỗi mức biến thiên là một lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (chọn theo nhóm số kho phục vụ, ưu tiên sản phẩm chi phí cao) — OAT ~22 phút, Tornado ~57 phút'}>
             <div className="flex items-center gap-2 ml-2">
               <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
               <Switch size="small" checked={fullDataset} onChange={setFullDataset} />

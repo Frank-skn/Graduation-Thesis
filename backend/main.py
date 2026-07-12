@@ -97,6 +97,7 @@ def startup_event():
             ("cost_overstock", "NUMERIC", "0"),
             ("cost_shortage",  "NUMERIC", "0"),
             ("cost_penalty",   "NUMERIC", "0"),
+            ("cost_transport", "NUMERIC", "0"),
         ],
         "dss_run_summary": [
             ("prop_cost",        "NUMERIC", "0"),

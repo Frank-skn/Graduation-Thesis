@@ -235,9 +235,10 @@ class OptimizationService:
             )
             # Proportional allocation baseline is DEPRECATED — không còn dùng.
             prop_cost = 0.0
-            # Inventory cost thuần (Co/Cs/Cb) từ MA rows — dùng cho breakdown chi
-            # phí hiển thị theo thành phần (KHÔNG dùng để tính savings nữa).
-            ma_inv_cost, cost_breakdown = self._compute_inv_cost_from_rows(rows, _loader)
+            # Cơ cấu chi phí từ MA rows — dùng cho breakdown hiển thị theo thành
+            # phần (backorder/overstock/shortage/penalty/transport). ma_inv_cost
+            # (Co/Cs/Cb thuần) KHÔNG dùng để tính savings nữa.
+            ma_inv_cost, cost_breakdown = self._compute_inv_cost_from_rows(rows, _loader, plt_rows)
         else:
             _loader       = None
             baseline      = _baseline_cost(data)
@@ -268,12 +269,25 @@ class OptimizationService:
         savings_pct_prop = (savings_vs_prop / prop_cost * 100) if prop_cost > 0 else 0.0
 
         # --- Step 4: SI / SS metrics ---
+        # SI (Safety Index) = tồn kho thực tế / ngưỡng sàn L thực tế. SI >= 1: an toàn.
+        # (Trước đây si_values chỉ lưu max(0, inv) — tồn kho trung bình, KHÔNG phải
+        # chỉ số an toàn — đã sửa để chia đúng cho L, khớp công thức dùng ở
+        # GET /results/{run_id}/si-ss.)
+        L_map: dict = {}
+        if _loader is not None:
+            for _, _row in _loader.inv_flow.iterrows():
+                _key = (str(_row["product_id"]), str(_row["warehouse_id"]), int(_row["time_period"]))
+                L_map[_key] = float(_row["inventory_floor"])
+        else:
+            L_map = data.L
+
         si_values: list = []
         ss_below  = 0
         for r in rows:
             inv = r["net_inventory"]
             sh  = r["shortage_qty"]
-            si_values.append(max(0.0, inv))
+            l_val = float(L_map.get((r["product_id"], r["warehouse_id"], r["time_period"]), 0.0))
+            si_values.append(1.0 if l_val <= 0 else inv / l_val)
             if sh > 0:
                 ss_below += 1
 
@@ -318,24 +332,39 @@ class OptimizationService:
         )
 
     # ------------------------------------------------------------------
-    def _compute_inv_cost_from_rows(self, rows: list, loader) -> tuple:
+    def _compute_inv_cost_from_rows(self, rows: list, loader, plt_rows: list = None) -> tuple:
         """
-        Tính inventory cost thuần (Co/Cs/Cb) từ MA rows + CSV unit cost.
+        Tính cơ cấu chi phí từ MA rows để HIỂN THỊ theo thành phần.
         Trả về (total_inv_cost, cost_breakdown_dict).
-        Dùng để so sánh công bằng với baseline và prop_cost (cùng đơn vị).
+
+        - cost_backorder/overstock/shortage: từ Co/Cs/Cb × số lượng.
+        - cost_penalty: phạt vi phạm quy cách đóng gói (OA + PLT) — mỗi dòng có
+          phần lẻ (penalty_flag) hoặc PLT lẻ bị tính 1 lần Cp.
+        - cost_transport: chi phí điều chuyển ngang PLT (khoảng cách × TC).
+        total_inv (Co/Cs/Cb thuần) vẫn dùng để so sánh với baseline cùng đơn vị.
         """
         # Index unit cost từ loader
         co_map: Dict = {}
         cs_map: Dict = {}
         cb_map: Dict = {}
+        cp_map: Dict = {}
         for _, row in loader.unit_cost.iterrows():
             key = (str(row["warehouse_id"]), int(row["time_period"]))
             co_map[key] = float(row["overstock_cost"])
             cs_map[key] = float(row["shortage_cost"])
             cb_map[key] = float(row["backlog_cost"])
+            cp_map[key] = float(row.get("penalty_cost", 2000.0))
+
+        # Case-pack (pack_multiple) theo sản phẩm — để phát hiện PLT lẻ
+        cp_pack_map: Dict = {}
+        try:
+            for _, row in loader.packing.iterrows():
+                cp_pack_map[str(row["product_id"])] = int(row["pack_multiple"])
+        except Exception:
+            cp_pack_map = {}
 
         total_inv = 0.0
-        cost_bo = cost_ov = cost_sh = 0.0
+        cost_bo = cost_ov = cost_sh = cost_pen = 0.0
 
         for r in rows:
             key = (r["warehouse_id"], r["time_period"])
@@ -345,13 +374,46 @@ class OptimizationService:
             cost_bo += cb_map.get(key, 1500.0) * bo
             cost_ov += co_map.get(key, 0.1)   * ov
             cost_sh += cs_map.get(key, 0.5)   * sh
+            # Phạt đóng gói OA: mỗi dòng có phần lẻ (penalty_flag) chịu 1 lần Cp
+            if r.get("penalty_flag"):
+                cost_pen += cp_map.get(key, 2000.0)
+
+        # Chi phí điều chuyển ngang PLT (transport = khoảng cách × TC).
+        # Phạt PLT lẻ (khi qty không chia hết case-pack kho nhận) gộp vào cost_pen
+        # vì cùng bản chất "phạt vi phạm quy cách đóng gói".
+        cost_transport = 0.0
+        if plt_rows:
+            try:
+                from backend.domain.ma_adapter import WH_TO_STATE
+                dm = loader.distance_matrix
+                tc = float(loader.TC)
+            except Exception:
+                dm, tc = None, 1.2
+            # Case-pack theo product/warehouse để phát hiện PLT lẻ
+            for pr in plt_rows:
+                qty = float(pr.get("qty", 0))
+                if qty <= 0:
+                    continue
+                frm = str(pr.get("from_warehouse_id"))
+                to  = str(pr.get("to_warehouse_id"))
+                if dm is not None:
+                    si = WH_TO_STATE.get(frm)
+                    sj = WH_TO_STATE.get(to)
+                    if si and sj and si in dm.index and sj in dm.columns:
+                        cost_transport += float(dm.loc[si, sj]) * tc
+                # Phạt PLT lẻ: dùng penalty_cost của kho nhận tại kỳ đó
+                t_pr = int(pr.get("time_period", 0))
+                cp_pack = cp_pack_map.get(str(pr.get("product_id"))) if cp_pack_map else None
+                if cp_pack and cp_pack > 0 and (int(round(qty)) % cp_pack) > 0:
+                    cost_pen += cp_map.get((to, t_pr), 2000.0)
 
         total_inv = cost_bo + cost_ov + cost_sh
         breakdown = {
             "cost_backorder": cost_bo,
             "cost_overstock": cost_ov,
             "cost_shortage" : cost_sh,
-            "cost_penalty"  : 0.0,
+            "cost_penalty"  : cost_pen,
+            "cost_transport": cost_transport,
         }
         return total_inv, breakdown
 
@@ -410,6 +472,7 @@ class OptimizationService:
             "cost_overstock"      : cost_breakdown.get("cost_overstock", 0.0),
             "cost_shortage"       : cost_breakdown.get("cost_shortage",  0.0),
             "cost_penalty"        : cost_breakdown.get("cost_penalty",   0.0),
+            "cost_transport"      : cost_breakdown.get("cost_transport", 0.0),
             "service_level"       : service_level,
             "capacity_utilization": cap_util,
         }

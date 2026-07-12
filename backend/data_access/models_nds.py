@@ -82,6 +82,7 @@ class DssKPI(BaseNDS):
     cost_overstock = Column(Numeric(18, 2), default=0)
     cost_shortage  = Column(Numeric(18, 2), default=0)
     cost_penalty   = Column(Numeric(18, 2), default=0)
+    cost_transport = Column(Numeric(18, 2), default=0)   # chi phí điều chuyển ngang (PLT)
     service_level = Column(Numeric(5, 2))
     capacity_utilization = Column(Numeric(5, 2))
 

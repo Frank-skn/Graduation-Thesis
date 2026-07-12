@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db_nds, get_csv_data
+from backend.data_access.csv_repository import CsvOptimizationDataRepository
 from backend.data_access.models_nds import (
     OptimizationRun,
     OptimizationResult,
@@ -48,6 +49,7 @@ class KPIDetail(BaseModel):
     cost_overstock: float = 0
     cost_shortage:  float = 0
     cost_penalty:   float = 0
+    cost_transport: float = 0
     service_level: float = 0
     capacity_utilization: float = 0
 
@@ -174,6 +176,7 @@ def get_executive_summary(
             cost_overstock=float(kpi.cost_overstock or 0),
             cost_shortage= float(kpi.cost_shortage  or 0),
             cost_penalty=  float(kpi.cost_penalty   or 0),
+            cost_transport=float(getattr(kpi, "cost_transport", 0) or 0),
             service_level=float(kpi.service_level or 0),
             capacity_utilization=float(kpi.capacity_utilization or 0),
         )
@@ -445,8 +448,8 @@ class SiSsRecord(BaseModel):
     warehouse_id: str
     time_period: int
     inv: float = 0
-    si: float = 0          # Safety Index = inv / max(L, 1)
-    ss_level: float = 0    # Safety Stock threshold = L value (stored as net_inventory floor)
+    si: float = 0          # Safety Index = inv / L (ngưỡng sàn thực tế)
+    ss_level: float = 0    # Safety Stock threshold = giá trị L thực từ dữ liệu (inventory_floor)
     below_ss: bool = False  # inv < ss_level
 
 
@@ -466,10 +469,13 @@ def get_si_ss(
     page: int = 1,
     page_size: int = 600,
     db: Session = Depends(get_db_nds),
+    csv_repo: CsvOptimizationDataRepository = Depends(get_csv_data),
 ):
     """
     Chỉ số an toàn (SI) và tồn kho an toàn (SS) cho từng ô (i, j, t).
-    SI = tồn kho / max(ngưỡng dưới, 1).  SI < 1 → dưới ngưỡng an toàn.
+    SI = tồn kho / ngưỡng sàn L thực tế (đọc từ dữ liệu inventory_flow, không suy đoán).
+    SI < 1 → dưới ngưỡng an toàn. Ô có L = 0 (không có ngưỡng sàn áp dụng)
+    luôn được coi là an toàn (SI = 1), tránh chia cho ngưỡng giả định gây sai lệch.
     """
     _load_run(run_id, db)
     query = db.query(OptimizationResult).filter(OptimizationResult.run_id == run_id)
@@ -483,17 +489,25 @@ def get_si_ss(
         OptimizationResult.time_period,
     ).offset((page - 1) * page_size).limit(page_size).all()
 
-    # shortage_qty > 0  ↔  inv < L  (the model constraint: s >= L - I)
+    # Lấy ngưỡng sàn L thực tế từ dữ liệu (thay vì suy đoán ngược từ shortage_qty —
+    # cách cũ cho SI=0 sai lệch ở các ô inv=0 nhưng không hề thiếu hụt, vd. kho
+    # không phục vụ sản phẩm đó nên L thực tế cũng bằng 0).
+    opt_input = csv_repo.get_optimization_input()
+    L_map = opt_input.L  # Dict[(product_id, warehouse_id, time_period)] -> ngưỡng sàn
+
     records = []
     si_sum = 0.0
     ss_below = 0
     for r in rows:
         inv = float(r.net_inventory or 0)
         s_qty = float(r.shortage_qty or 0)
-        # Reconstruct L from shortage: s = max(0, L - inv) → L ≈ inv + s
-        l_approx = inv + s_qty if s_qty > 0 else max(inv, 0)
-        si = inv / max(l_approx, 1.0)
+        l_val = float(L_map.get((r.product_id, r.warehouse_id, r.time_period), 0.0))
         below = s_qty > 0
+        if l_val <= 0:
+            # Không có ngưỡng sàn áp dụng cho ô này → không thể "dưới ngưỡng", coi là an toàn.
+            si = 1.0
+        else:
+            si = inv / l_val
         si_sum += si
         if below:
             ss_below += 1
@@ -503,7 +517,7 @@ def get_si_ss(
             time_period=r.time_period,
             inv=inv,
             si=round(si, 4),
-            ss_level=round(l_approx, 2),
+            ss_level=round(l_val, 2),
             below_ss=below,
         ))
 

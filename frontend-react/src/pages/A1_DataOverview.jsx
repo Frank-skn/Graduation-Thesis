@@ -21,17 +21,20 @@ const PARAM_LABEL = {
   CP: 'Cấu hình đóng gói (CP)',
   U: 'Ngưỡng tồn kho trên (U)',
   L: 'Ngưỡng tồn kho dưới (L)',
-  DI: 'Nhu cầu (DI)',
+  DI: 'Biến động tồn kho ngoại sinh (ΔI)',
   CAP: 'Công suất cung ứng (CAP)',
   Cb: 'Chi phí nợ đơn (Cb)',
   Co: 'Chi phí tồn kho vượt mức (Co)',
   Cs: 'Chi phí thiếu hụt (Cs)',
   Cp: 'Chi phí phạt đóng gói (Cp)',
+  LT_OA: 'Thời gian giao từ kho trung tâm (LT_OA)',
+  LT_PLT: 'Thời gian điều chuyển ngang (LT_PLT)',
+  d: 'Khoảng cách giữa nhà máy (d)',
 }
 const paramLabel = (symbol) => PARAM_LABEL[symbol] || symbol
 
 const DataOverview = () => {
-  const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview())
+  const { data, loading, error, execute: refresh } = useApi(() => dataService.getOverview(), [], { cacheKey: 'data-overview' })
 
   // Derive display data from API response
   const overview = data || {}
@@ -67,19 +70,16 @@ const DataOverview = () => {
 
   // Quality metrics — derived from real parameter data
   //   Completeness : avg(num_entries / max_entries) per param
-  //   Zero-free    : avg(1 - zero_count / num_entries) per param
-  //   Parameters   : 100% if all 10 params present
+  //   Parameters   : 100% if all 13 params present
+  // (Đã bỏ "Zero-free Rate": với dữ liệu vận hành thực, giá trị 0 là bình thường
+  //  — vd. không phát sinh chi phí phạt — nên tỉ lệ khác-0 không phản ánh chất lượng dữ liệu.)
   const avgCompleteness = parameters.length > 0
     ? Math.round(parameters.reduce((s, p) => s + (p.max_entries > 0 ? p.num_entries / p.max_entries : 0), 0) / parameters.length * 100)
-    : 0
-  const avgZeroFree = parameters.length > 0
-    ? Math.round(parameters.reduce((s, p) => s + (p.num_entries > 0 ? (1 - p.zero_count / p.num_entries) : 0), 0) / parameters.length * 100)
     : 0
 
   const qualityMetrics = [
     { metric: 'Completeness', value: avgCompleteness, target: 95 },
-    { metric: 'Zero-free Rate', value: avgZeroFree, target: 90 },
-    { metric: 'Parameters', value: parameters.length >= 10 ? 100 : Math.round(parameters.length / 10 * 100), target: 85 },
+    { metric: 'Parameters', value: parameters.length >= 13 ? 100 : Math.round(parameters.length / 13 * 100), target: 85 },
   ]
 
   // Per-parameter bar chart data (replaces static trendData)
@@ -212,9 +212,8 @@ const DataOverview = () => {
             <div className="space-y-4">
               {qualityMetrics.map((metric) => {
                 const metricNames = {
-                  'Completeness': 'Tính Đầy Đủ',
-                  'Zero-free Rate': 'Tỉ Lệ Dữ Liệu Hợp Lệ',
-                  'Parameters': 'Số Tham Số',
+                  'Completeness': 'Tính Đầy Đủ Dữ Liệu',
+                  'Parameters': 'Độ Bao Phủ Tham Số',
                 }
                 return (
                 <div key={metric.metric}>

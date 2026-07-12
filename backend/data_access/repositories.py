@@ -262,6 +262,7 @@ class ResultRepository(IResultRepository):
             "cost_overstock": float(kpi.cost_overstock or 0),
             "cost_shortage":  float(kpi.cost_shortage  or 0),
             "cost_penalty":   float(kpi.cost_penalty   or 0),
+            "cost_transport": float(getattr(kpi, "cost_transport", 0) or 0),
             "service_level": float(kpi.service_level or 0),
             "capacity_utilization": float(kpi.capacity_utilization or 0)
         }

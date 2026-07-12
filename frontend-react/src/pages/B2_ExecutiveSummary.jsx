@@ -28,8 +28,8 @@ const COLORS = {
   safe: SI_COLORS.safe, risk: SI_COLORS.risk, warn: SI_COLORS.warn,
 }
 const PIE_COLORS = [SI_COLORS.safe, SI_COLORS.warn, SI_COLORS.risk]
-// Thứ tự khớp costRows: nợ đơn, tồn thừa, thiếu hụt, phạt đóng gói
-const COST_BAR_COLORS = [COST_COLORS.backorder, COST_COLORS.overstock, COST_COLORS.shortage, COST_COLORS.penalty]
+// Thứ tự khớp costRows: nợ đơn, tồn thừa, thiếu hụt, phạt đóng gói, điều chuyển ngang
+const COST_BAR_COLORS = [COST_COLORS.backorder, COST_COLORS.overstock, COST_COLORS.shortage, COST_COLORS.penalty, COST_COLORS.transship]
 const fmt = (v, d = 0) =>
   typeof v === 'number' ? v.toLocaleString('vi-VN', { maximumFractionDigits: d }) : '—'
 
@@ -101,6 +101,7 @@ const ExecutiveSummary = () => {
     { key: 'overstock', name: 'Chi phí tồn kho vượt mức',   value: Number(kpis.cost_overstock) || 0 },
     { key: 'shortage',  name: 'Chi phí thiếu hụt',          value: Number(kpis.cost_shortage)  || 0 },
     { key: 'penalty',   name: 'Chi phí phạt đóng gói',      value: Number(kpis.cost_penalty)   || 0 },
+    { key: 'transport', name: 'Chi phí điều chuyển ngang',  value: Number(kpis.cost_transport) || 0 },
   ].map((r) => ({ ...r, pct: totalCost > 0 ? (r.value / totalCost * 100) : 0 }))
 
   const costColumns = [
@@ -126,7 +127,7 @@ const ExecutiveSummary = () => {
   }))
 
   const compareBarData = baselineCost > 0
-    ? [{ name: 'So sánh', 'Do-nothing': baselineCost, 'MA Tối ưu': optCost }]
+    ? [{ name: 'So sánh', 'Hiện trạng': baselineCost, 'MA Tối ưu': optCost }]
     : []
 
   // ── Warehouse cost breakdown ──────────────────────────
@@ -297,9 +298,23 @@ const ExecutiveSummary = () => {
           }
         />
 
-        {/* ── KPI Cards ── */}
+        {/* ── KPI Cards (5 card chia đều) ── */}
         <Row gutter={16} align="stretch">
-          <Col span={6}>
+          <Col flex="1">
+            <Card className="h-full">
+              <Statistic
+                title="Chi phí cơ sở (hiện trạng)"
+                value={baselineCost}
+                formatter={(v) => fmt(v, 0)}
+                prefix={<DollarOutlined />}
+                valueStyle={{ color: NEUTRAL[600] }}
+              />
+              <div className="text-xs text-gray-400 mt-1">
+                Chi phí khi không tối ưu
+              </div>
+            </Card>
+          </Col>
+          <Col flex="1">
             <Card className="h-full">
               <Statistic
                 title="Tổng chi phí tối ưu"
@@ -313,7 +328,7 @@ const ExecutiveSummary = () => {
               </div>
             </Card>
           </Col>
-          <Col span={6}>
+          <Col flex="1">
             <Card className="h-full">
               <Statistic
                 title="Mức độ phục vụ"
@@ -328,7 +343,7 @@ const ExecutiveSummary = () => {
               </div>
             </Card>
           </Col>
-          <Col span={6}>
+          <Col flex="1">
             <Card className="h-full">
               <Statistic
                 title="Tiết kiệm vs hiện trạng"
@@ -343,7 +358,7 @@ const ExecutiveSummary = () => {
               </div>
             </Card>
           </Col>
-          <Col span={6}>
+          <Col flex="1">
             <Card className="h-full">
               <Statistic
                 title="Thời gian giải"
@@ -398,11 +413,11 @@ const ExecutiveSummary = () => {
                         {baselineCost > 0 && (
                           <div className="p-4 rounded-lg" style={{ background: NEUTRAL[50], border: `1px solid ${NEUTRAL[200]}` }}>
                             <h4 className="font-semibold mb-3" style={{ color: NEUTRAL[700] }}>
-                              <RiseOutlined className="mr-1" style={{ color: SEMANTIC.good }} />So sánh với chi phí cơ sở (Do-nothing)
+                              <RiseOutlined className="mr-1" style={{ color: SEMANTIC.good }} />So sánh với chi phí cơ sở (hiện trạng)
                             </h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
-                                <span style={{ color: NEUTRAL[500] }}>Chi phí cơ sở (Baseline):</span>
+                                <span style={{ color: NEUTRAL[500] }}>Chi phí cơ sở (hiện trạng):</span>
                                 <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{fmt(baselineCost, 2)}</span>
                               </div>
                               <div className="flex justify-between">
@@ -435,7 +450,7 @@ const ExecutiveSummary = () => {
                         </ResponsiveContainer>
                         {compareBarData.length > 0 && (
                           <>
-                            <p className="text-sm font-semibold text-gray-600 mt-4 mb-2">So sánh tổng: Do-nothing vs MA Tối ưu</p>
+                            <p className="text-sm font-semibold text-gray-600 mt-4 mb-2">So sánh tổng: Hiện trạng vs MA Tối ưu</p>
                             <ResponsiveContainer width="100%" height={160}>
                               <BarChart data={compareBarData} layout="vertical" margin={{ left: 10, right: 80 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -443,7 +458,7 @@ const ExecutiveSummary = () => {
                                 <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
                                 <Tooltip formatter={(v) => [fmt(v, 2)]} />
                                 <Legend />
-                                <Bar dataKey="Do-nothing" fill={NEUTRAL[400]} radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="Hiện trạng" fill={NEUTRAL[400]} radius={[0, 4, 4, 0]} />
                                 <Bar dataKey="MA Tối ưu"  fill={BRAND[500]} radius={[0, 4, 4, 0]} />
                               </BarChart>
                             </ResponsiveContainer>
@@ -479,6 +494,7 @@ const ExecutiveSummary = () => {
                             ['Chi phí tồn kho vượt mức',  Number(kpis.cost_overstock || 0).toLocaleString('vi-VN'), COST_COLORS.overstock],
                             ['Chi phí thiếu hụt',         Number(kpis.cost_shortage  || 0).toLocaleString('vi-VN'), COST_COLORS.shortage],
                             ['Chi phí phạt đóng gói',     Number(kpis.cost_penalty   || 0).toLocaleString('vi-VN'), COST_COLORS.penalty],
+                            ['Chi phí điều chuyển ngang', Number(kpis.cost_transport || 0).toLocaleString('vi-VN'), COST_COLORS.transship],
                           ].map(([label, val, dot]) => (
                             <div key={label} className="flex justify-between items-center py-2 border-b last:border-0">
                               <span className="flex items-center" style={{ color: NEUTRAL[500] }}>
@@ -510,13 +526,22 @@ const ExecutiveSummary = () => {
                   {/* SI trung bình từ extended summary */}
                   {ext && ext.si_mean != null && (
                     <Row gutter={16} className="mb-4" align="stretch">
-                      <Col xs={24} sm={12} md={6}>
+                      <Col xs={24} sm={12} md={8}>
                         <Card size="small" className="h-full">
                           <Statistic title="SI trung bình" value={ext.si_mean} precision={3}
                             prefix={<SafetyOutlined />}
                             valueStyle={{ color: (ext.si_mean ?? 0) >= 1 ? COLORS.safe : COLORS.risk }} />
                           <Text type="secondary" style={{ fontSize: 12 }}>
                             {ext.ss_below_count} ô dưới ngưỡng SS &nbsp;|&nbsp; {ext.n_changes} thay đổi lẻ
+                          </Text>
+                        </Card>
+                      </Col>
+                      <Col xs={24} sm={12} md={16}>
+                        <Card size="small" className="h-full" style={{ background: NEUTRAL[50] }}>
+                          <Text style={{ fontSize: 12.5, color: NEUTRAL[600], lineHeight: 1.6 }}>
+                            <strong>SI (Safety Index — Chỉ số an toàn tồn kho)</strong> = Tồn kho thực tế ÷ Ngưỡng tồn kho tối thiểu (mức sàn).
+                            SI ≥ 1: tồn kho đạt hoặc vượt mức an toàn. SI &lt; 1: tồn kho dưới ngưỡng khuyến nghị, có rủi ro thiếu hàng.
+                            SI trung bình càng gần hoặc lớn hơn 1 thì hệ thống càng an toàn.
                           </Text>
                         </Card>
                       </Col>
@@ -544,28 +569,36 @@ const ExecutiveSummary = () => {
                           : (
                             <Row gutter={16}>
                               <Col xs={24} xl={12}>
-                                <Text strong className="block mb-2">Phân bổ q (kiện) và r (lẻ) theo kỳ</Text>
-                                <ResponsiveContainer width="100%" height={260}>
-                                  <BarChart data={varChartData}>
+                                <Text strong className="block mb-1">Phân bổ q (kiện) và r (lẻ) theo kỳ</Text>
+                                <Text type="secondary" style={{ fontSize: 12 }} className="block mb-2">
+                                  Chỉ tính lượng phân bổ từ kho trung tâm (OA) — chưa gồm điều chuyển ngang (PLT) giữa các kho
+                                </Text>
+                                <ResponsiveContainer width="100%" height={280}>
+                                  <BarChart data={varChartData} margin={{ bottom: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="period" label={{ value: 'Kỳ', position: 'insideBottom', offset: -2 }} />
+                                    <XAxis dataKey="period" label={{ value: 'Kỳ', position: 'insideBottom', offset: -14 }} />
                                     <YAxis />
                                     <Tooltip content={<VarTooltip />} />
-                                    <Legend />
+                                    <Legend wrapperStyle={{ paddingTop: 8 }} />
                                     <Bar dataKey="q" name="q (kiện)" fill={COLORS.q} stackId="a" />
                                     <Bar dataKey="r" name="r (lẻ)"   fill={COLORS.r} stackId="a" />
                                   </BarChart>
                                 </ResponsiveContainer>
                               </Col>
                               <Col xs={24} xl={12}>
-                                <Text strong className="block mb-2">Tồn kho (I), vượt ngưỡng và thiếu hụt</Text>
-                                <ResponsiveContainer width="100%" height={260}>
-                                  <ComposedChart data={varChartData}>
+                                <Text strong className="block mb-1">Tồn kho (I), vượt ngưỡng và thiếu hụt</Text>
+                                <Text type="secondary" style={{ fontSize: 12 }} className="block mb-2">
+                                  {selectedWarehouse
+                                    ? `Tính riêng cho kho ${selectedWarehouse}`
+                                    : 'Cộng dồn trên tất cả các kho — chọn 1 kho cụ thể ở bộ lọc trên để xem riêng'}
+                                </Text>
+                                <ResponsiveContainer width="100%" height={280}>
+                                  <ComposedChart data={varChartData} margin={{ bottom: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="period" />
+                                    <XAxis dataKey="period" label={{ value: 'Kỳ', position: 'insideBottom', offset: -14 }} />
                                     <YAxis />
                                     <Tooltip content={<VarTooltip />} />
-                                    <Legend />
+                                    <Legend wrapperStyle={{ paddingTop: 8 }} />
                                     <Bar  dataKey="bo"  name="Tồn thiếu (bo)"  fill={COLORS.bo} />
                                     <Bar  dataKey="o"   name="Tồn thừa (o)"    fill={COLORS.o}  />
                                     <Bar  dataKey="s"   name="Thiếu hụt (s)"   fill={COLORS.s}  />

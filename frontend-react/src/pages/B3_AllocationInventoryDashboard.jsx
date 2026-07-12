@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   Card, Row, Col, Table, Tag, Select, Tabs, Empty,
-  Spin, Alert, Statistic, Button,
+  Spin, Alert, Statistic, Button, Typography,
 } from 'antd'
 import {
   SwapOutlined,
@@ -27,6 +27,7 @@ import PageHeader from '../components/PageHeader'
 import { CATEGORICAL, SEMANTIC, NEUTRAL, CHART_GRID, BRAND } from '../theme/tokens'
 
 const { Option } = Select
+const { Text } = Typography
 
 // ─── Màu sắc kho (bảng phân loại hài hòa) ───────────────────────────────────
 const WH_COLORS = CATEGORICAL
@@ -170,6 +171,9 @@ const PLTTab = ({ runId, products, warehouses }) => {
 
           {/* Ma trận */}
           <Card title="Ma trận PLT — tổng lượng chuyển theo cặp kho" size="small">
+            <Text type="secondary" style={{ fontSize: 12 }} className="block mb-2">
+              Đơn vị: sản phẩm. Số có phần thập phân vì đây là tổng cộng dồn nhiều giao dịch — một số giao dịch có phần dư lẻ (không tròn theo thùng đóng gói)
+            </Text>
             <Table dataSource={matrixData} columns={matrixColumns} rowKey="from_wh"
               pagination={false} size="small" scroll={{ x: 'max-content' }} />
           </Card>
@@ -441,7 +445,7 @@ const AllocationTab = ({ runId, products, warehouses }) => {
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Vi phạm case-pack"
+                <Statistic title="Vi phạm quy cách đóng gói"
                   valueStyle={{ color: allocations.filter((a) => a.penalty_flag).length > 0 ? SEMANTIC.warn : undefined }}
                   value={allocations.filter((a) => a.penalty_flag).length} suffix="dòng" />
               </Card>

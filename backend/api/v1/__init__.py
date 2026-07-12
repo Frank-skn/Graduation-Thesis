@@ -3,6 +3,7 @@ API v1 router aggregation
 """
 from fastapi import APIRouter
 from backend.api.v1.endpoints import (
+    auth,
     scenarios,
     optimization,
     data,
@@ -15,6 +16,7 @@ from backend.api.v1.endpoints import (
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 api_router.include_router(scenarios.router, prefix="/scenarios", tags=["Scenarios"])
 api_router.include_router(optimization.router, prefix="/optimize", tags=["Optimization"])
 api_router.include_router(data.router, prefix="/data", tags=["Data"])

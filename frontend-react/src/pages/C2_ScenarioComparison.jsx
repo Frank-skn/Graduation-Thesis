@@ -23,6 +23,28 @@ const KPI_LABEL = {
 }
 const kpiLabel = (name) => KPI_LABEL[name] || name
 
+// KPI mà tăng = tốt (ngược với đa số KPI còn lại là chi phí/vấn đề, tăng = xấu)
+const HIGHER_IS_BETTER = new Set(['service_level'])
+// true nếu thay đổi này là điều TỐT cho hệ thống
+const isGoodChange = (kpiName, pct) =>
+  HIGHER_IS_BETTER.has(kpiName) ? pct > 0 : pct < 0
+
+// Dịch loại kịch bản sang tiếng Việt (khớp 11 ScenarioType backend — xem C1)
+const TYPE_LABEL = {
+  demand_surge: 'Nhu cầu tăng',
+  demand_drop: 'Nhu cầu giảm',
+  capacity_expansion: 'Mở rộng công suất',
+  capacity_disruption: 'Gián đoạn công suất',
+  cost_increase: 'Chi phí tăng',
+  cost_decrease: 'Chi phí giảm',
+  safety_stock_loosen: 'Nới ngưỡng tồn kho',
+  safety_stock_tighten: 'Thu hẹp ngưỡng tồn kho',
+  new_product_introduction: 'Sản phẩm mới',
+  warehouse_closure: 'Đóng cửa kho',
+  custom: 'Tùy chỉnh / So sánh trực tiếp',
+}
+const typeLabel = (t) => TYPE_LABEL[t] || t
+
 const ScenarioComparison = () => {
   const [runs, setRuns]               = useState([])
   const [runsLoading, setRunsLoading] = useState(true)
@@ -78,6 +100,7 @@ const ScenarioComparison = () => {
         name: kpiLabel(d.kpi_name),
         pct,
         up: pct > 0,
+        good: isGoodChange(d.kpi_name, pct),
         text: `${pct > 0 ? 'tăng' : 'giảm'} ${Math.abs(pct).toFixed(1)}%`,
       }
     })
@@ -90,17 +113,19 @@ const ScenarioComparison = () => {
     { title: 'Kịch bản', dataIndex: 'whatif_value', key: 'whatif_value', align: 'right',
       render: (v) => fmt(Number(v), 2) },
     { title: 'Thay đổi tuyệt đối', dataIndex: 'absolute_change', key: 'absolute_change', align: 'right',
-      render: (v) => {
+      render: (v, record) => {
         const n = Number(v)
-        return <span className="font-medium tabular-nums" style={{ color: n > 0 ? SEMANTIC.badText : SEMANTIC.goodText }}>
+        const good = isGoodChange(record.kpi_name, n)
+        return <span className="font-medium tabular-nums" style={{ color: n === 0 ? undefined : good ? SEMANTIC.goodText : SEMANTIC.badText }}>
           {n > 0 ? '+' : ''}{fmt(n, 2)}
         </span>
       }},
     { title: '% Thay đổi', dataIndex: 'percent_change', key: 'percent_change', align: 'right',
-      render: (v) => {
+      render: (v, record) => {
         if (v == null) return <Tag color="default">N/A</Tag>
         const n = Number(v)
-        const color = n > 5 ? 'red' : n < -5 ? 'green' : 'blue'
+        const good = isGoodChange(record.kpi_name, n)
+        const color = Math.abs(n) < 5 ? 'blue' : (good ? 'green' : 'red')
         const icon = n > 0 ? <ArrowUpOutlined /> : n < 0 ? <ArrowDownOutlined /> : null
         return <Tag color={color} icon={icon}>{n > 0 ? '+' : ''}{n.toFixed(1)}%</Tag>
       }},
@@ -175,15 +200,15 @@ const ScenarioComparison = () => {
                 <Card size="small">
                   <div className="text-center">
                     <p className="text-sm text-gray-500">Loại kịch bản</p>
-                    <Tag color="blue">{data.scenario_type || 'N/A'}</Tag>
+                    <Tag color="blue">{data.scenario_type ? typeLabel(data.scenario_type) : 'Không xác định'}</Tag>
                   </div>
                 </Card>
               </Col>
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500">Nhãn</p>
-                    <p className="font-semibold">{data.label || '—'}</p>
+                    <p className="text-sm text-gray-500">Lần chạy so sánh</p>
+                    <p className="font-semibold">#{baseRunId} → #{compareRunId}</p>
                   </div>
                 </Card>
               </Col>
@@ -207,11 +232,11 @@ const ScenarioComparison = () => {
                   {summaryItems.map((it) => (
                     <li key={it.name} className="flex items-center gap-2">
                       {it.up
-                        ? <ArrowUpOutlined style={{ color: SEMANTIC.bad }} />
-                        : <ArrowDownOutlined style={{ color: SEMANTIC.good }} />}
+                        ? <ArrowUpOutlined style={{ color: it.good ? SEMANTIC.good : SEMANTIC.bad }} />
+                        : <ArrowDownOutlined style={{ color: it.good ? SEMANTIC.good : SEMANTIC.bad }} />}
                       <span className="font-medium">{it.name}</span>
                       <span className="text-gray-500">{it.up ? 'tăng' : 'giảm'}</span>
-                      <Tag color={it.up ? 'red' : 'green'} className="ml-auto">
+                      <Tag color={it.good ? 'green' : 'red'} className="ml-auto">
                         {it.up ? '+' : '−'}{Math.abs(it.pct).toFixed(1)}%
                       </Tag>
                     </li>

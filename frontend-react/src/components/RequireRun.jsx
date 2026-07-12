@@ -30,7 +30,7 @@ export default function RequireRun({ children }) {
             type="primary"
             icon={<ThunderboltOutlined />}
             size="large"
-            onClick={() => navigate('/b0-run-optimization')}
+            onClick={() => navigate('/b1-run-optimization')}
           >
             Đến B0. Chạy Tối Ưu Hoá
           </Button>

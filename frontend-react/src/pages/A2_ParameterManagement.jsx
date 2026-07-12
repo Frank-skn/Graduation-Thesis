@@ -34,11 +34,11 @@ const ParameterManagement = () => {
     } catch (e) { /* ignore */ }
   }
 
-  const { data: overview, loading: loadingOverview } = useApi(() => dataService.getOverview())
-  const { data: paramsData, loading: loadingParams, execute: refreshParams } = useApi(() => dataService.getParameters())
-  const { data: datasetsData, loading: loadingDatasets, execute: refreshDatasets } = useApi(() => dataService.getDatasets())
-  const { data: algoData, loading: loadingAlgo } = useApi(() => dataService.getAlgorithmParameters())
-  const { data: costData, loading: loadingCost } = useApi(() => dataService.getCostParameters())
+  const { data: overview, loading: loadingOverview } = useApi(() => dataService.getOverview(), [], { cacheKey: 'data-overview' })
+  const { data: paramsData, loading: loadingParams, execute: refreshParams } = useApi(() => dataService.getParameters(), [], { cacheKey: 'model-parameters' })
+  const { data: datasetsData, loading: loadingDatasets, execute: refreshDatasets } = useApi(() => dataService.getDatasets(), [], { cacheKey: 'datasets' })
+  const { data: algoData, loading: loadingAlgo } = useApi(() => dataService.getAlgorithmParameters(), [], { cacheKey: 'algorithm-parameters' })
+  const { data: costData, loading: loadingCost } = useApi(() => dataService.getCostParameters(), [], { cacheKey: 'cost-parameters' })
   const { mutate: saveParam, loading: saving } = useMutation((name, value) => dataService.updateParameter(name, value))
   const { mutate: createDataset, loading: creating } = useMutation((data) => dataService.createDataset(data))
 
@@ -131,15 +131,11 @@ const ParameterManagement = () => {
   ]
 
   // Cột bảng tham số giải thuật (read-only)
+  const ALGO_GROUP_LABEL = { GA: 'Tìm kiếm chính', ALNS: 'Tinh chỉnh cục bộ', 'Dừng': 'Điều kiện dừng' }
   const algoColumns = [
     {
       title: 'Tham Số', dataIndex: 'name', key: 'name',
-      render: (text, r) => (
-        <span>
-          <span className="font-semibold text-gray-800">{text}</span>
-          {r.taguchi && <Tag color="gold" className="ml-2">Taguchi</Tag>}
-        </span>
-      ),
+      render: (text) => <span className="font-semibold text-gray-800">{text}</span>,
     },
     {
       title: 'Ký Hiệu', dataIndex: 'symbol', key: 'symbol', width: 140,
@@ -150,10 +146,10 @@ const ParameterManagement = () => {
       render: (v) => <span className="font-semibold">{Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}</span>,
     },
     {
-      title: 'Nhóm', dataIndex: 'group', key: 'group', width: 90,
+      title: 'Nhóm', dataIndex: 'group', key: 'group', width: 130,
       render: (g) => {
         const color = g === 'GA' ? 'blue' : g === 'ALNS' ? 'purple' : g === 'Dừng' ? 'red' : 'default'
-        return <Tag color={color}>{g}</Tag>
+        return <Tag color={color}>{ALGO_GROUP_LABEL[g] || g}</Tag>
       },
     },
     { title: 'Diễn Giải', dataIndex: 'description', key: 'description',
@@ -229,22 +225,22 @@ const ParameterManagement = () => {
               />
             )}
 
-            {/* Tham số giải thuật Memetic (đọc từ config, hiệu chỉnh Taguchi) */}
+            {/* Tham số giải thuật tối ưu (đọc từ config, đã hiệu chỉnh qua thực nghiệm) */}
             <Card
               title={
                 <span className="text-lg font-semibold flex items-center">
                   <SyncOutlined className="mr-2" />
-                  Tham Số Giải Thuật Memetic (GA-ALNS)
+                  Tham Số Giải Thuật Tối Ưu
                 </span>
               }
-              extra={<Tag color="gold">Cấu hình tối ưu từ Taguchi</Tag>}
+              extra={<Tag color="blue">Cấu hình đã hiệu chỉnh</Tag>}
             >
               <Alert
                 type="info"
                 showIcon
                 className="mb-4"
                 message="Bộ tham số vận hành tối ưu"
-                description="Các tham số giải thuật đã được tinh chỉnh bằng quy hoạch thực nghiệm Taguchi nhằm cân bằng chất lượng lời giải và tốc độ hội tụ. Giá trị chi tiết hiển thị trong bảng dưới."
+                description="Các tham số điều khiển cách hệ thống tìm kiếm phương án phân bổ tốt nhất. Bộ giá trị hiện tại đã được thử nghiệm và hiệu chỉnh để cân bằng giữa chất lượng kết quả và thời gian chạy. Giá trị chi tiết hiển thị trong bảng dưới."
               />
               <Table
                 columns={algoColumns}

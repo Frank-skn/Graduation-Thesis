@@ -9,6 +9,7 @@ import statistics
 from datetime import datetime
 from typing import List, Optional
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -53,6 +54,9 @@ def get_data_overview(csv_repo: CsvOptimizationDataRepository = Depends(get_csv_
         "CP":  (opt_input.CP,  "ij",  cc["ij_theor"]),  # vs |I|×|J| theoretical
         "U":   (opt_input.U,   "ijt", cc["ijt_flow"]),  # vs actual (i,j,t) in flow
         "L":   (opt_input.L,   "ijt", cc["ijt_flow"]),
+        # "DI" trong code = biến động tồn kho ngoại sinh (delta_I / ΔI trong luận văn,
+        # Bảng 3.3), KHÔNG phải nhu cầu (Demand). Nhãn hiển thị ở frontend (PARAM_LABEL)
+        # dùng "Biến động tồn kho ngoại sinh (ΔI)" cho đúng bản chất.
         "DI":  (opt_input.DI,  "ijt", cc["ijt_flow"]),
         "CAP": (opt_input.CAP, "it",  cc["it"]),        # vs |I|×|T|
         "Cb":  (opt_input.Cb,  "ijt", cc["ijt_flow"]),
@@ -60,6 +64,51 @@ def get_data_overview(csv_repo: CsvOptimizationDataRepository = Depends(get_csv_
         "Cs":  (opt_input.Cs,  "ijt", cc["ijt_flow"]),
         "Cp":  (opt_input.Cp,  "ijt", cc["ijt_flow"]),
     }
+
+    # ── Tham số bổ sung (Bảng 3.3 luận văn) chưa có trong CsvOptimizationDataRepository:
+    # LT_OA (thời gian giao từ kho trung tâm, theo kho j), LT_PLT (thời gian điều
+    # chuyển ngang, theo cặp kho i,j), d_i,j (khoảng cách, theo cặp kho i,j).
+    # Đọc trực tiếp CSV — không sửa csv_repository.py để tránh ảnh hưởng logic khác.
+    try:
+        lt_oa_df = pd.read_csv(csv_repo._dir / "oa_lead_time.csv")
+        wh_num_to_id = {str(i + 1): f"WH0{i + 1}" for i in range(len(opt_input.J))}
+        lt_oa: dict = {}
+        for _, row in lt_oa_df.iterrows():
+            wh_id = wh_num_to_id.get(str(int(row["warehouse_id"])))
+            if wh_id and wh_id in opt_input.J:
+                lt_oa[wh_id] = float(row["week_lead_time"])
+    except Exception:
+        lt_oa = {}
+
+    try:
+        lt_plt_df = pd.read_csv(csv_repo._dir / "plt_lead_time.csv")
+        lt_plt: dict = {}
+        for _, row in lt_plt_df.iterrows():
+            frm = wh_num_to_id.get(str(int(row["from_warehouse_id"])))
+            to = wh_num_to_id.get(str(int(row["to_warehouse_id"])))
+            if frm and to:
+                lt_plt[(frm, to)] = float(row["lead_time_weeks"])
+    except Exception:
+        lt_plt = {}
+
+    try:
+        dist_df = pd.read_csv(csv_repo._dir / "FGPs_distance.csv", index_col="State")
+        wh_to_state = {"WH01": "MI", "WH02": "OH", "WH03": "IN", "WH04": "IL", "WH05": "KY", "WH06": "MO"}
+        distance: dict = {}
+        for i in opt_input.J:
+            for j in opt_input.J:
+                if i == j:
+                    continue
+                si, sj = wh_to_state.get(i), wh_to_state.get(j)
+                if si in dist_df.index and sj in dist_df.columns:
+                    distance[(i, j)] = float(dist_df.loc[si, sj])
+    except Exception:
+        distance = {}
+
+    n_j = len(opt_input.J)
+    param_meta["LT_OA"] = (lt_oa, "j", n_j)
+    param_meta["LT_PLT"] = (lt_plt, "jj", n_j * (n_j - 1))
+    param_meta["d"] = (distance, "jj", n_j * (n_j - 1))
 
     summaries: List[ParameterSummary] = []
     for name, (d, idx_type, max_ent) in param_meta.items():
@@ -341,42 +390,42 @@ def get_algorithm_parameters():
     stopping = cfg.get("stopping", {})
 
     params: List[AlgoParam] = [
-        # ── 5 tham số Taguchi ─────────────────────────────────────
-        AlgoParam(name="Kích thước quần thể", symbol="n_pop", value=ga.get("n_pop", 0),
+        # ── Quy mô & độ sâu tìm kiếm ──────────────────────────────
+        AlgoParam(name="Độ rộng tìm kiếm", symbol="n_pop", value=ga.get("n_pop", 0),
                   group="GA", taguchi=True,
-                  description="Số cá thể trong quần thể GA (Taguchi: ảnh hưởng lớn nhất – 45.81%)"),
-        AlgoParam(name="Số thế hệ tối đa", symbol="G_max", value=ga.get("G_max", 0),
+                  description="Số phương án được thử song song ở mỗi vòng tìm kiếm. Càng lớn càng dễ tìm ra phương án tốt, nhưng chạy chậm hơn (tham số ảnh hưởng nhiều nhất đến chất lượng kết quả)"),
+        AlgoParam(name="Số vòng tối ưu tối đa", symbol="G_max", value=ga.get("G_max", 0),
                   group="GA", taguchi=True,
-                  description="Số thế hệ tối đa của GA trước khi dừng"),
-        AlgoParam(name="Xác suất lai chéo", symbol="p_crossover", value=ga.get("p_crossover", 0),
+                  description="Số vòng lặp cải thiện phương án tối đa trước khi dừng"),
+        AlgoParam(name="Tỷ lệ kết hợp phương án", symbol="p_crossover", value=ga.get("p_crossover", 0),
                   group="GA", taguchi=True,
-                  description="Xác suất thực hiện lai chéo giữa hai cá thể cha mẹ"),
-        AlgoParam(name="Xác suất đột biến", symbol="p_mutation", value=ga.get("p_mutation", 0),
+                  description="Tỷ lệ ghép hai phương án tốt để tạo phương án mới tốt hơn"),
+        AlgoParam(name="Tỷ lệ thử phương án mới", symbol="p_mutation", value=ga.get("p_mutation", 0),
                   group="GA", taguchi=True,
-                  description="Xác suất đột biến tạo đa dạng nghiệm"),
-        AlgoParam(name="Số vòng lặp ALNS", symbol="n_iterations", value=alns.get("n_iterations", 0),
+                  description="Tỷ lệ thử ngẫu nhiên một thay đổi nhỏ để tránh bị kẹt ở phương án chưa tối ưu"),
+        AlgoParam(name="Số vòng tinh chỉnh cục bộ", symbol="n_iterations", value=alns.get("n_iterations", 0),
                   group="ALNS", taguchi=True,
-                  description="Số vòng lặp tìm kiếm lân cận lớn thích nghi để cải thiện cục bộ"),
-        # ── Tham số GA cố định ────────────────────────────────────
-        AlgoParam(name="Số thế hệ dừng sớm", symbol="G_stag", value=ga.get("G_stag", 0),
-                  group="GA", description="Dừng nếu không cải thiện trong G_stag thế hệ liên tiếp"),
-        AlgoParam(name="Kích thước tournament", symbol="k_tournament", value=ga.get("k_tournament", 0),
-                  group="GA", description="Số cá thể tham gia mỗi lần chọn lọc tournament"),
-        AlgoParam(name="Tỷ lệ seed từ MILP", symbol="milp_seed_fraction", value=ga.get("milp_seed_fraction", 0),
-                  group="GA", description="Tỷ lệ quần thể khởi tạo từ nghiệm MILP warm-start"),
-        AlgoParam(name="Tỷ lệ nghiệm heuristic", symbol="heuristic_fraction", value=ga.get("heuristic_fraction", 0),
-                  group="GA", description="Tỷ lệ quần thể khởi tạo bằng heuristic theo mức thiếu hụt"),
+                  description="Số vòng rà soát và tinh chỉnh lại phương án đang có để tìm cải thiện nhỏ"),
+        # ── Tham số vận hành khác (giữ cố định, không hiệu chỉnh) ──
+        AlgoParam(name="Ngưỡng dừng sớm", symbol="G_stag", value=ga.get("G_stag", 0),
+                  group="GA", description="Dừng tìm kiếm sớm nếu không cải thiện được kết quả sau một số vòng liên tiếp — tránh chạy lãng phí"),
+        AlgoParam(name="Số phương án so sánh mỗi lượt chọn", symbol="k_tournament", value=ga.get("k_tournament", 0),
+                  group="GA", description="Mỗi lượt chọn phương án tốt để giữ lại, hệ thống so sánh ngẫu nhiên một nhóm nhỏ rồi lấy phương án tốt nhất trong nhóm"),
+        AlgoParam(name="Tỷ lệ khởi tạo từ lời giải chuẩn", symbol="milp_seed_fraction", value=ga.get("milp_seed_fraction", 0),
+                  group="GA", description="Tỷ lệ phương án ban đầu được khởi tạo từ lời giải chuẩn (mô hình toán tối ưu) thay vì ngẫu nhiên — giúp tìm kiếm hội tụ nhanh hơn"),
+        AlgoParam(name="Tỷ lệ khởi tạo theo kinh nghiệm", symbol="heuristic_fraction", value=ga.get("heuristic_fraction", 0),
+                  group="GA", description="Tỷ lệ phương án ban đầu được khởi tạo theo quy tắc ưu tiên nơi thiếu hụt nhiều — giúp tìm kiếm khởi đầu hợp lý hơn ngẫu nhiên"),
         # ── Tham số ALNS cố định ──────────────────────────────────
-        AlgoParam(name="Tỷ lệ phá hủy tối thiểu", symbol="q_min_ratio", value=alns.get("q_min_ratio", 0),
-                  group="ALNS", description="Tỷ lệ nhỏ nhất của nghiệm bị phá hủy mỗi vòng ALNS"),
-        AlgoParam(name="Tỷ lệ phá hủy tối đa", symbol="q_max_ratio", value=alns.get("q_max_ratio", 0),
-                  group="ALNS", description="Tỷ lệ lớn nhất của nghiệm bị phá hủy mỗi vòng ALNS"),
-        AlgoParam(name="Hệ số cập nhật trọng số", symbol="lambda_rho", value=alns.get("lambda_rho", 0),
-                  group="ALNS", description="Hệ số λρ cập nhật trọng số thích nghi của toán tử"),
+        AlgoParam(name="Mức xáo trộn tối thiểu", symbol="q_min_ratio", value=alns.get("q_min_ratio", 0),
+                  group="ALNS", description="Tỷ lệ nhỏ nhất của phương án bị thay đổi mỗi vòng tinh chỉnh cục bộ, để dò tìm cải thiện"),
+        AlgoParam(name="Mức xáo trộn tối đa", symbol="q_max_ratio", value=alns.get("q_max_ratio", 0),
+                  group="ALNS", description="Tỷ lệ lớn nhất của phương án bị thay đổi mỗi vòng tinh chỉnh cục bộ, để dò tìm cải thiện"),
+        AlgoParam(name="Tốc độ học ưu tiên", symbol="lambda_rho", value=alns.get("lambda_rho", 0),
+                  group="ALNS", description="Tốc độ hệ thống ghi nhớ cách tinh chỉnh nào đang hiệu quả để ưu tiên dùng lại"),
         # ── Dừng ──────────────────────────────────────────────────
-        AlgoParam(name="Giới hạn thời gian (giây/SP)", symbol="time_limit_seconds",
+        AlgoParam(name="Giới hạn thời gian mỗi sản phẩm", symbol="time_limit_seconds",
                   value=stopping.get("time_limit_seconds", 0),
-                  group="Dừng", description="Trần thời gian tối đa cho mỗi sản phẩm"),
+                  group="Dừng", description="Thời gian tối đa hệ thống được phép tìm kiếm phương án cho một sản phẩm trước khi phải chốt kết quả tốt nhất đã tìm được"),
     ]
 
     return AlgoParamList(
@@ -441,9 +490,9 @@ def get_cost_parameters(
         CostParam(name="Chi phí nợ đơn", symbol="Cb", value=str(cb), unit="USD/đơn vị",
                   group="Chi phí", description="Chi phí phát sinh khi tồn kho âm / không đáp ứng đủ nhu cầu (thành phần chi phối)"),
         CostParam(name="Chi phí phạt đóng gói", symbol="Cp", value=str(cp), unit="USD/lần",
-                  group="Chi phí", description="Chi phí phạt khi lượng phân bổ/điều chuyển không đủ một case-pack"),
+                  group="Chi phí", description="Chi phí phạt khi lượng phân bổ/điều chuyển không đủ một thùng đóng gói tiêu chuẩn"),
         CostParam(name="Chi phí vận chuyển ngang", symbol="TC", value=str(round(csv_repo.get_transport_cost(), 4)) if hasattr(csv_repo, "get_transport_cost") else "1.2", unit="USD/km",
-                  group="Vận chuyển", description="Chi phí trên một đơn vị khoảng cách cho mỗi tuyến điều chuyển ngang (container 40ft Dry)"),
+                  group="Vận chuyển", description="Chi phí trên một đơn vị khoảng cách cho mỗi tuyến điều chuyển ngang, tính theo cước container tiêu chuẩn"),
         CostParam(name="Thời gian giao hàng từ nguồn (OA)", symbol="LT_OA", value="8", unit="tuần",
                   group="Vận chuyển", description="Thời gian vận chuyển từ kho trung tâm (Việt Nam) đến nhà máy nhận (Hoa Kỳ)"),
         CostParam(name="Thời gian điều chuyển ngang (PLT)", symbol="LT_PLT", value="2–3", unit="tuần",

@@ -15,10 +15,30 @@ export const apiLong = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const AUTH_TOKEN_KEY = 'smi_auth_token';
+
+const requestInterceptor = (config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+};
+
+api.interceptors.request.use(requestInterceptor);
+apiLong.interceptors.request.use(requestInterceptor);
+
 const responseInterceptor = (response) => response.data;
 const errorInterceptor = (error) => {
   const message = error.response?.data?.detail || error.message || 'An error occurred';
   console.error('API Error:', message);
+  if (error.response?.status === 401) {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem('smi_auth_username');
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+  }
   return Promise.reject({ message, status: error.response?.status });
 };
 

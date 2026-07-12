@@ -127,7 +127,7 @@ const RunOptimization = () => {
   // ── Load history ──
   const handleConfirmOptimization = () => {
     message.success('Kết quả tối ưu đã được xác nhận và lưu thành công!')
-    navigate('/b1-executive-summary')
+    navigate('/b2-executive-summary')
   }
 
   const loadHistory = async () => {
@@ -319,7 +319,7 @@ const RunOptimization = () => {
             </Button>
             <AntTooltip title="Xem B2 · Tóm tắt & Chi tiết biến">
               <Button size="small" icon={<DashboardOutlined />}
-                onClick={() => { setActiveRunId(rid); navigate('/b1-executive-summary') }}>
+                onClick={() => { setActiveRunId(rid); navigate('/b2-executive-summary') }}>
                 B2
               </Button>
             </AntTooltip>
@@ -455,7 +455,7 @@ const RunOptimization = () => {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button type="primary" icon={<DashboardOutlined />}
-                      onClick={() => navigate('/b1-executive-summary')}>
+                      onClick={() => navigate('/b2-executive-summary')}>
                       B2 · Xem kết quả
                     </Button>
                     <Button icon={<ExperimentOutlined />}
@@ -463,7 +463,7 @@ const RunOptimization = () => {
                       C1 · What-If
                     </Button>
                     <Button icon={<SlidersOutlined />}
-                      onClick={() => navigate('/c3-scenario-comparison')}>
+                      onClick={() => navigate('/c2-scenario-comparison')}>
                       C2 · So sánh
                     </Button>
                     <Button icon={<ReloadOutlined />} onClick={handleReset}>
@@ -671,11 +671,11 @@ const RunOptimization = () => {
                     extra={
                       <div className="flex gap-2">
                         <Button type="primary" size="small" icon={<DashboardOutlined />}
-                          onClick={() => { setActiveRunId(selectedHistId); navigate('/b1-executive-summary') }}>
+                          onClick={() => { setActiveRunId(selectedHistId); navigate('/b2-executive-summary') }}>
                           B2 · Tóm tắt &amp; Chi tiết
                         </Button>
                         <Button size="small" icon={<BarChartOutlined />}
-                          onClick={() => { setActiveRunId(selectedHistId); navigate('/b2-allocation-inventory-dashboard') }}>
+                          onClick={() => { setActiveRunId(selectedHistId); navigate('/b3-allocation-inventory-dashboard') }}>
                           B3 · Phân bổ
                         </Button>
                       </div>

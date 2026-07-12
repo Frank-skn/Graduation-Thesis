@@ -308,9 +308,10 @@ def get_whatif_status(whatif_id: int, db: Session = Depends(get_db_nds)):
     status = whatif.status or "running"
 
     # Phát hiện job kẹt: nếu vẫn "running" quá lâu (backend restart/crash giữa
-    # chừng) thì đánh dấu failed, tránh frontend poll vô hạn.
+    # chừng) thì đánh dấu failed, tránh frontend poll vô hạn. Ngưỡng 5h — đủ để
+    # chạy full 943 SP (~2.5-3h) mà không báo timeout nhầm khi MA vẫn đang chạy.
     if status == "running" and whatif.created_at:
-        if datetime.utcnow() - whatif.created_at > timedelta(hours=2):
+        if datetime.utcnow() - whatif.created_at > timedelta(hours=5):
             status = "failed: timed out / interrupted"
             whatif.status = status
             db.commit()

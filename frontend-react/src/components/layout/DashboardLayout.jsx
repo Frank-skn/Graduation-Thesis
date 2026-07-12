@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Layout, Menu, Tooltip } from 'antd'
+import { Layout, Menu, Tooltip, Avatar, Dropdown } from 'antd'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
+import authService from '../../services/authService'
 import {
   DatabaseOutlined,
   BarChartOutlined,
@@ -22,6 +23,8 @@ import {
   RadarChartOutlined,
   WarningOutlined,
   SafetyOutlined,
+  UserOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 
 const { Header, Sider, Content } = Layout
@@ -76,6 +79,23 @@ const DashboardLayout = ({ children }) => {
     setIsDragging(true)
   }
 
+  const username = authService.getUsername() || 'admin'
+
+  const handleLogout = () => {
+    authService.logout()
+    navigate('/login', { replace: true })
+  }
+
+  const userMenuItems = [
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Đăng xuất',
+      danger: true,
+      onClick: handleLogout,
+    },
+  ]
+
   const noRun = !activeRunId
   const noRunTitle = 'Cần chạy tối ưu hoá (B1) trước để mở khoá trang này'
 
@@ -103,18 +123,18 @@ const DashboardLayout = ({ children }) => {
       label: 'B. Tối ưu hoá phân bổ',
       children: [
         {
-          key: '/b0-run-optimization',
+          key: '/b1-run-optimization',
           icon: <ThunderboltOutlined />,
           label: 'B1. Thực thi tối ưu hoá',
         },
         {
-          key: '/b1-executive-summary',
+          key: '/b2-executive-summary',
           icon: <DashboardOutlined />,
           label: noRun ? <Tooltip title={noRunTitle}>B2. Kết quả &amp; Chi phí</Tooltip> : 'B2. Kết quả & Chi phí',
           disabled: noRun,
         },
         {
-          key: '/b2-allocation-inventory-dashboard',
+          key: '/b3-allocation-inventory-dashboard',
           icon: <FunnelPlotOutlined />,
           label: noRun ? <Tooltip title={noRunTitle}>B3. Phân bổ &amp; Động thái tồn kho</Tooltip> : 'B3. Phân bổ & Động thái tồn kho',
           disabled: noRun,
@@ -132,7 +152,7 @@ const DashboardLayout = ({ children }) => {
           label: 'C1. Phân tích What-If',
         },
         {
-          key: '/c3-scenario-comparison',
+          key: '/c2-scenario-comparison',
           icon: <SlidersOutlined />,
           label: 'C2. So sánh kịch bản',
         },
@@ -144,12 +164,12 @@ const DashboardLayout = ({ children }) => {
       label: 'D. Phân tích độ nhạy & Rủi ro',
       children: [
         {
-          key: '/d2-sensitivity-analysis',
+          key: '/d1-sensitivity-analysis',
           icon: <RadarChartOutlined />,
           label: 'D1. Phân tích độ nhạy tham số',
         },
         {
-          key: '/d3-parameter-stability',
+          key: '/d2-parameter-stability',
           icon: <BarChartOutlined />,
           label: 'D2. Độ bền vững nghiệm tối ưu',
         },
@@ -254,6 +274,17 @@ const DashboardLayout = ({ children }) => {
               <p className="text-sm font-semibold" style={{ color: '#1E293B' }}>Single-Supplier Multi-Buyer</p>
               <p className="text-xs" style={{ color: '#94A3B8' }}>Supplier-Managed Inventory Optimization</p>
             </div>
+            <div style={{ width: 1, height: 28, background: '#E2E8F0' }} />
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
+              <div className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
+                <Avatar
+                  size={32}
+                  icon={<UserOutlined />}
+                  style={{ background: 'linear-gradient(135deg, #2563EB, #3B82F6)' }}
+                />
+                <span className="text-sm font-medium" style={{ color: '#334155' }}>{username}</span>
+              </div>
+            </Dropdown>
           </div>
         </Header>
         <Content className="p-6" style={{ background: '#F8FAFC' }}>

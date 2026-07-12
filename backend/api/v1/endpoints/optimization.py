@@ -220,12 +220,12 @@ def get_run_status(
 
     status = run.solver_status or "running"
 
-    # Detect a background task that died without updating status: if still
-    # "running" long after the configured MA time limit, surface it as a
-    # timeout instead of polling forever.
+    # Phát hiện background task chết mà không cập nhật status. Ngưỡng đặt 5h —
+    # đủ để chạy full 943 SP (~2.5-3h ở 8-10s/SP) mà không báo timeout nhầm khi
+    # MA vẫn đang chạy. Chỉ báo timeout khi thực sự quá lâu bất thường.
     if status == "running" and run.run_time:
         elapsed = datetime.utcnow() - run.run_time
-        if elapsed > timedelta(hours=2):
+        if elapsed > timedelta(hours=5):
             status = "error: timed out (no update from solver)"
             run.solver_status = status
             db_nds.commit()

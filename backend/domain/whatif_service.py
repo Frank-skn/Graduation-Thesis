@@ -70,7 +70,7 @@ class WhatIfService:
         # 2. Solve — MA reads CSV via data_dir, scenario_overrides scale that input.
         svc = OptimizationService(
             solver="ma",
-            time_limit=request.time_limit or 300,
+            time_limit=request.time_limit or 10,   # giây MỖI sản phẩm
             mip_gap=request.mip_gap or 0.01,
         )
         product_ids = getattr(request, 'product_ids', None)
