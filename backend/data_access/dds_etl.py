@@ -19,9 +19,17 @@ import pandas as pd
 from backend.core.database import engine_dds, SessionLocalDDS, BaseDDS
 from backend.data_access.models_dds import (
     DimProduct, DimWarehouse, DimTime,
-    FactInventorySMI, DDSPackingConfig, DDSModelParameters,
+    FactInventorySMI, DDSPackingConfig, DDSModelParameters, FactPltInput,
     DimScenario, DimRun, FactModelResult, FactPltResult, FactRunSummary,
 )
+
+# Mapping WH01-WH06 → State code trong FGPs_distance.csv (khớp ma_adapter.py)
+_WH_TO_STATE = {
+    "WH01": "MI", "WH02": "OH", "WH03": "IN",
+    "WH04": "IL", "WH05": "KY", "WH06": "MO",
+}
+_TC_DEFAULT = 1.2       # 40ft Dry container (container_pricing.csv row 2)
+_LT_OA_DEFAULT = 8      # week_lead_time từ oa_lead_time.csv (đồng nhất = 8)
 
 
 def _read(dir_: Path, name: str, **kw) -> pd.DataFrame:
@@ -50,6 +58,34 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
     packing    = _read(d, "packing_details.csv", dtype={"product_id": str})
     box_ship   = _read(d, "box_shipment.csv", dtype={"warehouse_id": str})
 
+    # ── Đọc dữ liệu vận chuyển/PLT (giống ma_adapter.CSVDataLoader) ────
+    # oa_lead_time.csv: warehouse_id dạng số (1-6) → map sang WH01-WH06
+    oa_lead    = _read(d, "oa_lead_time.csv")
+    plt_lead   = _read(d, "plt_lead_time.csv")
+    distance   = _read(d, "FGPs_distance.csv", index_col="State")
+    container  = _read(d, "container_pricing.csv")
+
+    _wh_num_to_id = {str(i + 1): f"WH0{i + 1}" for i in range(6)}
+
+    # LT_OA[wh]: thời gian giao từ kho trung tâm, theo kho
+    lt_oa_map: Dict[str, int] = {}
+    for _, row in oa_lead.iterrows():
+        wid = _wh_num_to_id.get(str(int(row["warehouse_id"])))
+        if wid:
+            lt_oa_map[wid] = int(row["week_lead_time"])
+
+    # LT_PLT[(from,to)]: thời gian điều chuyển ngang, theo cặp kho
+    lt_plt_map: Dict[Tuple[str, str], int] = {}
+    for _, row in plt_lead.iterrows():
+        frm = _wh_num_to_id.get(str(int(row["from_warehouse_id"])))
+        to  = _wh_num_to_id.get(str(int(row["to_warehouse_id"])))
+        if frm and to:
+            lt_plt_map[(frm, to)] = int(row["lead_time_weeks"])
+
+    # TC: cước container 40ft Dry (USD/km), hằng số toàn cục
+    _tc_row = container[container["Container_Type"] == "40ft Dry"]
+    tc_value = float(_tc_row.iloc[0]["Base_Rate_USD_per_km"]) if not _tc_row.empty else _TC_DEFAULT
+
     # Sản phẩm "active" = có mặt trong inventory_flow (giống csv_repository)
     active_products = set(inv_flow["product_id"].str.strip().unique())
 
@@ -58,6 +94,7 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
         # ── Xóa sạch (idempotent) — thứ tự tôn trọng FK ──────────────
         db.query(FactInventorySMI).delete()
         db.query(DDSPackingConfig).delete()
+        db.query(FactPltInput).delete()
         db.query(DimProduct).delete()
         db.query(DimWarehouse).delete()
         db.query(DimTime).delete()
@@ -94,6 +131,7 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
             dw = DimWarehouse(
                 warehouse_id=wid,
                 market_code=str(row.get("market_code", "") or ""),
+                lt_oa_weeks=lt_oa_map.get(wid, _LT_OA_DEFAULT),
                 effective_date=today,
                 is_current=True,
             )
@@ -190,9 +228,30 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
                 ))
                 n_pack += 1
 
-        # ── DDS_MODEL_PARAMETERS — HV ────────────────────────────────
+        # ── FACT_PLT_INPUT — LT_PLT + khoảng cách theo cặp kho ────────
+        n_plt_in = 0
+        for wh_i in warehouses["warehouse_id"].astype(str):
+            for wh_j in warehouses["warehouse_id"].astype(str):
+                if wh_i == wh_j or wh_i not in wh_sk or wh_j not in wh_sk:
+                    continue
+                lt_plt = lt_plt_map.get((wh_i, wh_j))
+                if lt_plt is None:
+                    continue
+                s_i, s_j = _WH_TO_STATE.get(wh_i), _WH_TO_STATE.get(wh_j)
+                dist_km = None
+                if s_i and s_j and s_i in distance.index and s_j in distance.columns:
+                    dist_km = float(distance.loc[s_i, s_j])
+                db.add(FactPltInput(
+                    from_warehouse_sk=wh_sk[wh_i], to_warehouse_sk=wh_sk[wh_j],
+                    lt_plt_weeks=lt_plt, distance_km=dist_km,
+                ))
+                n_plt_in += 1
+
+        # ── DDS_MODEL_PARAMETERS — HV + TC ────────────────────────────
         db.add(DDSModelParameters(param_name="HV", param_value=hv,
                                   param_description="High value constant for linearization"))
+        db.add(DDSModelParameters(param_name="TC", param_value=tc_value,
+                                  param_description="Chi phí vận chuyển ngang (USD/km, container 40ft Dry)"))
 
         db.commit()
 
@@ -202,6 +261,7 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
             "dim_time": len(time_sk),
             "fact_inventory_smi": n_fact,
             "dds_packing_config": n_pack,
+            "fact_plt_input": n_plt_in,
         }
         print(f"[DDS ETL] Nạp xong: {counts}", flush=True)
         return counts

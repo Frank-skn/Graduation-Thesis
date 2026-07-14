@@ -35,6 +35,9 @@ class DimWarehouse(BaseDDS):
     warehouse_sk = Column(Integer, primary_key=True, autoincrement=True)
     warehouse_id = Column(String(50), nullable=False, index=True)
     market_code = Column(String(50))
+    # Thời gian giao hàng từ kho trung tâm đến nhà máy này (LT_OA, tuần).
+    # Thuộc tính riêng của từng kho → đặt ở dimension, không phải fact.
+    lt_oa_weeks = Column(Integer)
     effective_date = Column(Date, nullable=False)
     expiry_date = Column(Date)
     is_current = Column(Boolean, default=True, index=True)
@@ -145,6 +148,25 @@ class DDSModelParameters(BaseDDS):
     param_description = Column(String(500))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FactPltInput(BaseDDS):
+    """
+    FACT_PLT_INPUT (khớp Hình 5.8 luận văn) — dữ liệu điều chuyển ngang
+    giữa các cặp nhà máy: thời gian vận chuyển (LT_PLT) và khoảng cách.
+    Một dòng / cặp kho (from, to) có quan hệ điều chuyển ngang.
+    """
+    __tablename__ = "fact_plt_input"
+
+    plt_input_id = Column(Integer, primary_key=True, autoincrement=True)
+    from_warehouse_sk = Column(Integer, ForeignKey("dim_warehouse.warehouse_sk"), nullable=False, index=True)
+    to_warehouse_sk = Column(Integer, ForeignKey("dim_warehouse.warehouse_sk"), nullable=False, index=True)
+    lt_plt_weeks = Column(Integer, nullable=False)
+    distance_km = Column(Numeric(10, 2))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    from_warehouse = relationship("DimWarehouse", foreign_keys=[from_warehouse_sk])
+    to_warehouse = relationship("DimWarehouse", foreign_keys=[to_warehouse_sk])
 
 
 # ══════════════════════════════════════════════════════════════════════
