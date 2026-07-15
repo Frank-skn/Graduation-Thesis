@@ -297,30 +297,56 @@ class MASolver:
             "details"   : details,
         }
 
+    # Nguồn dữ liệu mặc định cho solve_from_dss_data(): "dds" (kho dữ liệu
+    # chiều, khớp kiến trúc Chương 5 luận văn — "DDS phục vụ trực tiếp tối
+    # ưu hóa") hoặc "csv" (đọc thẳng file CSV, dùng làm lưới an toàn/rollback
+    # tức thời nếu phát hiện vấn đề — không cần sửa code, chỉ đổi hằng số này).
+    DEFAULT_DATA_SOURCE = "dds"
+
     # ------------------------------------------------------------------
     def solve_from_dss_data(
         self,
         data_dir: str,
         product_ids: List[str] | None = None,
         scenario_overrides: Dict[str, float] | None = None,
+        data_source: str | None = None,
     ) -> Dict[str, Any]:
         """
-        Chạy MA trên data thực từ DSS CSV files.
+        Chạy MA trên data thực của DSS.
 
         Parameters
         ----------
-        data_dir           : đường dẫn đến folder chứa CSV files
+        data_dir           : đường dẫn đến folder chứa CSV files (vẫn cần cho
+                             nhánh "csv", và để mở SQLite session dds.db cùng cấp)
         product_ids        : danh sách product cần chạy (None = tất cả)
         scenario_overrides : dict factor What-if/Sensitivity, ví dụ {"DI": 1.2}.
                              Áp lên INPUT của Problem (delta_I, CAP, cost...),
                              KHÔNG đụng thuật toán GA/ALNS.
+        data_source         : "dds" (mặc định) hoặc "csv". Chỉ đổi NGUỒN đọc
+                             input — build_problem_from_dds() đã verify khớp
+                             tuyệt đối 943/943 sản phẩm với build_problem() (CSV),
+                             không ảnh hưởng GA/ALNS/decoder/objective.
         """
-        from backend.domain.ma_adapter import (
-            CSVDataLoader, build_problem, apply_overrides_to_problem
-        )
+        source = data_source or self.DEFAULT_DATA_SOURCE
 
-        print("[MA] Loading CSV data...", flush=True)
-        loader  = CSVDataLoader(data_dir)
+        if source == "dds":
+            from backend.core.database import SessionLocalDDS
+            from backend.domain.dds_adapter import DDSDataLoader, build_problem_from_dds
+
+            print("[MA] Loading DDS data...", flush=True)
+            dds_session = SessionLocalDDS()
+            loader = DDSDataLoader(dds_session)
+            build_fn = build_problem_from_dds
+        else:
+            from backend.domain.ma_adapter import CSVDataLoader, build_problem
+
+            print("[MA] Loading CSV data...", flush=True)
+            dds_session = None
+            loader = CSVDataLoader(data_dir)
+            build_fn = build_problem
+
+        from backend.domain.ma_adapter import apply_overrides_to_problem
+
         all_pids = product_ids or loader.get_active_products()
 
         all_rows: List[Dict[str, Any]] = []
@@ -336,7 +362,7 @@ class MASolver:
             t0 = time.perf_counter()
             try:
                 print(f"[MA] Solving {pid}...", flush=True)
-                problem = build_problem(pid, loader)
+                problem = build_fn(pid, loader)
                 if problem is None:
                     print(f"[MA] Skipping {pid}: insufficient data", flush=True)
                     details.append({"product": pid, "status": "skipped"})
@@ -382,6 +408,9 @@ class MASolver:
             "MASolver.solve_from_dss_data done: %d/%d ok | fitness=%.2f | elapsed=%.1fs",
             n_ok, n_total, total_fitness, elapsed_total,
         )
+
+        if dds_session is not None:
+            dds_session.close()
 
         return {
             "rows"      : all_rows,
