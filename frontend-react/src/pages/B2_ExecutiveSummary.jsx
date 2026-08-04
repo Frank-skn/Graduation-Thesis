@@ -300,7 +300,7 @@ const ExecutiveSummary = () => {
 
         {/* ── KPI Cards (5 evenly split cards) ── */}
         <Row gutter={16} align="stretch">
-          <Col flex="1">
+          <Col flex="1.3">
             <Card className="h-full">
               <Statistic
                 title="Baseline Cost (current state)"
@@ -368,7 +368,7 @@ const ExecutiveSummary = () => {
                 prefix={<ClockCircleOutlined />}
               />
               <div className="text-xs text-gray-400 mt-1">
-                Algorithm: Memetic (GA-ALNS)
+                Memetic (GA-ALNS)
               </div>
             </Card>
           </Col>
