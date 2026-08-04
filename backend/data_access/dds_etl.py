@@ -36,11 +36,77 @@ def _read(dir_: Path, name: str, **kw) -> pd.DataFrame:
     return pd.read_csv(dir_ / name, **kw)
 
 
+# Trường số bắt buộc theo từng file — dùng để validate trước khi nạp DDS.
+# Tách riêng theo file thay vì gộp chung để báo lỗi rõ nguồn gốc.
+_NUMERIC_CHECKS: Dict[str, list] = {
+    "inventory_flow.csv": ["time_period", "inventory_fluctuation", "inventory_ceiling", "inventory_floor"],
+    "inventory_begin.csv": ["beginning_inventory"],
+    "unit_cost.csv": ["overstock_cost", "shortage_cost", "backlog_cost", "penalty_cost"],
+    "vendor_capacity.csv": ["capacity"],
+}
+# Trường phải >= 0 (không thể âm về mặt nghiệp vụ) — chỉ cảnh báo, không loại dòng.
+_NON_NEGATIVE_CHECKS: Dict[str, list] = {
+    "inventory_flow.csv": ["inventory_ceiling", "inventory_floor"],
+    "inventory_begin.csv": ["beginning_inventory"],
+    "vendor_capacity.csv": ["capacity"],
+}
+
+
+def _validate_numeric(df: pd.DataFrame, fname: str, report: Dict) -> Dict[str, int]:
+    """
+    Kiểm tra các trường số của 1 file: đếm dòng không ép kiểu được (text/rỗng/NaN)
+    và dòng có giá trị âm bất thường. Chỉ log/đếm — KHÔNG chỉnh sửa df ở đây.
+    """
+    cols = _NUMERIC_CHECKS.get(fname, [])
+    neg_cols = _NON_NEGATIVE_CHECKS.get(fname, [])
+    bad_type_total = 0
+    for c in cols:
+        if c not in df.columns:
+            continue
+        numeric = pd.to_numeric(df[c], errors="coerce")
+        bad_mask = numeric.isna() & df[c].notna()
+        n_bad = int(bad_mask.sum())
+        if n_bad:
+            bad_type_total += n_bad
+            print(f"[DDS ETL][VALIDATE] {fname}.{c}: {n_bad} dòng không phải số hợp lệ "
+                  f"(mẫu: {list(df.loc[bad_mask, c].unique()[:5])})", flush=True)
+    for c in neg_cols:
+        if c not in df.columns:
+            continue
+        numeric = pd.to_numeric(df[c], errors="coerce")
+        n_neg = int((numeric < 0).sum())
+        if n_neg:
+            print(f"[DDS ETL][VALIDATE] {fname}.{c}: {n_neg} dòng có giá trị âm bất thường", flush=True)
+            report.setdefault("negative_value_warnings", {})[f"{fname}.{c}"] = n_neg
+    report.setdefault("bad_type_rows", {})[fname] = bad_type_total
+    return {"bad_type_rows": bad_type_total}
+
+
+def _clean_inventory_flow(df: pd.DataFrame, report: Dict) -> pd.DataFrame:
+    """
+    Bước làm sạch minh họa: ép kiểu số cho inventory_flow.csv (file trung tâm
+    nhất của ETL — tạo FACT_INVENTORY_SMI) và loại các dòng không ép kiểu được
+    thay vì để ETL crash. Trên bộ dữ liệu hiện tại không có dòng nào bị loại
+    (đã verify: 0/35450 dòng lỗi kiểu số) — cơ chế được giữ lại để ETL vẫn an
+    toàn nếu lần trích xuất dữ liệu doanh nghiệp sau này có sai sót.
+    """
+    cols = _NUMERIC_CHECKS["inventory_flow.csv"]
+    numeric_df = df[cols].apply(pd.to_numeric, errors="coerce")
+    bad_mask = numeric_df.isna().any(axis=1)
+    n_bad = int(bad_mask.sum())
+    report["inventory_flow_rows_dropped"] = n_bad
+    if n_bad:
+        print(f"[DDS ETL][CLEAN] inventory_flow.csv: loại {n_bad} dòng lỗi kiểu số trước khi nạp DDS", flush=True)
+        df = df.loc[~bad_mask].reset_index(drop=True)
+    return df
+
+
 def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
     """
     Nạp toàn bộ DDS từ CSV. Idempotent: xóa sạch bảng DDS rồi nạp lại.
 
-    Trả về dict đếm số bản ghi mỗi bảng.
+    Trả về dict đếm số bản ghi mỗi bảng, kèm "data_quality_report" (số dòng
+    lỗi kiểu số/giá trị âm phát hiện khi validate, số dòng bị loại khi clean).
     """
     d = Path(data_dir)
 
@@ -57,6 +123,16 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
     unit_cost  = _read(d, "unit_cost.csv", dtype={"product_id": str, "warehouse_id": str})
     packing    = _read(d, "packing_details.csv", dtype={"product_id": str})
     box_ship   = _read(d, "box_shipment.csv", dtype={"warehouse_id": str})
+
+    # ── Validate dữ liệu số trước khi nạp (log-only, không đổi hành vi) ──
+    dq_report: Dict = {}
+    _validate_numeric(inv_flow, "inventory_flow.csv", dq_report)
+    _validate_numeric(inv_begin, "inventory_begin.csv", dq_report)
+    _validate_numeric(unit_cost, "unit_cost.csv", dq_report)
+    _validate_numeric(capacity, "vendor_capacity.csv", dq_report)
+
+    # ── Clean: ép kiểu + loại dòng lỗi cho file trung tâm nhất của ETL ───
+    inv_flow = _clean_inventory_flow(inv_flow, dq_report)
 
     # ── Đọc dữ liệu vận chuyển/PLT (giống ma_adapter.CSVDataLoader) ────
     # oa_lead_time.csv: warehouse_id dạng số (1-6) → map sang WH01-WH06
@@ -262,6 +338,7 @@ def run_etl(data_dir: str, hv: float = 9999.0) -> Dict[str, int]:
             "fact_inventory_smi": n_fact,
             "dds_packing_config": n_pack,
             "fact_plt_input": n_plt_in,
+            "data_quality_report": dq_report,
         }
         print(f"[DDS ETL] Nạp xong: {counts}", flush=True)
         return counts
