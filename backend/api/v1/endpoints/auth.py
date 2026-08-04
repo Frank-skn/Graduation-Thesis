@@ -31,7 +31,7 @@ def login(payload: LoginRequest):
     if payload.username != DEMO_USERNAME or payload.password != DEMO_PASSWORD:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tên đăng nhập hoặc mật khẩu không đúng",
+            detail="Incorrect username or password",
         )
     token = create_token(payload.username)
     return LoginResponse(access_token=token, username=payload.username)

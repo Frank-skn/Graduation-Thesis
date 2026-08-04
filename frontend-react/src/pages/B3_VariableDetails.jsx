@@ -1,12 +1,12 @@
 /**
- * B3 – Chi tiết biến quyết định & Chỉ số SI/SS
+ * B3 – Decision Variable Detail & SI/SS Indicators
  *
- * Dashboard trực quan hóa:
- *  Row 0 – Chọn lần chạy (run selector)
- *  Row 1 – KPI cards: chi phí cơ sở, chi phí tối ưu, tiết kiệm, SI trung bình
- *  Row 2 – Tab "Biến quyết định" (chọn sản phẩm → ComposedChart q/r/I/bo/o/s + bounds)
- *  Row 3 – Tab "Chỉ số SI/SS" (BarChart phân phối SI, PieChart tỉ lệ an toàn)
- *  Row 4 – Bảng thay đổi (p=1 hoặc r>0)
+ * Visualization dashboard:
+ *  Row 0 – Run selector
+ *  Row 1 – KPI cards: baseline cost, optimal cost, savings, mean SI
+ *  Row 2 – "Decision Variables" tab (select product → ComposedChart q/r/I/bo/o/s + bounds)
+ *  Row 3 – "SI/SS Indicators" tab (BarChart SI distribution, PieChart safety ratio)
+ *  Row 4 – Changes table (p=1 or r>0)
  */
 import React, { useEffect, useState, useCallback } from 'react'
 import {
@@ -31,7 +31,7 @@ const { Option } = Select
 const { TabPane } = Tabs
 
 // ─────────────────────────────────────────────
-// Màu sắc
+// Colors
 // ─────────────────────────────────────────────
 const COLORS = {
   q:    '#2196F3',
@@ -49,21 +49,21 @@ const COLORS = {
 const PIE_COLORS = [COLORS.safe, COLORS.warn, COLORS.risk]
 
 // ─────────────────────────────────────────────
-// Tiện ích
+// Utilities
 // ─────────────────────────────────────────────
 const fmt = (v, d = 0) =>
-  typeof v === 'number' ? v.toLocaleString('vi-VN', { maximumFractionDigits: d }) : '—'
+  typeof v === 'number' ? v.toLocaleString('en-US', { maximumFractionDigits: d }) : '—'
 
 const pct = (v) => `${Number(v).toFixed(1)}%`
 
 // ─────────────────────────────────────────────
-// Custom tooltip cho ComposedChart
+// Custom tooltip for ComposedChart
 // ─────────────────────────────────────────────
 const VarTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-gray-200 rounded p-3 shadow-lg text-xs">
-      <p className="font-semibold mb-1">Kỳ {label}</p>
+      <p className="font-semibold mb-1">Period {label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
           {p.name}: <strong>{fmt(p.value, 1)}</strong>
@@ -74,7 +74,7 @@ const VarTooltip = ({ active, payload, label }) => {
 }
 
 // ─────────────────────────────────────────────
-// Component chính
+// Main component
 // ─────────────────────────────────────────────
 export default function B3_VariableDetails() {
   // ── State ────────────────────────────────
@@ -88,26 +88,26 @@ export default function B3_VariableDetails() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Bộ lọc biến
+  // Variable filters
   const [products, setProducts] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [warehouses, setWarehouses] = useState([])
   const [selectedWarehouse, setSelectedWarehouse] = useState(null)
 
-  // ── Tải danh sách lần chạy ────────────────
+  // ── Load run list ────────────────
   useEffect(() => {
     optimizationService.listRuns()
       .then((res) => {
         const list = res.data?.runs ?? res.data ?? []
         setRuns(list)
-        // Ưu tiên dùng activeRunId từ context, nếu không có thì lấy lần đầu tiên
+        // Prefer activeRunId from context, otherwise fall back to the first run
         const defaultId = activeRunId ?? (list.length > 0 ? (list[0].run_id ?? list[0].id) : null)
         setRunId(defaultId)
       })
       .catch(() => {})
   }, [activeRunId])
 
-  // ── Tải dữ liệu khi runId thay đổi ───────
+  // ── Load data when runId changes ───────
   const loadData = useCallback(async () => {
     if (!runId) return
     setLoading(true)
@@ -122,7 +122,7 @@ export default function B3_VariableDetails() {
       setSummary(sumRes.data)
       const vars = varRes.data?.variables ?? []
       setVariables(vars)
-      // Lấy danh sách sản phẩm & kho duy nhất
+      // Get unique product & warehouse lists
       const prods = [...new Set(vars.map((v) => v.product_id))].sort()
       const whs   = [...new Set(vars.map((v) => v.warehouse_id))].sort()
       setProducts(prods)
@@ -132,7 +132,7 @@ export default function B3_VariableDetails() {
       setSiSs(siRes.data?.records ?? [])
       setChanges(chgRes.data?.changes ?? [])
     } catch (e) {
-      setError('Không thể tải dữ liệu. Hãy đảm bảo đã chạy tối ưu hoá.')
+      setError('Unable to load data. Make sure an optimization run has completed.')
     } finally {
       setLoading(false)
     }
@@ -140,14 +140,14 @@ export default function B3_VariableDetails() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // ── Lọc biến theo sản phẩm + kho đã chọn ─
+  // ── Filter variables by selected product + warehouse ─
   const filteredVars = variables.filter(
     (v) =>
       (!selectedProduct  || v.product_id  === selectedProduct) &&
       (!selectedWarehouse || v.warehouse_id === selectedWarehouse),
   )
 
-  // Chuẩn bị dữ liệu chart: nhóm theo time_period (gộp nhiều kho nếu cần)
+  // Prepare chart data: group by time_period (combining warehouses if needed)
   const varChartData = React.useMemo(() => {
     const byPeriod = {}
     filteredVars.forEach((v) => {
@@ -185,26 +185,26 @@ export default function B3_VariableDetails() {
       else risk++
     })
     return [
-      { name: 'An toàn (SI≥1)',         value: safe },
-      { name: 'Cảnh báo (0.8≤SI<1)',   value: warn },
-      { name: 'Rủi ro (SI<0.8)',        value: risk },
+      { name: 'Safe (SI≥1)',            value: safe },
+      { name: 'Warning (0.8≤SI<1)',    value: warn },
+      { name: 'At risk (SI<0.8)',       value: risk },
     ].filter((d) => d.value > 0)
   }, [siSs])
 
-  // ── Bảng thay đổi ─────────────────────────
+  // ── Changes table ─────────────────────────
   const changeColumns = [
-    { title: 'Sản phẩm', dataIndex: 'product_id', key: 'product_id', width: 110,
+    { title: 'Product', dataIndex: 'product_id', key: 'product_id', width: 110,
       sorter: (a, b) => a.product_id.localeCompare(b.product_id) },
-    { title: 'Kho', dataIndex: 'warehouse_id', key: 'warehouse_id', width: 80 },
-    { title: 'Kỳ', dataIndex: 'time_period', key: 'time_period', width: 60,
+    { title: 'Warehouse', dataIndex: 'warehouse_id', key: 'warehouse_id', width: 80 },
+    { title: 'Period', dataIndex: 'time_period', key: 'time_period', width: 60,
       sorter: (a, b) => a.time_period - b.time_period },
-    { title: 'q (kiện)', dataIndex: 'q', key: 'q', width: 90,
+    { title: 'q (case-pack)', dataIndex: 'q', key: 'q', width: 90,
       align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
-    { title: 'r (đơn vị lẻ)', dataIndex: 'r', key: 'r', width: 110,
+    { title: 'r (residual units)', dataIndex: 'r', key: 'r', width: 110,
       align: 'right', render: (v) => <span className="tabular-nums">{v}</span> },
-    { title: 'Tồn kho net', dataIndex: 'inv', key: 'inv', width: 110,
+    { title: 'Net inventory', dataIndex: 'inv', key: 'inv', width: 110,
       align: 'right', render: (v) => <span className="tabular-nums">{fmt(v, 1)}</span> },
-    { title: 'Thiếu hụt', dataIndex: 'shortage_qty', key: 'shortage_qty', width: 100,
+    { title: 'Shortage', dataIndex: 'shortage_qty', key: 'shortage_qty', width: 100,
       align: 'right',
       render: (v) => v > 0
         ? <span className="tabular-nums font-medium" style={{ color: SEMANTIC.badText }}>{fmt(v, 1)}</span>
@@ -217,16 +217,16 @@ export default function B3_VariableDetails() {
   return (
     <div className="space-y-4">
       <Title level={4} style={{ margin: 0 }}>
-        B3 – Chi tiết biến quyết định &amp; Chỉ số an toàn (SI/SS)
+        B3 – Decision Variable Detail &amp; Safety Indicators (SI/SS)
       </Title>
 
-      {/* ── Chọn lần chạy ── */}
+      {/* ── Run selector ── */}
       <Card size="small">
         <Space>
-          <Text strong>Lần chạy:</Text>
+          <Text strong>Optimization Run:</Text>
           <Select
             style={{ width: 220 }}
-            placeholder="Chọn lần chạy"
+            placeholder="Select a run"
             value={runId}
             onChange={(v) => setRunId(v)}
             loading={runs.length === 0}
@@ -249,7 +249,7 @@ export default function B3_VariableDetails() {
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="Chi phí cơ sở"
+                  title="Baseline cost"
                   value={summary.baseline_cost}
                   precision={0}
                   prefix={<DollarOutlined />}
@@ -261,7 +261,7 @@ export default function B3_VariableDetails() {
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="Chi phí tối ưu"
+                  title="Optimal cost"
                   value={summary.opt_cost}
                   precision={0}
                   prefix={<DollarOutlined />}
@@ -273,7 +273,7 @@ export default function B3_VariableDetails() {
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="Tiết kiệm"
+                  title="Savings"
                   value={summary.savings_pct}
                   precision={1}
                   suffix="%"
@@ -281,22 +281,22 @@ export default function B3_VariableDetails() {
                   valueStyle={{ color: summary.savings_pct > 0 ? COLORS.safe : COLORS.risk }}
                 />
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {fmt(summary.savings)} đơn vị tiền
+                  {fmt(summary.savings)} cost units
                 </Text>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="SI trung bình"
+                  title="Mean SI"
                   value={summary.si_mean}
                   precision={3}
                   prefix={<SafetyOutlined />}
                   valueStyle={{ color: summary.si_mean >= 1 ? COLORS.safe : COLORS.risk }}
                 />
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {summary.ss_below_count} ô dưới ngưỡng SS
-                  &nbsp;|&nbsp; {summary.n_changes} thay đổi lẻ
+                  {summary.ss_below_count} cells below SS threshold
+                  &nbsp;|&nbsp; {summary.n_changes} residual changes
                 </Text>
               </Card>
             </Col>
@@ -306,14 +306,14 @@ export default function B3_VariableDetails() {
         {/* ── Row 2-3: Tabs ── */}
         <Card>
           <Tabs defaultActiveKey="vars">
-            {/* ─── Tab 1: Biến quyết định ─── */}
+            {/* ─── Tab 1: Decision Variables ─── */}
             <TabPane
-              tab={<span><BarChartOutlined /> Biến quyết định</span>}
+              tab={<span><BarChartOutlined /> Decision Variables</span>}
               key="vars"
             >
-              {/* Bộ lọc */}
+              {/* Filters */}
               <Space wrap className="mb-3">
-                <Text strong>Sản phẩm:</Text>
+                <Text strong>Product:</Text>
                 <Select
                   style={{ width: 160 }}
                   value={selectedProduct}
@@ -325,44 +325,44 @@ export default function B3_VariableDetails() {
                 >
                   {products.map((p) => <Option key={p} value={p}>{p}</Option>)}
                 </Select>
-                <Text strong>Kho:</Text>
+                <Text strong>Warehouse:</Text>
                 <Select
                   style={{ width: 110 }}
                   value={selectedWarehouse}
                   onChange={setSelectedWarehouse}
                   allowClear
-                  placeholder="Tất cả"
+                  placeholder="All"
                 >
                   {warehouses.map((w) => <Option key={w} value={w}>{w}</Option>)}
                 </Select>
               </Space>
 
               {varChartData.length === 0
-                ? <Empty description="Không có dữ liệu cho lựa chọn này" />
+                ? <Empty description="No data for this selection" />
                 : (
                   <Row gutter={16}>
-                    {/* Biểu đồ q & r (phân bổ theo kỳ) */}
+                    {/* q & r chart (allocation by period) */}
                     <Col xs={24} xl={12}>
                       <Text strong className="block mb-2">
-                        Phân bổ q (kiện) và r (lẻ) theo kỳ
+                        q (case-pack) and r (residual) allocation by period
                       </Text>
                       <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={varChartData}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="period" label={{ value: 'Kỳ', position: 'insideBottom', offset: -2 }} />
+                          <XAxis dataKey="period" label={{ value: 'Period', position: 'insideBottom', offset: -2 }} />
                           <YAxis />
                           <Tooltip content={<VarTooltip />} />
                           <Legend />
-                          <Bar dataKey="q" name="q (kiện)" fill={COLORS.q} stackId="a" />
-                          <Bar dataKey="r" name="r (lẻ)" fill={COLORS.r} stackId="a" />
+                          <Bar dataKey="q" name="q (case-pack)" fill={COLORS.q} stackId="a" />
+                          <Bar dataKey="r" name="r (residual)" fill={COLORS.r} stackId="a" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Col>
 
-                    {/* Biểu đồ tồn kho & sai lệch */}
+                    {/* Inventory & deviation chart */}
                     <Col xs={24} xl={12}>
                       <Text strong className="block mb-2">
-                        Tồn kho (I), vượt ngưỡng (o/bo) và thiếu hụt (s)
+                        Inventory (I), overstock/backorder (o/bo) and shortage (s)
                       </Text>
                       <ResponsiveContainer width="100%" height={260}>
                         <ComposedChart data={varChartData}>
@@ -371,10 +371,10 @@ export default function B3_VariableDetails() {
                           <YAxis />
                           <Tooltip content={<VarTooltip />} />
                           <Legend />
-                          <Bar dataKey="bo"  name="Tồn thiếu (bo)" fill={COLORS.bo} />
-                          <Bar dataKey="o"   name="Tồn thừa (o)"   fill={COLORS.o}  />
-                          <Bar dataKey="s"   name="Thiếu hụt (s)"  fill={COLORS.s}  />
-                          <Line type="monotone" dataKey="inv" name="Tồn kho net (I)"
+                          <Bar dataKey="bo"  name="Backorder (bo)" fill={COLORS.bo} />
+                          <Bar dataKey="o"   name="Overstock (o)"   fill={COLORS.o}  />
+                          <Bar dataKey="s"   name="Shortage (s)"  fill={COLORS.s}  />
+                          <Line type="monotone" dataKey="inv" name="Net inventory (I)"
                                 stroke={COLORS.inv} strokeWidth={2} dot={false} />
                         </ComposedChart>
                       </ResponsiveContainer>
@@ -386,28 +386,28 @@ export default function B3_VariableDetails() {
 
             {/* ─── Tab 2: SI / SS ─── */}
             <TabPane
-              tab={<span><SafetyOutlined /> Chỉ số SI / SS</span>}
+              tab={<span><SafetyOutlined /> SI / SS Indicators</span>}
               key="siss"
             >
               {siSs.length === 0
-                ? <Empty description="Không có dữ liệu SI/SS" />
+                ? <Empty description="No SI/SS data available" />
                 : (
                   <Row gutter={16}>
-                    {/* Phân phối SI */}
+                    {/* SI distribution */}
                     <Col xs={24} lg={14}>
                       <Text strong className="block mb-2">
-                        Phân phối Safety Index (SI = tồn kho / ngưỡng dưới)
+                        Safety Index distribution (SI = inventory / lower threshold)
                       </Text>
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={siHistData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="si"
                             label={{ value: 'SI', position: 'insideBottom', offset: -2 }} />
-                          <YAxis label={{ value: 'Số ô', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip formatter={(v) => [v, 'Số ô']} />
+                          <YAxis label={{ value: 'Cells', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip formatter={(v) => [v, 'Cells']} />
                           <ReferenceLine x="1.0" stroke="#ff4d4f" strokeDasharray="4 4"
                             label={{ value: 'SI=1', fill: '#ff4d4f', fontSize: 11 }} />
-                          <Bar dataKey="count" name="Số ô"
+                          <Bar dataKey="count" name="Cells"
                             fill={COLORS.warn}
                             isAnimationActive={false}>
                             {siHistData.map((entry) => (
@@ -422,9 +422,9 @@ export default function B3_VariableDetails() {
                       </ResponsiveContainer>
                     </Col>
 
-                    {/* Tỉ lệ an toàn */}
+                    {/* Safety ratio */}
                     <Col xs={24} lg={10}>
-                      <Text strong className="block mb-2">Tỉ lệ mức an toàn</Text>
+                      <Text strong className="block mb-2">Safety Level Ratio</Text>
                       <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
                           <Pie
@@ -450,11 +450,11 @@ export default function B3_VariableDetails() {
               }
             </TabPane>
 
-            {/* ─── Tab 3: Bảng thay đổi ─── */}
+            {/* ─── Tab 3: Changes Table ─── */}
             <TabPane
               tab={
                 <span>
-                  <TableOutlined /> Thay đổi lẻ
+                  <TableOutlined /> Residual Changes
                   {changes.length > 0 && (
                     <Badge count={changes.length} style={{ marginLeft: 6 }} />
                   )}
@@ -469,7 +469,7 @@ export default function B3_VariableDetails() {
                 size="small"
                 pagination={{ pageSize: 20 }}
                 scroll={{ x: 700 }}
-                locale={{ emptyText: 'Không có thay đổi lẻ (r=0 và p=0)' }}
+                locale={{ emptyText: 'No residual changes (r=0 and p=0)' }}
               />
             </TabPane>
           </Tabs>

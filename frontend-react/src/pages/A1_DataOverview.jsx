@@ -15,21 +15,21 @@ import dataService from '../services/dataService'
 import PageHeader from '../components/PageHeader'
 import { SEMANTIC, BRAND, NEUTRAL } from '../theme/tokens'
 
-// Diễn giải tiếng Việt cho ký hiệu tham số mô hình (Bảng 3.3 luận văn)
+// English labels for model parameter symbols (Table 3.3 in the thesis)
 const PARAM_LABEL = {
-  BI: 'Tồn kho đầu kỳ (BI)',
-  CP: 'Cấu hình đóng gói (CP)',
-  U: 'Ngưỡng tồn kho trên (U)',
-  L: 'Ngưỡng tồn kho dưới (L)',
-  DI: 'Biến động tồn kho ngoại sinh (ΔI)',
-  CAP: 'Công suất cung ứng (CAP)',
-  Cb: 'Chi phí nợ đơn (Cb)',
-  Co: 'Chi phí tồn kho vượt mức (Co)',
-  Cs: 'Chi phí thiếu hụt (Cs)',
-  Cp: 'Chi phí phạt đóng gói (Cp)',
-  LT_OA: 'Thời gian giao từ kho trung tâm (LT_OA)',
-  LT_PLT: 'Thời gian điều chuyển ngang (LT_PLT)',
-  d: 'Khoảng cách giữa nhà máy (d)',
+  BI: 'Beginning Inventory (BI)',
+  CP: 'Packing Configuration (CP)',
+  U: 'Ceiling Level (U)',
+  L: 'Floor Level (L)',
+  DI: 'Exogenous Inventory Variation (ΔI)',
+  CAP: 'Supply Capacity (CAP)',
+  Cb: 'Backorder Cost (Cb)',
+  Co: 'Overstock Cost (Co)',
+  Cs: 'Shortage Cost (Cs)',
+  Cp: 'Packing Penalty Cost (Cp)',
+  LT_OA: 'Lead Time from Central Warehouse (LT_OA)',
+  LT_PLT: 'Lateral Transshipment Lead Time (LT_PLT)',
+  d: 'Distance Between Warehouses (d)',
 }
 const paramLabel = (symbol) => PARAM_LABEL[symbol] || symbol
 
@@ -62,7 +62,7 @@ const DataOverview = () => {
     else if (completeness >= 40) status = 'Stale'
     return {
       source: p.name,
-      lastUpdated: `${Number(p.num_entries).toLocaleString('vi-VN')} bản ghi`,
+      lastUpdated: `${Number(p.num_entries).toLocaleString('en-US')} records`,
       status,
       staleness: completeness,
     }
@@ -71,8 +71,9 @@ const DataOverview = () => {
   // Quality metrics — derived from real parameter data
   //   Completeness : avg(num_entries / max_entries) per param
   //   Parameters   : 100% if all 13 params present
-  // (Đã bỏ "Zero-free Rate": với dữ liệu vận hành thực, giá trị 0 là bình thường
-  //  — vd. không phát sinh chi phí phạt — nên tỉ lệ khác-0 không phản ánh chất lượng dữ liệu.)
+  // (Removed "Zero-free Rate": with real operational data, a value of 0 is
+  //  normal — e.g. no penalty cost incurred — so the non-zero ratio does not
+  //  reflect data quality.)
   const avgCompleteness = parameters.length > 0
     ? Math.round(parameters.reduce((s, p) => s + (p.max_entries > 0 ? p.num_entries / p.max_entries : 0), 0) / parameters.length * 100)
     : 0
@@ -94,7 +95,7 @@ const DataOverview = () => {
 
   const freshnessColumns = [
     {
-      title: 'Nguồn Dữ Liệu',
+      title: 'Data Source',
       dataIndex: 'source',
       key: 'source',
       render: (text) => (
@@ -104,9 +105,9 @@ const DataOverview = () => {
         </span>
       ),
     },
-    { title: 'Bản Ghi', dataIndex: 'lastUpdated', key: 'lastUpdated' },
+    { title: 'Records', dataIndex: 'lastUpdated', key: 'lastUpdated' },
     {
-      title: 'Mức Độ Đầy Đủ (%)',
+      title: 'Completeness (%)',
       dataIndex: 'staleness',
       key: 'staleness',
       render: (value) => {
@@ -128,16 +129,16 @@ const DataOverview = () => {
       },
     },
     {
-      title: 'Trạng Thái',
+      title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
         const statusMap = {
-          Fresh: { label: 'Cập nhật', color: 'green', icon: CheckCircleOutlined },
-          Good: { label: 'Tốt', color: 'blue', icon: CheckCircleOutlined },
-          Moderate: { label: 'Trung bình', color: 'orange', icon: ClockCircleOutlined },
-          Stale: { label: 'Lỗi thời', color: 'red', icon: ExclamationCircleOutlined },
-          Critical: { label: 'Nghiêm trọng', color: 'red', icon: ExclamationCircleOutlined },
+          Fresh: { label: 'Fresh', color: 'green', icon: CheckCircleOutlined },
+          Good: { label: 'Good', color: 'blue', icon: CheckCircleOutlined },
+          Moderate: { label: 'Moderate', color: 'orange', icon: ClockCircleOutlined },
+          Stale: { label: 'Stale', color: 'red', icon: ExclamationCircleOutlined },
+          Critical: { label: 'Critical', color: 'red', icon: ExclamationCircleOutlined },
         }
         const config = statusMap[status] || statusMap.Critical
         const Icon = config.icon
@@ -153,20 +154,20 @@ const DataOverview = () => {
   return (
     <Spin spinning={loading}>
     <div className="space-y-6">
-      {error && <Alert message="Lỗi khi tải dữ liệu" description={error} type="error" showIcon closable />}
+      {error && <Alert message="Error loading data" description={error} type="error" showIcon closable />}
       <PageHeader
         icon={<BarChartOutlined />}
-        title="A1. Tổng quan dữ liệu đầu vào"
-        subtitle="Giám sát mức độ đầy đủ, chất lượng và tính sẵn sàng của toàn bộ nguồn dữ liệu"
+        title="A1. Input Data Overview"
+        subtitle="Monitor the completeness, quality, and readiness of all data sources"
       />
 
-      {/* Summary Cards — đồng nhất tone brand, số ink đậm, icon brand nhạt */}
+      {/* Summary Cards — consistent brand tone, bold ink numbers, light brand icons */}
       <Row gutter={16}>
         {[
-          { label: 'Sản Phẩm',        value: numProducts,       Icon: CheckCircleOutlined },
-          { label: 'Kho Hàng',        value: numWarehouses,     Icon: DatabaseOutlined },
-          { label: 'Kỳ Thời Gian',    value: numPeriods,        Icon: CalendarOutlined },
-          { label: 'Tổ Hợp (SP-Kho)', value: totalCombinations, Icon: SyncOutlined },
+          { label: 'Products',              value: numProducts,       Icon: CheckCircleOutlined },
+          { label: 'Warehouses',            value: numWarehouses,     Icon: DatabaseOutlined },
+          { label: 'Time Periods',          value: numPeriods,        Icon: CalendarOutlined },
+          { label: 'Combinations (Prod-WH)', value: totalCombinations, Icon: SyncOutlined },
         ].map(({ label, value, Icon }) => (
           <Col span={6} key={label}>
             <Card>
@@ -187,12 +188,12 @@ const DataOverview = () => {
         title={
           <span className="text-lg font-semibold flex items-center">
             <CalendarOutlined className="mr-2" />
-            Mức Độ Hoàn Chỉnh Dữ Liệu Theo Tham Số
+            Data Completeness by Parameter
           </span>
         }
         extra={
           <Button icon={<SyncOutlined />} type="primary" onClick={refresh}>
-            Làm Mới
+            Refresh
           </Button>
         }
       >
@@ -208,12 +209,12 @@ const DataOverview = () => {
       {/* Quality Metrics & Parameter Coverage */}
       <Row gutter={16}>
         <Col span={10}>
-          <Card title={<span className="text-lg font-semibold">Chỉ Số Chất Lượng So Với Mục Tiêu</span>}>
+          <Card title={<span className="text-lg font-semibold">Quality Metrics vs. Target</span>}>
             <div className="space-y-4">
               {qualityMetrics.map((metric) => {
                 const metricNames = {
-                  'Completeness': 'Tính Đầy Đủ Dữ Liệu',
-                  'Parameters': 'Độ Bao Phủ Tham Số',
+                  'Completeness': 'Data Completeness',
+                  'Parameters': 'Parameter Coverage',
                 }
                 return (
                 <div key={metric.metric}>
@@ -233,7 +234,7 @@ const DataOverview = () => {
           </Card>
         </Col>
         <Col span={14}>
-          <Card title={<span className="text-lg font-semibold">Độ Hoàn Chỉnh Từng Tham Số (%)</span>}>
+          <Card title={<span className="text-lg font-semibold">Completeness by Parameter (%)</span>}>
             <ResponsiveContainer width="100%" height={340}>
               <BarChart data={paramBarData} margin={{ top: 28, right: 24, left: 8, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -241,9 +242,9 @@ const DataOverview = () => {
                 <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                 <RechartsTooltip
                   labelFormatter={paramLabel}
-                  formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Tính Đầy Đủ' : 'Hợp Lệ']}
+                  formatter={(v, name) => [`${v}%`, name === 'completeness' ? 'Completeness' : 'Valid']}
                 />
-                <Bar dataKey="completeness" name="Tính Đầy Đủ" radius={[4,4,0,0]}>
+                <Bar dataKey="completeness" name="Completeness" radius={[4,4,0,0]}>
                   {paramBarData.map((entry, idx) => (
                     <Cell key={entry.name} fill={entry.completeness >= 95 ? SEMANTIC.good : entry.completeness >= 70 ? SEMANTIC.warn : SEMANTIC.bad} />
                   ))}

@@ -107,7 +107,7 @@ def _run_oat_task(sensitivity_id: int, request_dict: dict, data_dir: str):
         ).first()
         if row:
             row.status = "cancelled"
-            row.results = json.dumps({"error": "Đã hủy bởi người dùng"})
+            row.results = json.dumps({"error": "Cancelled by user"})
             db.commit()
     except Exception as exc:
         row = db.query(SensitivityRun).filter(
@@ -170,7 +170,7 @@ def _run_tornado_task(sensitivity_id: int, request_dict: dict, data_dir: str):
         ).first()
         if row:
             row.status = "cancelled"
-            row.results = json.dumps({"error": "Đã hủy bởi người dùng"})
+            row.results = json.dumps({"error": "Cancelled by user"})
             db.commit()
     except Exception as exc:
         row = db.query(SensitivityRun).filter(
@@ -296,12 +296,12 @@ def cancel_job(job_id: int, db: Session = Depends(get_db_nds)):
 
     if row.status not in ("running", "cancelling"):
         return {"job_id": job_id, "status": row.status,
-                "message": f"Job đã ở trạng thái '{row.status}', không thể hủy."}
+                "message": f"Job is already in status '{row.status}', cannot cancel."}
 
     row.status = "cancelling"
     db.commit()
     return {"job_id": job_id, "status": "cancelling",
-            "message": "Đã gửi yêu cầu hủy. Job sẽ dừng sau khi hoàn tất lần tính hiện tại."}
+            "message": "Cancellation requested. The job will stop after the current computation finishes."}
 
 
 # ================================================================== #

@@ -48,9 +48,9 @@ const usePollJob = (onComplete, persistKey) => {
     try {
       await sensitivityService.cancelJob(jobId)
       setCancelling(true)
-      message.info('Đã gửi yêu cầu dừng. Job sẽ dừng sau khi hoàn tất bước tính hiện tại.')
+      message.info('Stop request sent. The job will stop after completing the current computation step.')
     } catch (e) {
-      message.error('Không gửi được yêu cầu dừng')
+      message.error('Failed to send stop request')
     }
   }
 
@@ -70,9 +70,9 @@ const usePollJob = (onComplete, persistKey) => {
         if (res.status === 'completed') {
           stop(); onCompleteRef.current(res.result)
         } else if (res.status === 'cancelled') {
-          stop(); message.warning('Phân tích đã được dừng.')
+          stop(); message.warning('Analysis has been stopped.')
         } else if (res.status === 'failed') {
-          stop(); message.error('Phân tích thất bại: ' + (res.error || 'Unknown'))
+          stop(); message.error('Analysis failed: ' + (res.error || 'Unknown'))
         } else if (res.status === 'cancelling') {
           setCancelling(true)
         }
@@ -84,17 +84,17 @@ const usePollJob = (onComplete, persistKey) => {
   return { polling, elapsed, startPolling, cancelJob, cancelling }
 }
 
-// Nhãn tiếng Việt cho mã tham số
+// English labels for parameter codes
 const PARAM_LABELS = {
-  DI: 'DI · Biến động cầu',
-  CAP: 'CAP · Năng lực cung ứng',
-  Cb: 'Cb · Chi phí nợ đơn',
-  Co: 'Co · Chi phí tồn kho vượt mức',
-  Cs: 'Cs · Chi phí thiếu hụt',
-  Cp: 'Cp · Chi phí phạt đóng gói',
-  U: 'U · Mức trần tồn kho',
-  L: 'L · Mức sàn tồn kho',
-  BI: 'BI · Tồn kho ban đầu',
+  DI: 'DI · Demand fluctuation',
+  CAP: 'CAP · Supply Capacity',
+  Cb: 'Cb · Backorder cost',
+  Co: 'Co · Overstock cost',
+  Cs: 'Cs · Shortage cost',
+  Cp: 'Cp · Packing penalty cost',
+  U: 'U · Ceiling level',
+  L: 'L · Floor level',
+  BI: 'BI · Beginning inventory',
 }
 const paramLabel = (code) => PARAM_LABELS[code] || code
 
@@ -118,17 +118,17 @@ const ParameterStability = () => {
 
   const { polling, elapsed, startPolling, cancelJob, cancelling } = usePollJob((result) => {
     setResults(result)
-    message.success('Kiểm tra ổn định hoàn thành!')
+    message.success('Stability check complete!')
     loadHistory()
   }, 'smi_d3_stability_job')
 
   const viewHistoryJob = async (job) => {
     try {
       const res = await sensitivityService.getResults(job.job_id)
-      if (!res?.result) { message.warning('Job chưa có kết quả'); return }
+      if (!res?.result) { message.warning('Job has no results yet'); return }
       setResults(res.result)
     } catch (e) {
-      message.error('Không tải được kết quả job')
+      message.error('Failed to load job results')
     }
   }
 
@@ -145,7 +145,7 @@ const ParameterStability = () => {
         time_limit: 5,
       })
       startPolling(res.job_id)
-    } catch { message.error('Không thể khởi động phân tích') }
+    } catch { message.error('Unable to start the analysis') }
     finally { setSubmitting(false) }
   }
 
@@ -160,12 +160,12 @@ const ParameterStability = () => {
 
   // Parameter stability table
   const stabilityColumns = [
-    { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{paramLabel(t)}</Tag> },
-    { title: `Giá trị tại -${variationLevel}%`, dataIndex: 'low_value', key: 'low_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
-    { title: `Giá trị tại +${variationLevel}%`, dataIndex: 'high_value', key: 'high_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
-    { title: 'Khoảng biến thiên', dataIndex: 'spread', key: 'spread', align: 'right', render: (v) => <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{Number(v).toLocaleString('vi-VN')}</span> },
+    { title: 'Parameter', dataIndex: 'parameter_name', key: 'parameter_name', render: (t) => <Tag color="blue">{paramLabel(t)}</Tag> },
+    { title: `Value at -${variationLevel}%`, dataIndex: 'low_value', key: 'low_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
+    { title: `Value at +${variationLevel}%`, dataIndex: 'high_value', key: 'high_value', render: (v) => `${Number(v).toLocaleString('vi-VN')}` },
+    { title: 'Variation range', dataIndex: 'spread', key: 'spread', align: 'right', render: (v) => <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{Number(v).toLocaleString('vi-VN')}</span> },
     {
-      title: 'Chỉ số ổn định', key: 'stability',
+      title: 'Stability index', key: 'stability',
       render: (_, record) => {
         const volatility = Math.abs(Number(record.spread || 0)) / Math.max(1, Number(results?.baseline_objective || 1)) * 100
         const stability = Math.max(0, 100 - volatility)
@@ -173,13 +173,13 @@ const ParameterStability = () => {
       },
     },
     {
-      title: 'Đánh giá', key: 'rating',
+      title: 'Rating', key: 'rating',
       render: (_, record) => {
         const volatility = Math.abs(Number(record.spread || 0)) / Math.max(1, Number(results?.baseline_objective || 1)) * 100
-        if (volatility < 5)  return <Tag color="green">Rất ổn định</Tag>
-        if (volatility < 15) return <Tag color="blue">Ổn định</Tag>
-        if (volatility < 25) return <Tag color="orange">Trung bình</Tag>
-        return <Tag color="red">Biến động</Tag>
+        if (volatility < 5)  return <Tag color="green">Very stable</Tag>
+        if (volatility < 15) return <Tag color="blue">Stable</Tag>
+        if (volatility < 25) return <Tag color="orange">Moderate</Tag>
+        return <Tag color="red">Volatile</Tag>
       },
     },
   ]
@@ -188,23 +188,23 @@ const ParameterStability = () => {
     <div className="space-y-6">
       <PageHeader
         icon={<BarChartOutlined />}
-        title="D2. Độ bền vững nghiệm tối ưu"
-        subtitle="Phân tích độ ổn định của nghiệm tối ưu khi các tham số thay đổi"
+        title="D2. Optimal Solution Stability"
+        subtitle="Analyze the stability of the optimal solution as parameters change"
       />
 
       <Card>
         <div className="flex items-center gap-4 flex-wrap">
-          <div><span className="mr-2">ID kịch bản:</span><InputNumber min={1} value={scenarioId} onChange={setScenarioId} /></div>
+          <div><span className="mr-2">Scenario ID:</span><InputNumber min={1} value={scenarioId} onChange={setScenarioId} /></div>
           <div style={{ width: 200 }}>
-            <span className="mr-2">Mức biến thiên: {variationLevel}%</span>
+            <span className="mr-2">Variation level: {variationLevel}%</span>
             <Slider min={5} max={30} value={variationLevel} onChange={setVariationLevel} />
           </div>
-          <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading} disabled={loading}>Chạy kiểm tra ổn định</Button>
-          <Tooltip title={fullDataset ? 'Chạy toàn bộ 943 SP — RẤT LÂU (12 lần chạy MA đầy đủ)' : 'Chạy 50 mẫu đại diện (chọn theo nhóm số kho phục vụ, ưu tiên sản phẩm chi phí cao) — nhanh hơn nhiều'}>
+          <Button type="primary" icon={<ExperimentOutlined />} onClick={handleRunStability} loading={loading} disabled={loading}>Run stability check</Button>
+          <Tooltip title={fullDataset ? 'Run on all 943 products — VERY SLOW (12 full MA runs)' : 'Run on 50 representative samples (selected by warehouse-count group, prioritizing high-cost products) — much faster'}>
             <div className="flex items-center gap-2 ml-2">
-              <span className="text-xs text-gray-500">{fullDataset ? '943 SP' : '50 mẫu'}</span>
+              <span className="text-xs text-gray-500">{fullDataset ? '943 products' : '50 samples'}</span>
               <Switch size="small" checked={fullDataset} onChange={setFullDataset} />
-              <span className="text-xs text-gray-500">Đầy đủ</span>
+              <span className="text-xs text-gray-500">Full dataset</span>
             </div>
           </Tooltip>
         </div>
@@ -213,8 +213,8 @@ const ParameterStability = () => {
             className="mt-3"
             type="warning"
             showIcon
-            message="Cảnh báo: chạy trên toàn bộ 943 sản phẩm"
-            description="Kiểm tra ổn định chạy ±biến thiên cho 6 tham số = 12 lần chạy MA đầy đủ → có thể mất rất nhiều giờ. Khuyến nghị dùng chế độ 50 mẫu để khảo sát nhanh."
+            message="Warning: running on all 943 products"
+            description="The stability check runs ±variation for 6 parameters = 12 full MA runs → can take many hours. Recommended: use the 50-sample mode for a quick survey."
           />
         )}
       </Card>
@@ -225,25 +225,25 @@ const ParameterStability = () => {
           showIcon
           message={
             <span>
-              Đang kiểm tra độ bền vững trên <b>{fullDataset ? '943 SP' : '50 mẫu đại diện'}</b>...
+              Running stability check on <b>{fullDataset ? '943 products' : '50 representative samples'}</b>...
               <span className="ml-2 font-mono" style={{ color: BRAND[600] }}>{elapsed}s</span>
-              <span className="ml-2 text-gray-400">({fullDataset ? 'toàn bộ 943 SP — có thể mất nhiều giờ' : 'mẫu 50 SP'})</span>
+              <span className="ml-2 text-gray-400">({fullDataset ? 'all 943 products — may take several hours' : '50-product sample'})</span>
             </span>
           }
           description={
             cancelling
-              ? 'Đang dừng… job sẽ kết thúc sau khi hoàn tất bước tính hiện tại (có thể mất tới vài phút).'
-              : 'Job chạy nền — bạn có thể rời trang và quay lại, kết quả vẫn được theo dõi và lưu trong Lịch sử bên dưới.'
+              ? 'Stopping… the job will end after completing the current computation step (may take up to a few minutes).'
+              : 'Job runs in the background — you can leave the page and come back; the result is still tracked and saved in the History section below.'
           }
           action={
             <Popconfirm
-              title="Dừng phân tích?"
-              description="Job sẽ dừng sau khi hoàn tất bước tính hiện tại. Kết quả dở dang sẽ không được lưu."
-              okText="Dừng" cancelText="Tiếp tục"
+              title="Stop the analysis?"
+              description="The job will stop after completing the current computation step. Partial results will not be saved."
+              okText="Stop" cancelText="Continue"
               onConfirm={cancelJob}
             >
               <Button danger size="small" loading={cancelling}>
-                {cancelling ? 'Đang dừng…' : 'Dừng'}
+                {cancelling ? 'Stopping…' : 'Stop'}
               </Button>
             </Popconfirm>
           }
@@ -253,51 +253,51 @@ const ParameterStability = () => {
       {results && (
         <>
           <Row gutter={16}>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Mục tiêu cơ sở</p><p className="text-xl font-bold">{Number(results.baseline_objective || 0).toLocaleString('vi-VN')}</p></div></Card></Col>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Mức biến thiên</p><p className="text-xl font-bold">+/- {results.variation_pct}%</p></div></Card></Col>
-            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Số tham số phân tích</p><p className="text-xl font-bold">{bars.length}</p></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Baseline objective</p><p className="text-xl font-bold">{Number(results.baseline_objective || 0).toLocaleString('vi-VN')}</p></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Variation level</p><p className="text-xl font-bold">+/- {results.variation_pct}%</p></div></Card></Col>
+            <Col span={8}><Card size="small"><div className="text-center"><p className="text-sm text-gray-500">Parameters analyzed</p><p className="text-xl font-bold">{bars.length}</p></div></Card></Col>
           </Row>
 
           <Row gutter={16}>
             <Col span={12}>
-              <Card title="Biểu đồ nhện ướt - Ổn định tham số">
+              <Card title="Radar Chart - Parameter Stability">
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={radarData}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="parameter" />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Biến động" dataKey="volatility" stroke={SEMANTIC.warn} fill={SEMANTIC.warn} fillOpacity={0.3} />
-                    <Radar name="Ổn định" dataKey="stability" stroke={SEMANTIC.good} fill={SEMANTIC.good} fillOpacity={0.3} />
+                    <Radar name="Volatility" dataKey="volatility" stroke={SEMANTIC.warn} fill={SEMANTIC.warn} fillOpacity={0.3} />
+                    <Radar name="Stability" dataKey="stability" stroke={SEMANTIC.good} fill={SEMANTIC.good} fillOpacity={0.3} />
                     <Legend />
                   </RadarChart>
                 </ResponsiveContainer>
               </Card>
             </Col>
             <Col span={12}>
-              <Card title="Tác động biến thiên tham số">
+              <Card title="Parameter Variation Impact">
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={bars.map(b => ({ param: b.parameter_name, variationRange: Number(b.spread) }))}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="param" />
                     <YAxis />
                     <RechartsTooltip formatter={(v) => `${Number(v).toLocaleString('vi-VN')}`} />
-                    <Bar dataKey="variationRange" fill={BRAND[500]} name="Khoảng biến thiên" />
+                    <Bar dataKey="variationRange" fill={BRAND[500]} name="Variation range" />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
             </Col>
           </Row>
 
-          <Card title="Đánh giá ổn định tham số" className="mb-6">
+          <Card title="Parameter Stability Assessment" className="mb-6">
             <Table columns={stabilityColumns} dataSource={bars} pagination={false} size="middle" rowKey="parameter_name" />
           </Card>
 
           {/* Summary and Insights */}
-          <Card title="Nhận xét về ổn định">
+          <Card title="Stability Insights">
             <Row gutter={16}>
               <Col span={12}>
                 <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Tham số ổn định nhất:</h4>
+                  <h4 className="font-semibold mb-2">Most stable parameters:</h4>
                   {bars
                     .sort((a, b) => Number(a.spread) - Number(b.spread))
                     .slice(0, 2)
@@ -310,7 +310,7 @@ const ParameterStability = () => {
               </Col>
               <Col span={12}>
                 <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Tham số biến động nhất:</h4>
+                  <h4 className="font-semibold mb-2">Most volatile parameters:</h4>
                   {bars
                     .sort((a, b) => Number(b.spread) - Number(a.spread))
                     .slice(0, 2)
@@ -322,11 +322,11 @@ const ParameterStability = () => {
                 </div>
               </Col>
             </Row>
-            <Alert 
-              message="Khúyến nghị về ổn định tham số" 
-              description="Các tham số có độ biến động cao cần được theo dõi chặt chẽ và có thể cần cài đặt bảo thủ hơn hoặc bổ sung ràng buộc để cải thiện độ ổn định nghiệm."
-              type="info" 
-              showIcon 
+            <Alert
+              message="Recommendation on parameter stability"
+              description="Parameters with high volatility should be closely monitored and may require more conservative settings or additional constraints to improve solution stability."
+              type="info"
+              showIcon
             />
           </Card>
         </>
@@ -334,36 +334,36 @@ const ParameterStability = () => {
 
       {!results && !loading && (
         <Alert
-          message="Cấu hình tham số kiểm tra ổn định và nhấn Chạy kiểm tra"
-          description="Phân tích này giúp xác định các tham số có tác động lớn nhất đến độ ổn định nghiệm và hỗ trợ ra quyết định trong điều kiện không chắc chắn."
+          message="Configure the stability check parameters and click Run stability check"
+          description="This analysis helps identify the parameters with the greatest impact on solution stability and supports decision-making under uncertainty."
           type="info"
           showIcon
         />
       )}
 
-      <Card title="Lịch sử kiểm tra ổn định" extra={<Button size="small" onClick={loadHistory}>Làm mới</Button>}>
+      <Card title="Stability Check History" extra={<Button size="small" onClick={loadHistory}>Refresh</Button>}>
         <Table
           columns={[
             { title: 'ID', dataIndex: 'job_id', key: 'job_id', width: 60 },
-            { title: 'Tham số', dataIndex: 'parameter_name', key: 'parameter_name',
+            { title: 'Parameter', dataIndex: 'parameter_name', key: 'parameter_name',
               render: (t) => <span className="text-xs">{t}</span> },
-            { title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 110,
+            { title: 'Status', dataIndex: 'status', key: 'status', width: 110,
               render: (s) => {
                 const color = s === 'completed' ? 'green' : s === 'running' ? 'processing' : s === 'failed' ? 'red' : 'default'
                 return <Tag color={color}>{s}</Tag>
               } },
-            { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at',
+            { title: 'Time', dataIndex: 'created_at', key: 'created_at',
               render: (v) => v ? new Date(v).toLocaleString('vi-VN') : '—' },
             { title: '', key: 'action', width: 90,
               render: (_, r) => r.status === 'completed'
-                ? <Button size="small" type="link" onClick={() => viewHistoryJob(r)}>Xem</Button>
+                ? <Button size="small" type="link" onClick={() => viewHistoryJob(r)}>View</Button>
                 : null },
           ]}
           dataSource={history}
           pagination={{ pageSize: 5 }}
           size="small"
           rowKey="job_id"
-          locale={{ emptyText: 'Chưa có lịch sử kiểm tra' }}
+          locale={{ emptyText: 'No stability check history yet' }}
         />
       </Card>
     </div>

@@ -5,7 +5,7 @@ const AUTH_USERNAME_KEY = 'smi_auth_username';
 
 const authService = {
   login: async (username, password) => {
-    // api interceptor unwraps response.data → trả về { access_token, token_type, username }
+    // api interceptor unwraps response.data → returns { access_token, token_type, username }
     const res = await api.post('/auth/login', { username, password });
     localStorage.setItem(AUTH_TOKEN_KEY, res.access_token);
     localStorage.setItem(AUTH_USERNAME_KEY, res.username);

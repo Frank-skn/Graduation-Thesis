@@ -1,12 +1,13 @@
 /**
- * Cache đơn giản ở tầng module (sống ngoài vòng đời component).
- * Dùng cho các API ít thay đổi trong 1 phiên làm việc (tổng quan dữ liệu,
- * tham số giải thuật/chi phí...) để tránh gọi lại API mỗi khi rời rồi quay
- * lại trang — React Router unmount component nên state trong component bị
- * mất, nhưng cache ở đây thì không.
+ * Simple module-level cache (lives outside the component lifecycle).
+ * Used for APIs that change little within a session (data overview,
+ * algorithm/cost parameters...) to avoid refetching every time the user
+ * leaves and returns to a page — React Router unmounts the component so
+ * component state is lost, but the cache here is not.
  *
- * Cache tự mất khi tải lại trang (F5) — đây là hành vi mong muốn, không
- * cần cơ chế hết hạn phức tạp cho một buổi làm việc.
+ * The cache is naturally cleared on page reload (F5) — this is the
+ * desired behavior; no need for a complex expiration mechanism for a
+ * single working session.
  */
 const cache = new Map();
 

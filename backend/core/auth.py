@@ -56,13 +56,13 @@ def require_auth(authorization: Optional[str] = Header(None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Chưa đăng nhập hoặc thiếu token xác thực",
+            detail="Not authenticated or missing auth token",
         )
     token = authorization.removeprefix("Bearer ").strip()
     username = verify_token(token)
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token không hợp lệ hoặc đã hết hạn",
+            detail="Invalid or expired token",
         )
     return username

@@ -1,7 +1,7 @@
 /**
- * C1 – Phân tích What-If
+ * C1 – What-If Analysis
  *
- * 6 nhóm kịch bản gộp lại từ 11 ScenarioType backend:
+ * 6 scenario groups consolidated from 11 backend ScenarioTypes:
  *   1. demand       → demand_surge (pct>0), demand_drop (pct<0)
  *   2. capacity     → capacity_expansion (pct>0), capacity_disruption (pct<0)
  *   3. cost         → cost_increase (pct>0), cost_decrease (pct<0)
@@ -33,14 +33,14 @@ const { Option } = Select
 const { TextArea } = Input
 
 // ────────────────────────────────────────────────────────────────────
-// 6 NHÓM KỊCH BẢN (định nghĩa phía frontend, không phụ thuộc API)
+// 6 SCENARIO GROUPS (defined on the frontend, independent of the API)
 // ────────────────────────────────────────────────────────────────────
 const SCENARIO_GROUPS = [
   {
     key: 'demand',
     icon: <BarChartOutlined style={{ fontSize: 28, color: CATEGORICAL[0] }} />,
-    label: 'Điều chỉnh nhu cầu (DI)',
-    description: 'Tăng hoặc giảm nhu cầu theo % ± x. Dương = nhu cầu tăng, âm = nhu cầu giảm.',
+    label: 'Demand adjustment (DI)',
+    description: 'Increase or decrease demand by % ± x. Positive = demand increases, negative = demand decreases.',
     paramTag: ['DI'],
     color: CATEGORICAL[0],
     hasSlider: true,
@@ -49,8 +49,8 @@ const SCENARIO_GROUPS = [
   {
     key: 'capacity',
     icon: <RocketOutlined style={{ fontSize: 28, color: CATEGORICAL[1] }} />,
-    label: 'Điều chỉnh công suất (CAP)',
-    description: 'Tăng hoặc giảm công suất nhà cung cấp theo %. Âm = gián đoạn cung ứng.',
+    label: 'Capacity adjustment (CAP)',
+    description: 'Increase or decrease supplier capacity by %. Negative = supply disruption.',
     paramTag: ['CAP'],
     color: CATEGORICAL[1],
     hasSlider: true,
@@ -59,8 +59,8 @@ const SCENARIO_GROUPS = [
   {
     key: 'cost',
     icon: <DollarOutlined style={{ fontSize: 28, color: CATEGORICAL[2] }} />,
-    label: 'Điều chỉnh chi phí (Cb, Co, Cs, Cp)',
-    description: 'Điều chỉnh đồng thời tất cả thành phần chi phí (tồn thiếu, tồn thừa, thiếu hụt, vi phạm).',
+    label: 'Cost adjustment (Cb, Co, Cs, Cp)',
+    description: 'Adjust all cost components simultaneously (backorder, overstock, shortage, penalty).',
     paramTag: ['Cb', 'Co', 'Cs', 'Cp'],
     color: CATEGORICAL[2],
     hasSlider: true,
@@ -69,8 +69,8 @@ const SCENARIO_GROUPS = [
   {
     key: 'inventory',
     icon: <SafetyOutlined style={{ fontSize: 28, color: CATEGORICAL[3] }} />,
-    label: 'Điều chỉnh chính sách tồn kho (U/L)',
-    description: 'Nới rộng hoặc thu hẹp khoảng giữa ngưỡng trên (U) và ngưỡng dưới (L).',
+    label: 'Inventory policy adjustment (U/L)',
+    description: 'Widen or narrow the range between the upper threshold (U) and lower threshold (L).',
     paramTag: ['U', 'L'],
     color: CATEGORICAL[3],
     hasSlider: true,
@@ -79,8 +79,8 @@ const SCENARIO_GROUPS = [
   {
     key: 'structural',
     icon: <ApartmentOutlined style={{ fontSize: 28, color: CATEGORICAL[4] }} />,
-    label: 'Thay đổi cấu trúc',
-    description: 'Thêm sản phẩm mới hoặc đóng cửa kho hàng — thay đổi cơ cấu mô hình.',
+    label: 'Structural change',
+    description: 'Add a new product or close a warehouse — changes the structure of the model.',
     paramTag: ['I/J'],
     color: CATEGORICAL[4],
     hasSlider: false,
@@ -88,15 +88,15 @@ const SCENARIO_GROUPS = [
   {
     key: 'custom',
     icon: <ToolOutlined style={{ fontSize: 28, color: CATEGORICAL[5] }} />,
-    label: 'Tùy chỉnh nâng cao (Custom)',
-    description: 'Ghi đè tham số tùy ý. Dùng cho trường hợp đặc biệt không thuộc các nhóm trên.',
+    label: 'Advanced customization (Custom)',
+    description: 'Override arbitrary parameters. Used for special cases not covered by the groups above.',
     paramTag: ['*'],
     color: CATEGORICAL[5],
     hasSlider: false,
   },
 ]
 
-// Chuyển (groupKey, pct) → scenarioType + factor
+// Convert (groupKey, pct) → scenarioType + factor
 function resolveScenarioType(groupKey, pct, structuralSubType) {
   switch (groupKey) {
     case 'demand':
@@ -116,19 +116,19 @@ function resolveScenarioType(groupKey, pct, structuralSubType) {
   }
 }
 
-// Nhãn tiếng Việt cho scenario_type
+// English labels for scenario_type
 const TYPE_LABEL = {
-  demand_surge: 'Nhu cầu tăng',
-  demand_drop: 'Nhu cầu giảm',
-  capacity_expansion: 'Mở rộng công suất',
-  capacity_disruption: 'Gián đoạn công suất',
-  cost_increase: 'Chi phí tăng',
-  cost_decrease: 'Chi phí giảm',
-  safety_stock_loosen: 'Nới ngưỡng tồn kho',
-  safety_stock_tighten: 'Thu hẹp ngưỡng tồn kho',
-  new_product_introduction: 'Sản phẩm mới',
-  warehouse_closure: 'Đóng cửa kho',
-  custom: 'Tùy chỉnh',
+  demand_surge: 'Demand increase',
+  demand_drop: 'Demand decrease',
+  capacity_expansion: 'Capacity expansion',
+  capacity_disruption: 'Capacity disruption',
+  cost_increase: 'Cost increase',
+  cost_decrease: 'Cost decrease',
+  safety_stock_loosen: 'Inventory threshold loosened',
+  safety_stock_tighten: 'Inventory threshold tightened',
+  new_product_introduction: 'New product',
+  warehouse_closure: 'Warehouse closure',
+  custom: 'Custom',
 }
 
 const fmt = (v, d = 0) =>
@@ -155,7 +155,7 @@ const ScenarioManagement = () => {
   // History from /whatif/history endpoint
   const scenarios = historyData?.scenarios || []
 
-  // Auto-poll history khi còn job đang chạy (what-if chạy nền)
+  // Auto-poll history while a job is still running (what-if runs in the background)
   const hasRunningWhatIf = scenarios.some((s) => (s.status || '') === 'running')
   useEffect(() => {
     if (!hasRunningWhatIf) return
@@ -163,7 +163,7 @@ const ScenarioManagement = () => {
     return () => clearInterval(id)
   }, [hasRunningWhatIf, refreshScenarios])
 
-  // Run list cho base scenario selector
+  // Run list for the base scenario selector
   const [runs, setRuns] = useState([])
   const loadRuns = useCallback(() => {
     optimizationService.listRuns()
@@ -176,7 +176,7 @@ const ScenarioManagement = () => {
   }, [])
   useEffect(() => { loadRuns() }, [loadRuns])
 
-  // Khi runs load xong và modal đang mở → tự điền run đầu tiên nếu chưa có
+  // When runs finish loading and the modal is open → auto-fill the first run if none is set
   useEffect(() => {
     if (!showModal || runs.length === 0) return
     const cur = modalForm.getFieldValue('base_run_id')
@@ -187,14 +187,14 @@ const ScenarioManagement = () => {
     modalForm.setFieldsValue({ base_run_id: preselect ?? runs[0]?.run_id })
   }, [runs, showModal]) // eslint-disable-line
 
-  // ── Mở modal với group đã chọn ─────────────────────────────────────
+  // ── Open modal with the selected group ─────────────────────────────────────
   const openModal = (group) => {
     setSelectedGroup(group)
     setAdjustPct(group.defaultPct ?? 20)
     modalForm.resetFields()
-    // Reload runs mỗi lần mở modal để luôn đồng bộ
+    // Reload runs every time the modal opens to stay in sync
     loadRuns()
-    // Ưu tiên: activeRunId từ context → run đầu tiên trong danh sách
+    // Priority: activeRunId from context → first run in the list
     const preselect = activeScenarioId
       ? runs.find((r) => r.scenario_id === activeScenarioId)?.run_id
       : undefined
@@ -227,7 +227,7 @@ const ScenarioManagement = () => {
         try {
           overrides = JSON.parse(values.custom_json || '{}')
         } catch {
-          message.error('JSON tùy chỉnh không hợp lệ')
+          message.error('Invalid custom JSON')
           return
         }
       }
@@ -245,52 +245,52 @@ const ScenarioManagement = () => {
         mip_gap: 0.01,
       })
 
-      message.success('Kịch bản What-If đã được khởi chạy. Kết quả sẽ cập nhật trong lịch sử khi hoàn tất.')
+      message.success('The What-If scenario has been launched. Results will update in the history once complete.')
       setShowModal(false)
       refreshScenarios()
     } catch (err) {
       if (err?.errorFields) return
-      const msg = err?.response?.data?.detail || err?.message || 'Lỗi không xác định'
-      message.error(`Chạy kịch bản thất bại: ${msg}`)
+      const msg = err?.response?.data?.detail || err?.message || 'Unknown error'
+      message.error(`Failed to run scenario: ${msg}`)
     }
   }
 
-  // ── Cột bảng lịch sử kịch bản (What-If runs) ────────────────────
+  // ── Scenario history table columns (What-If runs) ────────────────────
   const scenarioColumns = [
     { title: 'ID', dataIndex: 'whatif_id', key: 'id', width: 60,
       render: (v) => <Tag color="blue">#{v}</Tag> },
-    { title: 'Tên / Nhãn', dataIndex: 'label', key: 'label',
+    { title: 'Name / Label', dataIndex: 'label', key: 'label',
       render: (v, r) => <span className="font-medium">{v || r.whatif_type || '—'}</span> },
-    { title: 'Loại', dataIndex: 'whatif_type', key: 'type',
-      render: (v) => <Tag color="blue">{TYPE_LABEL[v] ?? v ?? 'Tùy chỉnh'}</Tag> },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status',
+    { title: 'Type', dataIndex: 'whatif_type', key: 'type',
+      render: (v) => <Tag color="blue">{TYPE_LABEL[v] ?? v ?? 'Custom'}</Tag> },
+    { title: 'Status', dataIndex: 'status', key: 'status',
       render: (v) => {
         const color = v === 'completed' ? 'green' : v === 'running' ? 'processing' : v === 'failed' ? 'red' : 'default'
         return <Tag color={color}>{v ?? '—'}</Tag>
       }},
-    { title: 'Chi phí tối ưu', dataIndex: 'objective_value', key: 'obj', align: 'right',
+    { title: 'Optimal Cost', dataIndex: 'objective_value', key: 'obj', align: 'right',
       render: (v) => v != null ? <span className="font-semibold tabular-nums" style={{ color: NEUTRAL[700] }}>{fmt(v, 0)}</span> : '—' },
     { title: 'Solver', dataIndex: 'solver_status', key: 'solver',
       render: (v) => v ? <Tag color={/^optimal$/i.test(v) ? 'green' : /^feasible$/i.test(v) ? 'orange' : 'red'}>{v}</Tag> : '—' },
-    { title: 'Ngày tạo', dataIndex: 'created_at', key: 'at',
-      render: (v) => v ? new Date(v).toLocaleString('vi-VN') : '—' },
-    { title: 'Hành động', key: 'action', width: 100,
+    { title: 'Created At', dataIndex: 'created_at', key: 'at',
+      render: (v) => v ? new Date(v).toLocaleString('en-US') : '—' },
+    { title: 'Action', key: 'action', width: 100,
       render: (_, r) => r.run_id ? (
         <Button size="small" type="link" onClick={() => {
           setActiveRunId(r.run_id)
-          message.success(`Đã chọn lần chạy #${r.run_id}`)
+          message.success(`Run #${r.run_id} selected`)
           navigate('/b2-executive-summary')
-        }}>Xem kết quả</Button>
+        }}>View Results</Button>
       ) : null,
     },
   ]
 
-  // Slider pct → hiển thị label
+  // Slider pct → display label
   const pctLabel = adjustPct === 0
-    ? 'Không thay đổi'
+    ? 'No change'
     : adjustPct > 0
-      ? `Tăng +${adjustPct}%`
-      : `Giảm ${adjustPct}%`
+      ? `Increase +${adjustPct}%`
+      : `Decrease ${adjustPct}%`
 
   // ────────────────────────────────────────────────────────────────────
   // Render
@@ -299,12 +299,12 @@ const ScenarioManagement = () => {
     <div className="space-y-6">
       <PageHeader
         icon={<ExperimentOutlined />}
-        title="C1. Phân tích What-If"
-        subtitle="Chọn một nhóm kịch bản, điều chỉnh tham số, rồi chạy để so sánh với lần chạy cơ sở"
+        title="C1. What-If Analysis"
+        subtitle="Select a scenario group, adjust parameters, then run to compare with the base run"
       />
 
-      {/* 6 nhóm kịch bản */}
-      <Card title={<span className="font-bold">Chọn nhóm kịch bản</span>}>
+      {/* 6 scenario groups */}
+      <Card title={<span className="font-bold">Select Scenario Group</span>}>
         <Row gutter={[16, 16]}>
           {SCENARIO_GROUPS.map((g) => (
             <Col xs={24} sm={12} lg={8} key={g.key}>
@@ -332,17 +332,17 @@ const ScenarioManagement = () => {
         </Row>
       </Card>
 
-      {/* Lịch sử kịch bản */}
+      {/* Scenario history */}
       <Card
         title={
           <span className="font-bold">
-            <BarChartOutlined className="mr-2" />Lịch sử kịch bản
+            <BarChartOutlined className="mr-2" />Scenario History
             {scenarios.length > 0 && <Badge count={scenarios.length} style={{ marginLeft: 8 }} />}
           </span>
         }
         extra={
           <Button icon={<ReloadOutlined />} onClick={() => refreshScenarios()} size="small">
-            Làm mới
+            Refresh
           </Button>
         }
       >
@@ -353,13 +353,13 @@ const ScenarioManagement = () => {
           size="small"
           pagination={{ pageSize: 8, showSizeChanger: false }}
           locale={{ emptyText: scenariosError
-            ? `Không thể tải kịch bản: ${scenariosError}`
-            : 'Chưa có kịch bản nào. Chọn nhóm bên trên để bắt đầu.'
+            ? `Unable to load scenarios: ${scenariosError}`
+            : 'No scenarios yet. Select a group above to get started.'
           }}
         />
       </Card>
 
-      {/* ════ MODAL tạo kịch bản ════ */}
+      {/* ════ Create Scenario MODAL ════ */}
       <Modal
         title={
           selectedGroup && (
@@ -373,8 +373,8 @@ const ScenarioManagement = () => {
         onCancel={() => { setShowModal(false); modalForm.resetFields() }}
         onOk={handleSubmit}
         confirmLoading={creating}
-        okText="Chạy kịch bản"
-        cancelText="Huỷ"
+        okText="Run Scenario"
+        cancelText="Cancel"
         width={560}
       >
         {selectedGroup && (
@@ -386,27 +386,27 @@ const ScenarioManagement = () => {
               className="mb-4"
             />
 
-            {/* Chọn lần chạy cơ sở */}
+            {/* Select base run */}
             <Form.Item
               name="base_run_id"
-              label="Lần chạy cơ sở (Run ID)"
-              rules={[{ required: true, message: 'Chọn lần chạy cơ sở' }]}
+              label="Base Run (Run ID)"
+              rules={[{ required: true, message: 'Select a base run' }]}
             >
-              <Select placeholder="Chọn lần chạy cơ sở để điều chỉnh">
+              <Select placeholder="Select a base run to adjust">
                 {runs.map((r) => (
                   <Option key={r.run_id} value={r.run_id}>
-                    Run #{r.run_id} · {r.solver_status} · CP tối ưu: {fmt(r.objective_value)}
+                    Run #{r.run_id} · {r.solver_status} · Optimal Cost: {fmt(r.objective_value)}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
 
-            {/* Slider ± % cho 4 nhóm factor-based */}
+            {/* ± % slider for the 4 factor-based groups */}
             {selectedGroup.hasSlider && (
               <Form.Item
                 label={
                   <span>
-                    Mức điều chỉnh &nbsp;
+                    Adjustment level &nbsp;
                     <Tag color={adjustPct > 0 ? 'blue' : adjustPct < 0 ? 'orange' : 'default'}>
                       {pctLabel}
                     </Tag>
@@ -424,25 +424,25 @@ const ScenarioManagement = () => {
                 />
                 <div className="text-center text-gray-400 text-xs mt-1">
                   {adjustPct !== 0
-                    ? `→ Loại kịch bản: ${resolveScenarioType(selectedGroup.key, adjustPct).scenario_type}, factor = ${resolveScenarioType(selectedGroup.key, adjustPct).factor.toFixed(2)}`
-                    : '⚠ Mức 0% không gây thay đổi — hãy điều chỉnh slider'}
+                    ? `→ Scenario type: ${resolveScenarioType(selectedGroup.key, adjustPct).scenario_type}, factor = ${resolveScenarioType(selectedGroup.key, adjustPct).factor.toFixed(2)}`
+                    : '⚠ A 0% level causes no change — please adjust the slider'}
                 </div>
               </Form.Item>
             )}
 
-            {/* Cấu hình thay đổi cấu trúc */}
+            {/* Structural change configuration */}
             {selectedGroup.key === 'structural' && (
               <>
-                <Form.Item label="Loại thay đổi cấu trúc">
+                <Form.Item label="Structural Change Type">
                   <Select value={structSubType} onChange={setStructSubType}>
-                    <Option value="warehouse_closure">Đóng cửa kho hàng (Warehouse Closure)</Option>
-                    <Option value="new_product_introduction">Thêm sản phẩm mới (New Product)</Option>
+                    <Option value="warehouse_closure">Warehouse Closure</Option>
+                    <Option value="new_product_introduction">New Product Introduction</Option>
                   </Select>
                 </Form.Item>
                 {structSubType === 'warehouse_closure' && (
                   <Form.Item
-                    label="Mã kho cần đóng (cách nhau bởi dấu phẩy)"
-                    extra="Ví dụ: WH01, WH02"
+                    label="Warehouse codes to close (comma-separated)"
+                    extra="Example: WH01, WH02"
                   >
                     <Input
                       placeholder="WH01, WH02"
@@ -455,20 +455,20 @@ const ScenarioManagement = () => {
                   <Alert
                     type="warning"
                     showIcon
-                    message="Thêm sản phẩm mới yêu cầu cấu hình chi tiết qua API. Hiện chưa hỗ trợ qua giao diện."
+                    message="Adding a new product requires detailed configuration via the API. Not yet supported through the UI."
                   />
                 )}
               </>
             )}
 
-            {/* JSON nâng cao */}
+            {/* Advanced JSON */}
             {selectedGroup.key === 'custom' && (
               <Form.Item
                 name="custom_json"
                 label={
                   <span>
-                    Tham số overrides (JSON)&nbsp;
-                    <Tooltip title='Ví dụ: {"parameter_overrides": {"DI": {}}}'>
+                    Override Parameters (JSON)&nbsp;
+                    <Tooltip title='Example: {"parameter_overrides": {"DI": {}}}'>
                       <InfoCircleOutlined />
                     </Tooltip>
                   </span>
@@ -479,8 +479,8 @@ const ScenarioManagement = () => {
               </Form.Item>
             )}
 
-            {/* Nhãn kịch bản */}
-            <Form.Item name="label" label="Nhãn kịch bản">
+            {/* Scenario label */}
+            <Form.Item name="label" label="Scenario Label">
               <Input placeholder={
                 selectedGroup.hasSlider
                   ? `${selectedGroup.label} ${adjustPct > 0 ? '+' : ''}${adjustPct}%`
@@ -488,12 +488,12 @@ const ScenarioManagement = () => {
               } />
             </Form.Item>
 
-            {/* Giới hạn thời gian mỗi sản phẩm */}
+            {/* Time limit per product */}
             <Form.Item
               name="time_limit"
-              label="Giới hạn thời gian mỗi sản phẩm (giây)"
+              label="Time Limit per Product (seconds)"
               initialValue={10}
-              extra="Thời gian tối đa MA chạy cho mỗi sản phẩm. Tăng để nghiệm tốt hơn, giảm để chạy nhanh hơn."
+              extra="Maximum time the MA runs per product. Increase for a better solution, decrease for a faster run."
             >
               <InputNumber min={1} max={60} step={1} style={{ width: '100%' }} />
             </Form.Item>

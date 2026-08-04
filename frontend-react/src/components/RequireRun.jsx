@@ -1,7 +1,7 @@
 /**
- * RequireRun – Bảo vệ trang B1/B2/B3
- * Nếu chưa có kết quả tối ưu (activeRunId == null), hiển thị thông báo
- * và nút dẫn về B0 thay vì render nội dung trang.
+ * RequireRun – Protects the B1/B2/B3 pages.
+ * If there is no optimization result yet (activeRunId == null), shows a
+ * notice and a button linking back to B1 instead of rendering the page.
  */
 import React from 'react'
 import { Result, Button } from 'antd'
@@ -18,11 +18,11 @@ export default function RequireRun({ children }) {
       <Result
         status="warning"
         icon={<ThunderboltOutlined style={{ color: '#faad14' }} />}
-        title="Chưa có kết quả tối ưu hoá"
+        title="No optimization result yet"
         subTitle={
           <span>
-            Bạn cần chạy tối ưu hoá trước khi xem trang này.<br />
-            Hãy đến <strong>B0. Chạy Tối Ưu Hoá</strong> để bắt đầu.
+            You need to run the optimization before viewing this page.<br />
+            Go to <strong>B1. Run Optimization</strong> to get started.
           </span>
         }
         extra={
@@ -32,7 +32,7 @@ export default function RequireRun({ children }) {
             size="large"
             onClick={() => navigate('/b1-run-optimization')}
           >
-            Đến B0. Chạy Tối Ưu Hoá
+            Go to B1. Run Optimization
           </Button>
         }
       />

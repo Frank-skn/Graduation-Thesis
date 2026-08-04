@@ -137,7 +137,7 @@ def startup_event():
             db.add(ModelParameter(
                 param_name="HV",
                 param_value=9999,
-                param_description="Hằng số tuyến tính hóa nhị phân (giá trị đủ lớn dùng trong ràng buộc Big-M)",
+                param_description="Big-M linearization constant (a sufficiently large value used in the Big-M constraint)",
             ))
             db.commit()
     finally:

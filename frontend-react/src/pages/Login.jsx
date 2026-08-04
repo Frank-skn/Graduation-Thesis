@@ -7,9 +7,9 @@ import { BRAND, NEUTRAL } from '../theme/tokens'
 
 const { Title, Text } = Typography
 
-const ROYAL = BRAND[800]        // #1E40AF-ish — thân thương hiệu
-const ROYAL_DEEP = BRAND[900]   // #1E3A8A — góc tối gradient
-const ROYAL_BRIGHT = BRAND[600] // #2563EB — điểm sáng gradient nút
+const ROYAL = BRAND[800]        // #1E40AF-ish — brand body
+const ROYAL_DEEP = BRAND[900]   // #1E3A8A — gradient dark corner
+const ROYAL_BRIGHT = BRAND[600] // #2563EB — button gradient highlight
 
 function BrandMark() {
   return (
@@ -35,7 +35,7 @@ export default function Login() {
       await authService.login(username, password)
       navigate(from, { replace: true })
     } catch (err) {
-      setError(err?.message || 'Đăng nhập thất bại')
+      setError(err?.message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -70,7 +70,7 @@ export default function Login() {
         }}
         className="login-card"
       >
-        {/* Nhánh thương hiệu */}
+        {/* Brand panel */}
         <div
           style={{
             position: 'relative',
@@ -107,21 +107,21 @@ export default function Login() {
             </div>
 
             <Title level={1} style={{ color: '#fff', fontSize: 28, lineHeight: 1.25, margin: '0 0 14px', fontWeight: 600, letterSpacing: '0.01em' }}>
-              Hệ thống hỗ trợ<br />ra quyết định
+              Decision Support<br />System
             </Title>
             <Text style={{ color: '#c5d4f0', fontSize: 14.5, lineHeight: 1.7, maxWidth: '34ch', display: 'block' }}>
-              Quản lý tồn kho nhà cung ứng — phân bổ đơn hàng và điều chuyển ngang chủ động.
+              Supplier-managed inventory — proactive order allocation and lateral transshipment.
             </Text>
           </div>
         </div>
 
-        {/* Form đăng nhập */}
+        {/* Login form */}
         <div style={{ padding: '48px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Title level={2} style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 600, color: NEUTRAL[900] }}>
-            Đăng nhập
+            Sign in
           </Title>
           <Text style={{ display: 'block', margin: '0 0 28px', fontSize: 14, color: NEUTRAL[500] }}>
-            Vui lòng nhập thông tin tài khoản để tiếp tục.
+            Please enter your credentials to continue.
           </Text>
 
           {error && (
@@ -130,9 +130,9 @@ export default function Login() {
 
           <Form layout="vertical" onFinish={handleSubmit} requiredMark={false} autoComplete="off">
             <Form.Item
-              label={<span style={{ fontSize: 13, fontWeight: 600, color: NEUTRAL[700] }}>Tên đăng nhập</span>}
+              label={<span style={{ fontSize: 13, fontWeight: 600, color: NEUTRAL[700] }}>Username</span>}
               name="username"
-              rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]}
+              rules={[{ required: true, message: 'Please enter your username' }]}
             >
               <Input
                 prefix={<UserOutlined style={{ color: NEUTRAL[400] }} />}
@@ -144,9 +144,9 @@ export default function Login() {
             </Form.Item>
 
             <Form.Item
-              label={<span style={{ fontSize: 13, fontWeight: 600, color: NEUTRAL[700] }}>Mật khẩu</span>}
+              label={<span style={{ fontSize: 13, fontWeight: 600, color: NEUTRAL[700] }}>Password</span>}
               name="password"
-              rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+              rules={[{ required: true, message: 'Please enter your password' }]}
             >
               <Input.Password
                 prefix={<LockOutlined style={{ color: NEUTRAL[400] }} />}
@@ -176,7 +176,7 @@ export default function Login() {
                   border: 'none',
                 }}
               >
-                Đăng nhập
+                Sign in
               </Button>
             </Form.Item>
           </Form>

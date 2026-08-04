@@ -66,9 +66,9 @@ def get_or_create_current_version(db: Session, csv_repo, created_by: str = "syst
     }
     seq = db.query(DatasetVersion).count() + 1
     version = DatasetVersion(
-        version_name=f"Phiên bản dữ liệu #{seq}",
-        description=f"Tự động tạo khi chạy tối ưu — {len(products)} SP, "
-                    f"{len(warehouses)} kho, {len(periods)} kỳ.",
+        version_name=f"Data Version #{seq}",
+        description=f"Auto-created on optimization run — {len(products)} products, "
+                    f"{len(warehouses)} warehouses, {len(periods)} periods.",
         snapshot_data=json.dumps(snapshot_meta),
         created_by=created_by,
         is_active=True,

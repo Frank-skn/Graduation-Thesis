@@ -26,7 +26,7 @@ class OptimizationInput(BaseModel):
     Cs: Dict[Tuple[str, str, int], float] = Field(..., description="Shortage cost Cs(i,j,t)")
     Cp: Dict[Tuple[str, str, int], float] = Field(..., description="Penalty cost Cp(i,j,t)")
     
-    HV: float = Field(default=9999, description="Hằng số tuyến tính hóa nhị phân")
+    HV: float = Field(default=9999, description="Big-M linearization constant")
     
     class Config:
         json_schema_extra = {

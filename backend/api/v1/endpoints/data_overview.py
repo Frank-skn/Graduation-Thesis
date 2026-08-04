@@ -352,13 +352,13 @@ def create_dataset_version(
 # ------------------------------------------------------------------ #
 
 class AlgoParam(BaseModel):
-    """Một tham số giải thuật (đọc từ config.json)."""
+    """A single algorithm parameter (read from config.json)."""
     name: str
     symbol: str
     value: float
-    group: str            # "GA" | "ALNS" | "Dừng" | "Chung"
+    group: str            # "GA" | "ALNS" | "Stopping" | "General"
     description: str
-    taguchi: bool = False  # True nếu là 1 trong 5 tham số hiệu chỉnh Taguchi
+    taguchi: bool = False  # True if this is one of the 5 Taguchi-tuned parameters
 
 
 class AlgoParamList(BaseModel):
@@ -390,49 +390,49 @@ def get_algorithm_parameters():
     stopping = cfg.get("stopping", {})
 
     params: List[AlgoParam] = [
-        # ── Quy mô & độ sâu tìm kiếm ──────────────────────────────
-        AlgoParam(name="Độ rộng tìm kiếm", symbol="n_pop", value=ga.get("n_pop", 0),
+        # ── Search scope & depth ──────────────────────────────
+        AlgoParam(name="Search width", symbol="n_pop", value=ga.get("n_pop", 0),
                   group="GA", taguchi=True,
-                  description="Số phương án được thử song song ở mỗi vòng tìm kiếm. Càng lớn càng dễ tìm ra phương án tốt, nhưng chạy chậm hơn (tham số ảnh hưởng nhiều nhất đến chất lượng kết quả)"),
-        AlgoParam(name="Số vòng tối ưu tối đa", symbol="G_max", value=ga.get("G_max", 0),
+                  description="Number of candidate solutions tried in parallel at each search round. Larger values make it easier to find a good solution, but run slower (the parameter with the largest impact on result quality)"),
+        AlgoParam(name="Maximum optimization rounds", symbol="G_max", value=ga.get("G_max", 0),
                   group="GA", taguchi=True,
-                  description="Số vòng lặp cải thiện phương án tối đa trước khi dừng"),
-        AlgoParam(name="Tỷ lệ kết hợp phương án", symbol="p_crossover", value=ga.get("p_crossover", 0),
+                  description="Maximum number of improvement rounds before stopping"),
+        AlgoParam(name="Solution combination rate", symbol="p_crossover", value=ga.get("p_crossover", 0),
                   group="GA", taguchi=True,
-                  description="Tỷ lệ ghép hai phương án tốt để tạo phương án mới tốt hơn"),
-        AlgoParam(name="Tỷ lệ thử phương án mới", symbol="p_mutation", value=ga.get("p_mutation", 0),
+                  description="Rate of combining two good solutions to create a better new one"),
+        AlgoParam(name="New-solution trial rate", symbol="p_mutation", value=ga.get("p_mutation", 0),
                   group="GA", taguchi=True,
-                  description="Tỷ lệ thử ngẫu nhiên một thay đổi nhỏ để tránh bị kẹt ở phương án chưa tối ưu"),
-        AlgoParam(name="Số vòng tinh chỉnh cục bộ", symbol="n_iterations", value=alns.get("n_iterations", 0),
+                  description="Rate of randomly trying a small change to avoid getting stuck at a suboptimal solution"),
+        AlgoParam(name="Local refinement rounds", symbol="n_iterations", value=alns.get("n_iterations", 0),
                   group="ALNS", taguchi=True,
-                  description="Số vòng rà soát và tinh chỉnh lại phương án đang có để tìm cải thiện nhỏ"),
-        # ── Tham số vận hành khác (giữ cố định, không hiệu chỉnh) ──
-        AlgoParam(name="Ngưỡng dừng sớm", symbol="G_stag", value=ga.get("G_stag", 0),
-                  group="GA", description="Dừng tìm kiếm sớm nếu không cải thiện được kết quả sau một số vòng liên tiếp — tránh chạy lãng phí"),
-        AlgoParam(name="Số phương án so sánh mỗi lượt chọn", symbol="k_tournament", value=ga.get("k_tournament", 0),
-                  group="GA", description="Mỗi lượt chọn phương án tốt để giữ lại, hệ thống so sánh ngẫu nhiên một nhóm nhỏ rồi lấy phương án tốt nhất trong nhóm"),
-        AlgoParam(name="Tỷ lệ khởi tạo từ lời giải chuẩn", symbol="milp_seed_fraction", value=ga.get("milp_seed_fraction", 0),
-                  group="GA", description="Tỷ lệ phương án ban đầu được khởi tạo từ lời giải chuẩn (mô hình toán tối ưu) thay vì ngẫu nhiên — giúp tìm kiếm hội tụ nhanh hơn"),
-        AlgoParam(name="Tỷ lệ khởi tạo theo kinh nghiệm", symbol="heuristic_fraction", value=ga.get("heuristic_fraction", 0),
-                  group="GA", description="Tỷ lệ phương án ban đầu được khởi tạo theo quy tắc ưu tiên nơi thiếu hụt nhiều — giúp tìm kiếm khởi đầu hợp lý hơn ngẫu nhiên"),
-        # ── Tham số ALNS cố định ──────────────────────────────────
-        AlgoParam(name="Mức xáo trộn tối thiểu", symbol="q_min_ratio", value=alns.get("q_min_ratio", 0),
-                  group="ALNS", description="Tỷ lệ nhỏ nhất của phương án bị thay đổi mỗi vòng tinh chỉnh cục bộ, để dò tìm cải thiện"),
-        AlgoParam(name="Mức xáo trộn tối đa", symbol="q_max_ratio", value=alns.get("q_max_ratio", 0),
-                  group="ALNS", description="Tỷ lệ lớn nhất của phương án bị thay đổi mỗi vòng tinh chỉnh cục bộ, để dò tìm cải thiện"),
-        AlgoParam(name="Tốc độ học ưu tiên", symbol="lambda_rho", value=alns.get("lambda_rho", 0),
-                  group="ALNS", description="Tốc độ hệ thống ghi nhớ cách tinh chỉnh nào đang hiệu quả để ưu tiên dùng lại"),
-        # ── Dừng ──────────────────────────────────────────────────
-        AlgoParam(name="Giới hạn thời gian mỗi sản phẩm", symbol="time_limit_seconds",
+                  description="Number of rounds spent reviewing and refining the current solution to find small improvements"),
+        # ── Other operating parameters (kept fixed, not tuned) ──
+        AlgoParam(name="Early-stop threshold", symbol="G_stag", value=ga.get("G_stag", 0),
+                  group="GA", description="Stop the search early if no improvement is found after a number of consecutive rounds — avoids wasted computation"),
+        AlgoParam(name="Candidates compared per selection", symbol="k_tournament", value=ga.get("k_tournament", 0),
+                  group="GA", description="Each time a good solution is selected to keep, the system randomly compares a small group and picks the best one from that group"),
+        AlgoParam(name="Exact-solution seed ratio", symbol="milp_seed_fraction", value=ga.get("milp_seed_fraction", 0),
+                  group="GA", description="Proportion of the initial solutions seeded from the exact mathematical model instead of randomly — helps the search converge faster"),
+        AlgoParam(name="Heuristic seed ratio", symbol="heuristic_fraction", value=ga.get("heuristic_fraction", 0),
+                  group="GA", description="Proportion of the initial solutions seeded using a rule that prioritizes high-shortage areas — gives a more sensible starting point than random"),
+        # ── Fixed ALNS parameters ──────────────────────────────────
+        AlgoParam(name="Minimum perturbation level", symbol="q_min_ratio", value=alns.get("q_min_ratio", 0),
+                  group="ALNS", description="Smallest fraction of the solution changed in each local-refinement round, to probe for improvements"),
+        AlgoParam(name="Maximum perturbation level", symbol="q_max_ratio", value=alns.get("q_max_ratio", 0),
+                  group="ALNS", description="Largest fraction of the solution changed in each local-refinement round, to probe for improvements"),
+        AlgoParam(name="Priority learning rate", symbol="lambda_rho", value=alns.get("lambda_rho", 0),
+                  group="ALNS", description="Rate at which the system remembers which refinement moves are effective, to prioritize reusing them"),
+        # ── Stopping ──────────────────────────────────────────────────
+        AlgoParam(name="Time limit per product", symbol="time_limit_seconds",
                   value=stopping.get("time_limit_seconds", 0),
-                  group="Dừng", description="Thời gian tối đa hệ thống được phép tìm kiếm phương án cho một sản phẩm trước khi phải chốt kết quả tốt nhất đã tìm được"),
+                  group="Stopping", description="Maximum time the system may spend searching for a solution for one product before it must commit to the best result found so far"),
     ]
 
     return AlgoParamList(
         parameters=params,
         total=len(params),
         source="backend/ma/config.json",
-        tuned_by=cfg.get("_comment", "Hiệu chỉnh bằng phương pháp Taguchi (Chương 6)"),
+        tuned_by=cfg.get("_comment", "Tuned using the Taguchi method (Chapter 6)"),
     )
 
 
@@ -441,12 +441,12 @@ def get_algorithm_parameters():
 # ------------------------------------------------------------------ #
 
 class CostParam(BaseModel):
-    """Một tham số chi phí/vận hành (giá trị nền, chỉ đọc)."""
+    """A single cost/operating parameter (baseline value, read-only)."""
     name: str
     symbol: str
-    value: str            # chuỗi để hiển thị (có đơn vị/khoảng)
+    value: str            # string for display (may include unit/range)
     unit: str
-    group: str            # "Chi phí" | "Vận chuyển"
+    group: str            # "Cost" | "Transport"
     description: str
 
 
@@ -483,26 +483,26 @@ def get_cost_parameters(
     cp = _mode(inp.Cp)
 
     params = [
-        CostParam(name="Chi phí tồn kho vượt mức", symbol="Co", value=str(co), unit="USD/đơn vị",
-                  group="Chi phí", description="Chi phí phát sinh khi tồn kho vượt mức trần U"),
-        CostParam(name="Chi phí thiếu hụt", symbol="Cs", value=str(cs), unit="USD/đơn vị",
-                  group="Chi phí", description="Chi phí phát sinh khi tồn kho thấp hơn mức sàn L"),
-        CostParam(name="Chi phí nợ đơn", symbol="Cb", value=str(cb), unit="USD/đơn vị",
-                  group="Chi phí", description="Chi phí phát sinh khi tồn kho âm / không đáp ứng đủ nhu cầu (thành phần chi phối)"),
-        CostParam(name="Chi phí phạt đóng gói", symbol="Cp", value=str(cp), unit="USD/lần",
-                  group="Chi phí", description="Chi phí phạt khi lượng phân bổ/điều chuyển không đủ một thùng đóng gói tiêu chuẩn"),
-        CostParam(name="Chi phí vận chuyển ngang", symbol="TC", value=str(round(csv_repo.get_transport_cost(), 4)) if hasattr(csv_repo, "get_transport_cost") else "1.2", unit="USD/km",
-                  group="Vận chuyển", description="Chi phí trên một đơn vị khoảng cách cho mỗi tuyến điều chuyển ngang, tính theo cước container tiêu chuẩn"),
-        CostParam(name="Thời gian giao hàng từ nguồn (OA)", symbol="LT_OA", value="8", unit="tuần",
-                  group="Vận chuyển", description="Thời gian vận chuyển từ kho trung tâm (Việt Nam) đến nhà máy nhận (Hoa Kỳ)"),
-        CostParam(name="Thời gian điều chuyển ngang (PLT)", symbol="LT_PLT", value="2–3", unit="tuần",
-                  group="Vận chuyển", description="Thời gian vận chuyển hàng giữa các nhà máy nhận"),
+        CostParam(name="Overstock cost", symbol="Co", value=str(co), unit="USD/unit",
+                  group="Cost", description="Cost incurred when inventory exceeds the ceiling level U"),
+        CostParam(name="Shortage cost", symbol="Cs", value=str(cs), unit="USD/unit",
+                  group="Cost", description="Cost incurred when inventory falls below the floor level L"),
+        CostParam(name="Backorder cost", symbol="Cb", value=str(cb), unit="USD/unit",
+                  group="Cost", description="Cost incurred when inventory is negative / demand is not fully met (the dominant cost component)"),
+        CostParam(name="Packing penalty cost", symbol="Cp", value=str(cp), unit="USD/occurrence",
+                  group="Cost", description="Penalty cost when the allocated/transshipped quantity does not fill a standard packing case"),
+        CostParam(name="Lateral transshipment cost", symbol="TC", value=str(round(csv_repo.get_transport_cost(), 4)) if hasattr(csv_repo, "get_transport_cost") else "1.2", unit="USD/km",
+                  group="Transport", description="Cost per unit of distance for each lateral transshipment route, based on standard container freight rates"),
+        CostParam(name="Lead time from source (OA)", symbol="LT_OA", value="8", unit="weeks",
+                  group="Transport", description="Transit time from the central warehouse (Vietnam) to the receiving plant (United States)"),
+        CostParam(name="Lateral transshipment lead time (PLT)", symbol="LT_PLT", value="2-3", unit="weeks",
+                  group="Transport", description="Transit time for shipments between receiving plants"),
     ]
 
     return CostParamList(
         parameters=params,
         total=len(params),
-        note="Giá trị nền từ dữ liệu vận hành doanh nghiệp. Để phân tích tác động khi thay đổi, dùng chức năng Phân tích kịch bản (What-if / Độ nhạy).",
+        note="Baseline values from the enterprise's operational data. To analyze the impact of changes, use the Scenario Analysis feature (What-if / Sensitivity).",
     )
 
 

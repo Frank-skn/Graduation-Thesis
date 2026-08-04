@@ -1,15 +1,15 @@
 import React from 'react'
 
 /**
- * Tiêu đề trang dùng chung cho toàn bộ DSS.
- * Đảm bảo mọi trang có cùng cỡ chữ, khoảng cách và vị trí tiêu đề,
- * tránh hiện tượng "nhảy" khi chuyển tab.
+ * Shared page header used across the entire DSS.
+ * Ensures every page has the same title font size, spacing and position,
+ * avoiding a "jump" when switching tabs.
  *
  * Props:
- *   icon:    React node (icon Ant Design), tùy chọn
- *   title:   string — tiêu đề chính (vd "A1. Tổng quan dữ liệu đầu vào")
- *   subtitle:string — mô tả ngắn dưới tiêu đề, tùy chọn
- *   extra:   React node — nút/điều khiển bên phải, tùy chọn
+ *   icon:    React node (Ant Design icon), optional
+ *   title:   string — main title (e.g. "A1. Input Data Overview")
+ *   subtitle:string — short description below the title, optional
+ *   extra:   React node — buttons/controls on the right, optional
  */
 const PageHeader = ({ icon, title, subtitle, extra }) => {
   return (

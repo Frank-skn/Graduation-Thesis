@@ -6,10 +6,12 @@ import { getCached, setCached } from './apiCache';
  * @param {Function} fetchFn - async function returning data
  * @param {Array} deps - dependency array (re-fetches when changed)
  * @param {Object} options - { immediate: bool, cacheKey: string }
- *   cacheKey: nếu truyền, kết quả được lưu ở cache module-level (sống ngoài
- *   vòng đời component). Lần sau mount lại (vd. quay lại trang) sẽ hiện dữ
- *   liệu cache NGAY (không loading), rồi vẫn gọi lại API nền để đồng bộ —
- *   phù hợp cho dữ liệu ít đổi trong 1 phiên (tổng quan, tham số...).
+ *   cacheKey: if provided, the result is stored in a module-level cache
+ *   (lives outside the component lifecycle). On the next mount (e.g.
+ *   returning to the page), the cached data is shown IMMEDIATELY (no
+ *   loading state), then the API is still called in the background to
+ *   sync — suited for data that changes little within a session
+ *   (overview, parameters...).
  */
 export function useApi(fetchFn, deps = [], options = {}) {
   const { immediate = true, cacheKey = null } = options;
@@ -19,7 +21,7 @@ export function useApi(fetchFn, deps = [], options = {}) {
   const [error, setError] = useState(null);
 
   const execute = useCallback(async (...args) => {
-    // Đã có cache → hiện ngay, không chớp loading; vẫn fetch nền để đồng bộ.
+    // Cache already present → show immediately, no loading flicker; still fetch in the background to sync.
     setLoading(cacheKey ? getCached(cacheKey) === undefined : true);
     setError(null);
     try {

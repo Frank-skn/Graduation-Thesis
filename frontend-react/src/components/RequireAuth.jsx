@@ -1,6 +1,6 @@
 /**
- * RequireAuth – Bảo vệ toàn bộ dashboard.
- * Nếu chưa đăng nhập (chưa có token), chuyển hướng về /login.
+ * RequireAuth – Protects the entire dashboard.
+ * If not authenticated (no token), redirects to /login.
  */
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'

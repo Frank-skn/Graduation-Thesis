@@ -90,53 +90,53 @@ const DashboardLayout = ({ children }) => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Đăng xuất',
+      label: 'Log out',
       danger: true,
       onClick: handleLogout,
     },
   ]
 
   const noRun = !activeRunId
-  const noRunTitle = 'Cần chạy tối ưu hoá (B1) trước để mở khoá trang này'
+  const noRunTitle = 'Run optimization (B1) first to unlock this page'
 
   const menuItems = [
     {
       key: 'group-a',
       icon: <DatabaseOutlined />,
-      label: 'A. Dữ liệu & Cấu hình',
+      label: 'A. Data & Configuration',
       children: [
         {
           key: '/a1-data-overview',
           icon: <TableOutlined />,
-          label: 'A1. Tổng quan dữ liệu đầu vào',
+          label: 'A1. Input Data Overview',
         },
         {
           key: '/a2-parameter-management',
           icon: <SettingOutlined />,
-          label: 'A2. Tham số mô hình',
+          label: 'A2. Model Parameters',
         },
       ],
     },
     {
       key: 'group-b',
       icon: <BarChartOutlined />,
-      label: 'B. Tối ưu hoá phân bổ',
+      label: 'B. Allocation Optimization',
       children: [
         {
           key: '/b1-run-optimization',
           icon: <ThunderboltOutlined />,
-          label: 'B1. Thực thi tối ưu hoá',
+          label: 'B1. Run Optimization',
         },
         {
           key: '/b2-executive-summary',
           icon: <DashboardOutlined />,
-          label: noRun ? <Tooltip title={noRunTitle}>B2. Kết quả &amp; Chi phí</Tooltip> : 'B2. Kết quả & Chi phí',
+          label: noRun ? <Tooltip title={noRunTitle}>B2. Results &amp; Cost</Tooltip> : 'B2. Results & Cost',
           disabled: noRun,
         },
         {
           key: '/b3-allocation-inventory-dashboard',
           icon: <FunnelPlotOutlined />,
-          label: noRun ? <Tooltip title={noRunTitle}>B3. Phân bổ &amp; Động thái tồn kho</Tooltip> : 'B3. Phân bổ & Động thái tồn kho',
+          label: noRun ? <Tooltip title={noRunTitle}>B3. Allocation &amp; Inventory Dynamics</Tooltip> : 'B3. Allocation & Inventory Dynamics',
           disabled: noRun,
         },
       ],
@@ -144,34 +144,34 @@ const DashboardLayout = ({ children }) => {
     {
       key: 'group-c',
       icon: <ExperimentOutlined />,
-      label: 'C. Phân tích kịch bản',
+      label: 'C. Scenario Analysis',
       children: [
         {
           key: '/c1-scenario-management',
           icon: <ToolOutlined />,
-          label: 'C1. Phân tích What-If',
+          label: 'C1. What-If Analysis',
         },
         {
           key: '/c2-scenario-comparison',
           icon: <SlidersOutlined />,
-          label: 'C2. So sánh kịch bản',
+          label: 'C2. Scenario Comparison',
         },
       ],
     },
     {
       key: 'group-d',
       icon: <SwapOutlined />,
-      label: 'D. Phân tích độ nhạy & Rủi ro',
+      label: 'D. Sensitivity & Risk Analysis',
       children: [
         {
           key: '/d1-sensitivity-analysis',
           icon: <RadarChartOutlined />,
-          label: 'D1. Phân tích độ nhạy tham số',
+          label: 'D1. Parameter Sensitivity Analysis',
         },
         {
           key: '/d2-parameter-stability',
           icon: <BarChartOutlined />,
-          label: 'D2. Độ bền vững nghiệm tối ưu',
+          label: 'D2. Solution Stability',
         },
       ],
     },
@@ -206,7 +206,7 @@ const DashboardLayout = ({ children }) => {
         width={sidebarWidth}
         ref={siderRef}
       >
-        {/* Drag handle — chỉ hiện khi sidebar mở rộng */}
+        {/* Drag handle — only shown when sidebar is expanded */}
         {!collapsed && (
           <div
             onMouseDown={handleDragStart}
@@ -221,7 +221,7 @@ const DashboardLayout = ({ children }) => {
               transition: isDragging ? 'none' : 'background 0.3s',
               zIndex: 1000,
             }}
-            title="Kéo để điều chỉnh độ rộng menu"
+            title="Drag to resize menu width"
           />
         )}
 

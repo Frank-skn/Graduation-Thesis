@@ -79,7 +79,7 @@ function App() {
                   <Route path="/b1-run-optimization" element={<B1_RunOptimization />} />
                   <Route path="/b2-executive-summary" element={<RequireRun><B2_ExecutiveSummary /></RequireRun>} />
                   <Route path="/b3-allocation-inventory-dashboard" element={<RequireRun><B3_AllocationInventoryDashboard /></RequireRun>} />
-                  {/* Legacy routes kept as redirects for old bookmarks (đánh số cũ trước khi đổi khớp menu) */}
+                  {/* Legacy routes kept as redirects for old bookmarks (old numbering before menu renumbering) */}
                   <Route path="/b0-run-optimization" element={<Navigate to="/b1-run-optimization" replace />} />
                   <Route path="/b1-executive-summary" element={<Navigate to="/b2-executive-summary" replace />} />
                   <Route path="/b2-allocation-inventory-dashboard" element={<Navigate to="/b3-allocation-inventory-dashboard" replace />} />
@@ -88,16 +88,16 @@ function App() {
                   {/* Group C: Scenario Analysis */}
                   <Route path="/c1-scenario-management" element={<C1_ScenarioManagement />} />
                   <Route path="/c2-scenario-comparison" element={<C2_ScenarioComparison />} />
-                  {/* Legacy route kept as redirect for old bookmarks (đánh số cũ trước khi đổi khớp menu) */}
+                  {/* Legacy route kept as redirect for old bookmarks (old numbering before menu renumbering) */}
                   <Route path="/c3-scenario-comparison" element={<Navigate to="/c2-scenario-comparison" replace />} />
 
                   {/* Group D: Advanced Analysis */}
                   <Route path="/d1-sensitivity-analysis" element={<D1_SensitivityAnalysis />} />
                   <Route path="/d2-parameter-stability" element={<D2_ParameterStability />} />
-                  {/* Legacy routes kept as redirects for old bookmarks (đánh số cũ trước khi đổi khớp menu) */}
+                  {/* Legacy routes kept as redirects for old bookmarks (old numbering before menu renumbering) */}
                   <Route path="/d2-sensitivity-analysis" element={<Navigate to="/d1-sensitivity-analysis" replace />} />
                   <Route path="/d3-parameter-stability" element={<Navigate to="/d2-parameter-stability" replace />} />
-                  {/* Decision Impact Scenarios (D1 cũ) đã gỡ — trùng chức năng C2 Scenario Comparison */}
+                  {/* Decision Impact Scenarios (old D1) removed — duplicated C2 Scenario Comparison */}
                   <Route path="/d1-decision-impact-scenarios" element={<Navigate to="/c2-scenario-comparison" replace />} />
                 </Routes>
               </DashboardLayout>

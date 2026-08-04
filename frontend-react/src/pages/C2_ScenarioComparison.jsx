@@ -11,37 +11,37 @@ const { Option } = Select
 const fmt = (v, d = 0) =>
   typeof v === 'number' ? v.toLocaleString('vi-VN', { maximumFractionDigits: d }) : '—'
 
-// Dịch tên KPI sang tiếng Việt (khớp 7 KPI backend trả về)
+// English labels for KPI names (matches the 7 KPIs returned by the backend)
 const KPI_LABEL = {
-  total_cost: 'Tổng chi phí',
-  total_backorder: 'Tổng nợ đơn',
-  total_overstock: 'Tổng tồn kho vượt mức',
-  total_shortage: 'Tổng thiếu hụt',
-  total_penalty: 'Tổng vi phạm đóng gói',
-  service_level: 'Mức độ phục vụ',
-  capacity_utilization: 'Mức sử dụng công suất',
+  total_cost: 'Total Cost',
+  total_backorder: 'Total Backorder',
+  total_overstock: 'Total Overstock',
+  total_shortage: 'Total Shortage',
+  total_penalty: 'Total Packaging Penalty',
+  service_level: 'Service Level',
+  capacity_utilization: 'Capacity Utilization',
 }
 const kpiLabel = (name) => KPI_LABEL[name] || name
 
-// KPI mà tăng = tốt (ngược với đa số KPI còn lại là chi phí/vấn đề, tăng = xấu)
+// KPIs where an increase = good (opposite of most other KPIs, which are costs/issues where an increase = bad)
 const HIGHER_IS_BETTER = new Set(['service_level'])
-// true nếu thay đổi này là điều TỐT cho hệ thống
+// true if this change is GOOD for the system
 const isGoodChange = (kpiName, pct) =>
   HIGHER_IS_BETTER.has(kpiName) ? pct > 0 : pct < 0
 
-// Dịch loại kịch bản sang tiếng Việt (khớp 11 ScenarioType backend — xem C1)
+// English labels for scenario type (matches the 11 backend ScenarioTypes — see C1)
 const TYPE_LABEL = {
-  demand_surge: 'Nhu cầu tăng',
-  demand_drop: 'Nhu cầu giảm',
-  capacity_expansion: 'Mở rộng công suất',
-  capacity_disruption: 'Gián đoạn công suất',
-  cost_increase: 'Chi phí tăng',
-  cost_decrease: 'Chi phí giảm',
-  safety_stock_loosen: 'Nới ngưỡng tồn kho',
-  safety_stock_tighten: 'Thu hẹp ngưỡng tồn kho',
-  new_product_introduction: 'Sản phẩm mới',
-  warehouse_closure: 'Đóng cửa kho',
-  custom: 'Tùy chỉnh / So sánh trực tiếp',
+  demand_surge: 'Demand increase',
+  demand_drop: 'Demand decrease',
+  capacity_expansion: 'Capacity expansion',
+  capacity_disruption: 'Capacity disruption',
+  cost_increase: 'Cost increase',
+  cost_decrease: 'Cost decrease',
+  safety_stock_loosen: 'Inventory threshold loosened',
+  safety_stock_tighten: 'Inventory threshold tightened',
+  new_product_introduction: 'New product',
+  warehouse_closure: 'Warehouse closure',
+  custom: 'Custom / Direct comparison',
 }
 const typeLabel = (t) => TYPE_LABEL[t] || t
 
@@ -75,7 +75,7 @@ const ScenarioComparison = () => {
       const res = await scenarioService.compareWhatIf(baseRunId, compareRunId)
       setData(res?.data ?? res)
     } catch (err) {
-      setError(err?.response?.data?.detail || err?.message || 'Lỗi không xác định')
+      setError(err?.response?.data?.detail || err?.message || 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -87,11 +87,11 @@ const ScenarioComparison = () => {
     .filter((d) => Math.abs(Number(d.percent_change) || 0) >= 0.1)
     .map((d) => ({
       kpi: kpiLabel(d.kpi_name),
-      'Cơ sở': Number(d.base_value) || 0,
-      'Kịch bản': Number(d.whatif_value) || 0,
+      'Base': Number(d.base_value) || 0,
+      'Scenario': Number(d.whatif_value) || 0,
     }))
 
-  // Tóm tắt tiếng Việt: chỉ nêu các KPI thay đổi đáng kể (|%| >= 0.1)
+  // Summary: only list KPIs with a significant change (|%| >= 0.1)
   const summaryItems = deltas
     .filter((d) => Math.abs(Number(d.percent_change) || 0) >= 0.1)
     .map((d) => {
@@ -101,18 +101,18 @@ const ScenarioComparison = () => {
         pct,
         up: pct > 0,
         good: isGoodChange(d.kpi_name, pct),
-        text: `${pct > 0 ? 'tăng' : 'giảm'} ${Math.abs(pct).toFixed(1)}%`,
+        text: `${pct > 0 ? 'increased' : 'decreased'} ${Math.abs(pct).toFixed(1)}%`,
       }
     })
 
   const deltaColumns = [
     { title: 'KPI', dataIndex: 'kpi_name', key: 'kpi_name',
       render: (t) => <span className="font-semibold">{kpiLabel(t)}</span> },
-    { title: 'Cơ sở', dataIndex: 'base_value', key: 'base_value', align: 'right',
+    { title: 'Base', dataIndex: 'base_value', key: 'base_value', align: 'right',
       render: (v) => fmt(Number(v), 2) },
-    { title: 'Kịch bản', dataIndex: 'whatif_value', key: 'whatif_value', align: 'right',
+    { title: 'Scenario', dataIndex: 'whatif_value', key: 'whatif_value', align: 'right',
       render: (v) => fmt(Number(v), 2) },
-    { title: 'Thay đổi tuyệt đối', dataIndex: 'absolute_change', key: 'absolute_change', align: 'right',
+    { title: 'Absolute Change', dataIndex: 'absolute_change', key: 'absolute_change', align: 'right',
       render: (v, record) => {
         const n = Number(v)
         const good = isGoodChange(record.kpi_name, n)
@@ -120,7 +120,7 @@ const ScenarioComparison = () => {
           {n > 0 ? '+' : ''}{fmt(n, 2)}
         </span>
       }},
-    { title: '% Thay đổi', dataIndex: 'percent_change', key: 'percent_change', align: 'right',
+    { title: '% Change', dataIndex: 'percent_change', key: 'percent_change', align: 'right',
       render: (v, record) => {
         if (v == null) return <Tag color="default">N/A</Tag>
         const n = Number(v)
@@ -135,19 +135,19 @@ const ScenarioComparison = () => {
     <div className="space-y-6">
       <PageHeader
         icon={<SwapOutlined />}
-        title="C2. So sánh kịch bản"
-        subtitle="So sánh các chỉ số hiệu quả (KPI) giữa hai lần chạy tối ưu"
+        title="C2. Scenario Comparison"
+        subtitle="Compare key performance indicators (KPIs) between two optimization runs"
       />
 
-      {error && <Alert message="Lỗi" description={error} type="error" showIcon closable onClose={() => setError(null)} />}
+      {error && <Alert message="Error" description={error} type="error" showIcon closable onClose={() => setError(null)} />}
 
       <Card>
         <div className="flex items-end gap-4 flex-wrap">
           <div>
-            <span className="text-gray-500 text-xs block mb-1">Lần chạy cơ sở:</span>
+            <span className="text-gray-500 text-xs block mb-1">Base Run:</span>
             <Select
               style={{ width: 280 }}
-              placeholder="Chọn lần chạy cơ sở"
+              placeholder="Select base run"
               value={baseRunId}
               onChange={setBaseRunId}
               loading={runsLoading}
@@ -162,10 +162,10 @@ const ScenarioComparison = () => {
             </Select>
           </div>
           <div>
-            <span className="text-gray-500 text-xs block mb-1">Lần chạy so sánh (What-If):</span>
+            <span className="text-gray-500 text-xs block mb-1">Comparison Run (What-If):</span>
             <Select
               style={{ width: 280 }}
-              placeholder="Chọn lần chạy so sánh"
+              placeholder="Select comparison run"
               value={compareRunId}
               onChange={setCompareRunId}
               loading={runsLoading}
@@ -186,9 +186,9 @@ const ScenarioComparison = () => {
             disabled={!baseRunId || !compareRunId}
             loading={loading}
           >
-            So sánh KPI
+            Compare KPIs
           </Button>
-          <Button icon={<ReloadOutlined />} onClick={loadRuns} title="Làm mới danh sách" />
+          <Button icon={<ReloadOutlined />} onClick={loadRuns} title="Refresh list" />
         </div>
       </Card>
 
@@ -199,15 +199,15 @@ const ScenarioComparison = () => {
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500">Loại kịch bản</p>
-                    <Tag color="blue">{data.scenario_type ? typeLabel(data.scenario_type) : 'Không xác định'}</Tag>
+                    <p className="text-sm text-gray-500">Scenario Type</p>
+                    <Tag color="blue">{data.scenario_type ? typeLabel(data.scenario_type) : 'Unknown'}</Tag>
                   </div>
                 </Card>
               </Col>
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500">Lần chạy so sánh</p>
+                    <p className="text-sm text-gray-500">Comparison Run</p>
                     <p className="font-semibold">#{baseRunId} → #{compareRunId}</p>
                   </div>
                 </Card>
@@ -215,7 +215,7 @@ const ScenarioComparison = () => {
               <Col span={8}>
                 <Card size="small">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500">Số KPI so sánh</p>
+                    <p className="text-sm text-gray-500">KPIs Compared</p>
                     <p className="text-xl font-bold">{deltas.length}</p>
                   </div>
                 </Card>
@@ -225,7 +225,7 @@ const ScenarioComparison = () => {
             {summaryItems.length > 0 ? (
               <Card
                 size="small"
-                title={<span className="font-semibold" style={{ color: BRAND[700] }}>Tóm tắt thay đổi so với lần chạy cơ sở</span>}
+                title={<span className="font-semibold" style={{ color: BRAND[700] }}>Summary of Changes vs. Base Run</span>}
                 styles={{ header: { background: BRAND[50], borderBottom: `1px solid ${BRAND[100]}` } }}
               >
                 <ul className="space-y-2 my-1">
@@ -235,7 +235,7 @@ const ScenarioComparison = () => {
                         ? <ArrowUpOutlined style={{ color: it.good ? SEMANTIC.good : SEMANTIC.bad }} />
                         : <ArrowDownOutlined style={{ color: it.good ? SEMANTIC.good : SEMANTIC.bad }} />}
                       <span className="font-medium">{it.name}</span>
-                      <span className="text-gray-500">{it.up ? 'tăng' : 'giảm'}</span>
+                      <span className="text-gray-500">{it.up ? 'increased' : 'decreased'}</span>
                       <Tag color={it.good ? 'green' : 'red'} className="ml-auto">
                         {it.up ? '+' : '−'}{Math.abs(it.pct).toFixed(1)}%
                       </Tag>
@@ -245,7 +245,7 @@ const ScenarioComparison = () => {
               </Card>
             ) : (
               <Alert
-                message="Không có KPI nào thay đổi đáng kể giữa hai lần chạy."
+                message="No KPI changed significantly between the two runs."
                 type="success"
                 showIcon
               />
@@ -254,9 +254,9 @@ const ScenarioComparison = () => {
             {chartData.length > 0 && (
               <Card title={
                 <span className="font-bold">
-                  <BarChartOutlined className="mr-2" />Biểu đồ so sánh KPI
+                  <BarChartOutlined className="mr-2" />KPI Comparison Chart
                   <span className="ml-2 font-normal text-xs text-gray-400">
-                    (chỉ hiển thị {chartData.length}/{deltas.length} KPI có thay đổi ≥ 0,1%)
+                    (showing {chartData.length}/{deltas.length} KPIs with change ≥ 0.1%)
                   </span>
                 </span>
               }>
@@ -267,14 +267,14 @@ const ScenarioComparison = () => {
                     <YAxis tickFormatter={(v) => v.toLocaleString('vi-VN')} width={90} tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(v) => fmt(v, 2)} />
                     <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 24 }} />
-                    <Bar dataKey="Cơ sở"    fill={NEUTRAL[400]} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Kịch bản" fill={BRAND[500]} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Base"     fill={NEUTRAL[400]} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Scenario" fill={BRAND[500]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
             )}
 
-            <Card title={<span className="font-bold">Chi tiết so sánh KPI</span>}>
+            <Card title={<span className="font-bold">KPI Comparison Details</span>}>
               <Table
                 columns={deltaColumns}
                 dataSource={deltas}
@@ -288,7 +288,7 @@ const ScenarioComparison = () => {
 
         {!data && !loading && (
           <Alert
-            message="Chọn hai lần chạy và nhấn So sánh KPI để xem kết quả"
+            message="Select two runs and click Compare KPIs to see the results"
             type="info"
             showIcon
           />

@@ -89,7 +89,7 @@ body {
   height: 400px;
 }
 
-/* Custom menu — theme LIGHT (sidebar nền trắng, tông royal blue) */
+/* Custom menu — theme LIGHT (white sidebar, royal blue tone) */
 .custom-menu .ant-menu-submenu-title {
   font-weight: 600 !important;
   color: #0F172A !important;
@@ -153,16 +153,16 @@ body {
 .text-accent-300 { color: #93C5FD; }
 .text-accent-300 { color: rgba(193, 156, 89, 0.7); }
 
-/* ── Tinh chỉnh giao diện doanh nghiệp (đồng bộ toàn app) ─────────── */
+/* ── Enterprise UI refinements (consistent across the app) ─────────── */
 
-/* Tiêu đề trang: cỡ ổn định, không nhảy khi chuyển tab */
+/* Page title: stable size, no jump when switching tabs */
 .page-header h1 {
-  font-size: 1.5rem;      /* 24px — thống nhất mọi trang */
+  font-size: 1.5rem;      /* 24px — consistent across all pages */
   line-height: 2rem;
   letter-spacing: -0.01em;
 }
 
-/* Card: bo góc mềm, viền nhẹ, shadow tinh tế, hover mượt */
+/* Card: soft rounded corners, light border, subtle shadow, smooth hover */
 .ant-card {
   border-radius: 12px !important;
   border: 1px solid #E8EDF4 !important;
@@ -182,7 +182,7 @@ body {
   color: #0F172A !important;
 }
 
-/* Bảng: header nhạt, chữ rõ, hàng hover tinh tế */
+/* Table: light header, clear text, subtle row hover */
 .ant-table-thead > tr > th {
   background: #F8FAFC !important;
   color: #475569 !important;
@@ -192,7 +192,7 @@ body {
 }
 .ant-table-tbody > tr > td { font-size: 13px !important; }
 
-/* Nút chính: royal blue */
+/* Primary button: royal blue */
 .ant-btn-primary {
   background: #2563EB !important;
   border-color: #2563EB !important;
@@ -203,14 +203,14 @@ body {
   border-color: #1D4ED8 !important;
 }
 
-/* Statistic (KPI) cân đối hơn */
+/* Statistic (KPI) balanced styling */
 .ant-statistic-title { color: #64748B !important; font-size: 13px !important; }
 .ant-statistic-content { color: #0F172A !important; }
 
-/* Tabs: gạch chân theo tông royal blue */
+/* Tabs: underline in royal blue tone */
 .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563EB !important; font-weight: 600 !important; }
 .ant-tabs-ink-bar { background: #2563EB !important; }
 
-/* KPI card cao đều nhau trong cùng một hàng (tránh lệch chiều cao) */
+/* KPI cards equal height within the same row (avoid uneven heights) */
 .ant-card.h-full { height: 100%; display: flex; flex-direction: column; }
 .ant-card.h-full > .ant-card-body { flex: 1 1 auto; }
