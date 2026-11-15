@@ -1,0 +1,32 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+venv/
+venv311/
+venv_test/
+.venv/
+
+# Database (runtime, regenerated on first app start)
+data/*.db
+data/*.db.bak_*
+
+# Node / frontend build
+frontend-react/node_modules/
+frontend-react/dist/
+frontend-react/build/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
