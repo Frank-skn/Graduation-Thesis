@@ -100,7 +100,7 @@ def generate_milp_seed(problem: Problem, time_limit: int = 15) -> Optional[QOACh
     solver.solve(prob)
 
     status = pulp.LpStatus.get(prob.status, str(prob.status))
-    if status not in {"Optimal", "Not Solved", "Undefined"}:
+    if status not in {"Optimal", "Undefined"}:
         log.warning("MILP seed: solver status %s — returning None", status)
         return None
 

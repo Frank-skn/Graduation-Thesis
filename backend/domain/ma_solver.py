@@ -98,7 +98,7 @@ def _build_components(problem, cfg: Dict, rng: random.Random, time_limit_s: floa
         try:
             milp_seed = generate_milp_seed(
                 problem    = problem,
-                time_limit = int(ga_cfg.get("milp_time_limit", 15)),
+                time_limit = float(ga_cfg.get("milp_time_limit", 15)),
             )
         except Exception:
             pass  # milp_seed is optional warm-start only

@@ -33,7 +33,7 @@
                  },
     "seed":  8,
     "local_search":  {
-                         "enabled":  false,
+                         "enabled":  true,
                          "top_k":  3,
                          "max_trials":  100,
                          "_comment":  "If runner.py does not pass this block, GeneticAlgorithm still uses safe defaults."
